@@ -1,0 +1,564 @@
+@php
+    $isAvoir = ($type ?? 'facture') === 'avoir';
+    $doc = $document;
+    $provider = $doc->provider;
+
+    if ($isAvoir) {
+        $refFacture = $refFacture ?? $doc->facture;
+        $expeditions = $refFacture?->expeditions ?? collect();
+    } else {
+        $refFacture = null;
+        $expeditions = $doc->expeditions ?? collect();
+    }
+
+    $logoPath = public_path('logos/logo_noir.jpg');
+    $logoData = file_exists($logoPath) ? base64_encode(file_get_contents($logoPath)) : null;
+    $logoSrc = $logoData ? 'data:image/jpeg;base64,' . $logoData : '';
+
+    $fmt = fn ($v) => number_format((float) $v, 2, ',', ' ');
+
+    $docNumber = $doc->numero;
+    $emission = $doc->date_facture?->format('d/m/Y') ?? '-';
+    $echeance = $isAvoir ? null : ($doc->date_echeance?->format('d/m/Y') ?? '-');
+    $destination = ucfirst($doc->type_destination ?? '');
+
+    if ($doc->client) {
+        $clientName = strtoupper($doc->client->company_name ?: $doc->client->full_name ?: '-');
+        $clientAddressParts = [];
+        if (!empty($doc->client->address)) {
+            $clientAddressParts[] = $doc->client->address;
+        }
+        $cityLine = trim(($doc->client->postal_code ?? '') . ' ' . ($doc->client->city ?? ''));
+        $country = $doc->client->country ?: 'Maroc';
+        if ($cityLine !== '' || $country !== '') {
+            $clientAddressParts[] = trim($cityLine . ($cityLine !== '' ? ', ' : '') . $country);
+        }
+        $clientIce = $doc->client->ice ?: '';
+        $clientPhone = $doc->client->phone ?: '';
+        $clientEmail = $doc->client->email ?: '';
+    } else {
+        $diversNom = $isAvoir ? ($refFacture->client_divers_nom ?? '') : ($doc->client_divers_nom ?? '');
+        $diversAddr = $isAvoir ? ($refFacture->client_divers_adresse ?? '') : ($doc->client_divers_adresse ?? '');
+        $diversTel = $isAvoir ? ($refFacture->client_divers_tel ?? '') : ($doc->client_divers_tel ?? '');
+        $diversEmail = $isAvoir ? ($refFacture->client_divers_email ?? '') : ($doc->client_divers_email ?? '');
+
+        $clientName = strtoupper($diversNom ?: '-');
+        $clientAddressParts = [];
+        if (!empty($diversAddr)) {
+            $clientAddressParts[] = $diversAddr;
+        }
+        $clientIce = '';
+        $clientPhone = $diversTel;
+        $clientEmail = $diversEmail;
+    }
+
+    $nonTaxable = (float) $doc->non_taxable;
+    $taxable = (float) $doc->taxable;
+    $tvaRate = (float) $doc->taux_tva;
+    $tva = (float) $doc->tva;
+    $ttc = (float) $doc->ttc;
+
+    if ($isAvoir) {
+        $nonTaxable = abs($nonTaxable);
+        $taxable = abs($taxable);
+        $tvaRate = abs($tvaRate);
+        $tva = abs($tva);
+        $ttc = abs($ttc);
+    }
+
+    $society = $provider->company_name ?? '-';
+    $provAddress = $provider->address ?? '-';
+    $provCityLine = trim(($provider->postal_code ?? '') . ' ' . ($provider->city ?? ''));
+    $provCountry = $provider->country ?? '';
+    $provAddressFull = trim($provCityLine . ($provCityLine && $provCountry ? ', ' : '') . $provCountry);
+    $provRc = $provider->rc ?? '-';
+    $provIce = $provider->ice ?? '-';
+    $provIf = $provider->if_ ?? '-';
+    $provTel = $provider->phone ?? '-';
+    $provEmail = $provider->email ?? '-';
+
+    $negFor = function ($value) use ($isAvoir) {
+        if (!$isAvoir) return '';
+        return ((float) $value) > 0 ? '-' : '';
+    };
+    $watermarkText = $isAvoir ? 'AVOIR' : null;
+@endphp
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>{{ $isAvoir ? 'Avoir' : 'Facture' }} {{ $docNumber }}</title>
+<style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+        font-family: Helvetica, 'DejaVu Sans', sans-serif;
+        font-size: 11px;
+        line-height: 1.5;
+        color: #555555;
+        background: #ffffff;
+        margin: 36pt 40pt 110pt 40pt;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    /* ===== HEADER ===== */
+    .header-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 24px;
+        padding-bottom: 18px;
+        border-bottom: 1px solid #e0e0e0;
+        table-layout: fixed;
+    }
+    .header-table > tbody > tr > td { vertical-align: top; padding: 0; }
+    .header-table .left-cell { width: 50%; }
+    .header-table .right-cell { width: 50%; text-align: right; }
+
+    .logo-img {
+        max-width: 195px;
+        max-height: 75px;
+    }
+    .logo-placeholder {
+        width: 195px;
+        height: 75px;
+        border: 1.5px dashed #c0c0c0;
+        border-radius: 6px;
+        text-align: center;
+        line-height: 75px;
+        color: #888888;
+        font-size: 10px;
+        font-weight: 500;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        background: #f7f7f7;
+    }
+    .brand-name {
+        font-size: 15px;
+        font-weight: 700;
+        color: #0a0a0a;
+        letter-spacing: -0.3px;
+        margin-top: 8px;
+    }
+
+    .doc-type {
+        font-size: 20px;
+        font-weight: 700;
+        color: #0a0a0a;
+        letter-spacing: -0.5px;
+        margin-bottom: 4px;
+    }
+    .doc-type.avoir { color: #555555; }
+
+    .doc-number {
+        font-size: 12px;
+        font-weight: 600;
+        color: #ffffff;
+        background: #0a0a0a;
+        padding: 3px 10px;
+        border-radius: 4px;
+        letter-spacing: 0.5px;
+        margin-bottom: 10px;
+    }
+    .doc-number.avoir-badge { background: #555555; }
+
+    .meta-row {
+        margin-top: 3px;
+        font-size: 10.5px;
+        color: #888888;
+        text-align: right;
+    }
+    .meta-row .meta-value {
+        color: #2a2a2a;
+        font-weight: 500;
+        margin-left: 6px;
+    }
+
+    /* ===== AVOIR REF (plain black, sits under badge) ===== */
+    .avoir-ref-inline {
+        font-size: 10.5px;
+        color: #0a0a0a;
+        font-weight: 400;
+        margin-bottom: 6px;
+        text-align: right;
+    }
+    .avoir-ref-inline .ref-numero {
+        font-weight: 700;
+    }
+    .avoir-ref-inline .ref-date {
+        color: #555555;
+        margin-left: 4px;
+    }
+
+    /* ===== PARTIES (left-side, mirror of fiscal summary) ===== */
+    .client-outer {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 24px;
+    }
+    .client-outer > tbody > tr > td.client-cell {
+        width: 50%;
+        vertical-align: top;
+    }
+    .client-outer > tbody > tr > td.client-spacer {
+        width: 50%;
+    }
+    .party-block {
+        padding: 18px 22px;
+        border-radius: 8px;
+        background: #f7f7f7;
+        border: 1px solid #e0e0e0;
+        width: 100%;
+        border-spacing: 0;
+    }
+    .party-name {
+        font-size: 14px;
+        font-weight: 700;
+        color: #0a0a0a;
+        margin-bottom: 8px;
+        letter-spacing: -0.2px;
+    }
+    .party-detail {
+        font-size: 11px;
+        color: #555555;
+        line-height: 1.6;
+    }
+    .party-line { display: block; }
+    .party-detail .detail-label {
+        font-size: 9.5px;
+        color: #888888;
+        font-weight: 500;
+    }
+    .party-ids {
+        margin-top: 10px;
+        padding-top: 8px;
+        border-top: 1px dashed #e0e0e0;
+    }
+    .id-item {
+        font-size: 10px;
+        display: inline-block;
+        margin-right: 16px;
+    }
+    .id-label {
+        font-weight: 600;
+        color: #555555;
+        text-transform: uppercase;
+        font-size: 9px;
+        letter-spacing: 0.5px;
+    }
+    .id-value {
+        color: #2a2a2a;
+        font-weight: 500;
+    }
+
+    /* ===== TABLE ===== */
+    .table-section { margin-bottom: 24px; }
+    .section-title {
+        font-size: 9px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        color: #888888;
+        margin-bottom: 10px;
+    }
+    .expedition-table {
+        width: 100%;
+        border-collapse: collapse;
+        border-radius: 8px;
+        border: 1px solid #e0e0e0;
+    }
+    .expedition-table thead th {
+        background: #0a0a0a;
+        color: #ffffff;
+        font-size: 9.5px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        padding: 10px 14px;
+        text-align: left;
+    }
+    .expedition-table tbody td {
+        padding: 11px 14px;
+        font-size: 11px;
+        color: #2a2a2a;
+        border-bottom: 1px solid #f0f0f0;
+        vertical-align: top;
+    }
+    .expedition-table tbody tr:nth-child(even) { background: #f7f7f7; }
+    .expedition-table tbody tr:last-child td { border-bottom: none; }
+
+    /* ===== FISCAL SUMMARY ===== */
+    .summary-wrapper {
+        margin-bottom: 36px;
+        width: 100%;
+    }
+    .summary-outer {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .summary-outer > tbody > tr > td.spacer { width: 55%; }
+    .summary-outer > tbody > tr > td.summary-cell { width: 320px; vertical-align: top; }
+
+    .summary-block {
+        width: 320px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        border-spacing: 0;
+    }
+    .summary-block td {
+        padding: 10px 16px;
+        font-size: 11px;
+        vertical-align: middle;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .summary-block td.summary-label { text-align: left; color: #555555; font-weight: 400; }
+    .summary-block td.summary-value {
+        text-align: right;
+        font-weight: 500;
+        color: #2a2a2a;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+    .summary-block tr.tva-row td { background: #f7f7f7; }
+    .tva-rate {
+        display: inline-block;
+        font-size: 9px;
+        font-weight: 600;
+        color: #888888;
+        background: #e0e0e0;
+        padding: 1px 6px;
+        border-radius: 3px;
+        margin-left: 6px;
+    }
+    .summary-block .summary-total-row td {
+        background: #0a0a0a;
+        padding: 14px 16px;
+        border-bottom: none;
+    }
+    .summary-block .summary-total-row td.summary-label {
+        color: #c0c0c0;
+        font-weight: 600;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+    }
+    .summary-block .summary-total-row td.summary-value {
+        color: #ffffff;
+        font-size: 17px;
+        font-weight: 700;
+        letter-spacing: -0.3px;
+    }
+    .summary-block .summary-total-row .currency {
+        font-size: 11px;
+        font-weight: 500;
+        color: #c0c0c0;
+        margin-left: 4px;
+    }
+
+    /* ===== EMPTY STATE ===== */
+    .empty-expeditions {
+        padding: 14px;
+        border: 1px dashed #e0e0e0;
+        border-radius: 6px;
+        color: #888888;
+        font-size: 10.5px;
+        text-align: center;
+    }
+
+    /* ===== WATERMARK (AVOIR rotates -45deg, shifted left) ===== */
+    .watermark {
+        position: fixed;
+        top: 50%;
+        left: 38%;
+        transform: rotate(-45deg);
+        transform-origin: center center;
+        font-size: 96px;
+        font-weight: 800;
+        color: rgba(0,0,0,0.05);
+        text-transform: uppercase;
+        letter-spacing: 12px;
+    }
+
+    .watermark.avoir-watermark {
+        left: 30%;
+    }
+
+    /* ===== FOOTER (position: fixed, edge-to-edge, every page) ===== */
+    .page-footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 14pt 40pt 16pt 40pt;
+        border-top: 1px solid #e0e0e0;
+        background: #f7f7f7;
+        font-size: 9px;
+        color: #555555;
+        -webkit-print-color-adjust: exact;
+    }
+    .footer-row {
+        line-height: 1.7;
+        width: 100%;
+    }
+    .footer-item {
+        display: inline-block;
+        margin-right: 14px;
+    }
+    .footer-item .footer-label {
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #2a2a2a;
+    }
+</style>
+</head>
+<body>
+
+@if($watermarkText)
+    <div class="watermark {{ $isAvoir ? 'avoir-watermark' : '' }}">{{ $watermarkText }}</div>
+@endif
+
+<table class="header-table">
+    <tr>
+        <td class="left-cell">
+            @if($logoSrc)
+                <img src="{{ $logoSrc }}" class="logo-img" alt="Logo"><br>
+            @else
+                <div class="logo-placeholder">LOGO</div><br>
+            @endif
+            <span class="brand-name">{{ $society }}</span>
+        </td>
+        <td class="right-cell">
+            @if($isAvoir)
+                <div class="doc-type avoir">AVOIR</div>
+                <div class="doc-number avoir-badge">{{ $docNumber }}</div>
+                @if($refFacture)
+                    <div class="avoir-ref-inline">
+                        Avoir lié à la facture : <span class="ref-numero">{{ $refFacture->numero }}</span>
+                        @if($refFacture->date_facture)
+                            <span class="ref-date">({{ $refFacture->date_facture->format('d/m/Y') }})</span>
+                        @endif
+                    </div>
+                @endif
+            @else
+                <div class="doc-type">FACTURE</div>
+                <div class="doc-number">{{ $docNumber }}</div>
+            @endif
+
+            <div class="meta-row">
+                <span>Date d'émission</span>
+                <span class="meta-value">{{ $emission }}</span>
+            </div>
+            @if(!$isAvoir && $echeance)
+                <div class="meta-row">
+                    <span>Date d'échéance</span>
+                    <span class="meta-value">{{ $echeance }}</span>
+                </div>
+            @endif
+            <div class="meta-row">
+                <span>Destination</span>
+                <span class="meta-value">{{ $destination ?: '-' }}</span>
+            </div>
+        </td>
+    </tr>
+</table>
+
+<table class="client-outer">
+    <tr>
+        <td class="client-cell">
+            <table class="party-block">
+                <tr><td>
+                    <div class="party-name">{{ $clientName }}</div>
+                    <div class="party-detail">
+                        @foreach($clientAddressParts as $part)
+                            <span class="party-line">{{ $part }}</span>
+                        @endforeach
+                        @if($clientPhone)<span class="party-line"><span class="detail-label">Tél :</span> {{ $clientPhone }}</span>@endif
+                        @if($clientEmail)<span class="party-line"><span class="detail-label">Email :</span> {{ $clientEmail }}</span>@endif
+                    </div>
+                    @if($clientIce)
+                        <div class="party-ids">
+                            <div class="id-item">
+                                <div class="id-label">ICE</div>
+                                <div class="id-value">{{ $clientIce }}</div>
+                            </div>
+                        </div>
+                    @endif
+                </td></tr>
+            </table>
+        </td>
+        <td class="client-spacer">&nbsp;</td>
+    </tr>
+</table>
+
+<div class="table-section">
+    <div class="section-title">Détail des expéditions ({{ $expeditions->count() }})</div>
+    @if($expeditions->count() > 0)
+        <table class="expedition-table">
+            <thead>
+                <tr>
+                    <th style="width:90px;">N° Expéd.</th>
+                    <th style="width:80px;">Date</th>
+                    <th>Destinataire</th>
+                    <th>Ville / Pays</th>
+                    <th style="width:130px;">Service</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($expeditions as $exp)
+                    <tr>
+                        <td>{{ $exp->shipping_number }}</td>
+                        <td>{{ $exp->created_at?->format('d/m/Y') }}</td>
+                        <td>{{ $exp->recipient_name }}</td>
+                        <td>{{ trim(($exp->recipient_city ?? '') . ($exp->recipient_city && $exp->recipient_country ? ', ' : '') . ($exp->recipient_country ?? '')) ?: '-' }}</td>
+                        <td>{{ str_replace('_', ' ', ucfirst($exp->type_service ?? '')) ?: '-' }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @else
+        <div class="empty-expeditions">Aucune expédition associée.</div>
+    @endif
+</div>
+
+<div class="summary-wrapper">
+    <table class="summary-outer">
+        <tr>
+            <td class="spacer">&nbsp;</td>
+            <td class="summary-cell">
+                <table class="summary-block">
+                    <tr>
+                        <td class="summary-label">Montant non taxable</td>
+                        <td class="summary-value" style="width:120px;">{{ $negFor($nonTaxable) }}{{ $fmt($nonTaxable) }} MAD</td>
+                    </tr>
+                    <tr>
+                        <td class="summary-label">Montant taxable</td>
+                        <td class="summary-value" style="width:120px;">{{ $negFor($taxable) }}{{ $fmt($taxable) }} MAD</td>
+                    </tr>
+                    <tr class="tva-row">
+                        <td class="summary-label">TVA <span class="tva-rate">{{ $fmt($tvaRate) }}%</span></td>
+                        <td class="summary-value" style="width:120px;">{{ $negFor($tva) }}{{ $fmt($tva) }} MAD</td>
+                    </tr>
+                    <tr class="summary-total-row">
+                        <td class="summary-label">Total TTC</td>
+                        <td class="summary-value" style="width:120px;">{{ $negFor($ttc) }}{{ $fmt($ttc) }} <span class="currency">MAD</span></td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</div>
+
+<div class="page-footer">
+    <div class="footer-row">
+        <span class="footer-item"><span class="footer-label">Société :</span> {{ $society }}</span>
+        <span class="footer-item"><span class="footer-label">Adresse :</span> {{ $provAddress }}{{ $provAddressFull ? ' — ' . $provAddressFull : '' }}</span>
+        <span class="footer-item"><span class="footer-label">RC :</span> {{ $provRc }}</span>
+        <span class="footer-item"><span class="footer-label">ICE :</span> {{ $provIce }}</span>
+        <span class="footer-item"><span class="footer-label">IF :</span> {{ $provIf }}</span>
+        <span class="footer-item"><span class="footer-label">Tél :</span> {{ $provTel }}</span>
+        <span class="footer-item"><span class="footer-label">Email :</span> {{ $provEmail }}</span>
+    </div>
+</div>
+
+</body>
+</html>
