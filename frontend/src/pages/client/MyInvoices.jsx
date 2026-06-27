@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Search, FileDown, CircleCheck, Clock, Receipt, Wallet } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { FileDown, CircleCheck, Clock, Receipt, Wallet } from 'lucide-react';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
 import EmptyState from '../../components/ui/EmptyState';
 import Skeleton from '../../components/ui/Skeleton';
 import SortHeader from '../../components/ui/SortHeader';
+import SearchInput from '../../components/ui/SearchInput';
 import { useColumnSort } from '../../hooks/useColumnSort';
 
 const statusOptions = [
@@ -35,71 +36,66 @@ function getInvoiceNumber(inv) {
 }
 
 export default function MyInvoices() {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialStatus = searchParams.get('statut') || '';
-  const initialQ = searchParams.get('q') || '';
+  const q = searchParams.get('q') || '';
+  const statut = searchParams.get('statut') || '';
   const focusId = searchParams.get('focus');
-
   const [invoices, setInvoices] = useState([]);
-  const [status, setStatus] = useState(initialStatus);
-  const [search, setSearch] = useState(initialQ);
   const [loading, setLoading] = useState(true);
   const { column, direction, toggle, params: sortParams } = useColumnSort('created_at', 'desc');
 
   useEffect(() => {
-    const params = { ...sortParams };
-    if (status) params.statut = status;
-    if (search) params.search = search;
+    fetchInvoices();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q, statut, column, direction]);
 
-    const sp = { statut: status, q: search };
-    if (sortParams.sort_by) sp.sort_by = sortParams.sort_by;
-    if (sortParams.sort_dir) sp.sort_dir = sortParams.sort_dir;
-    setSearchParams(sp, { replace: true });
-
+  const fetchInvoices = async () => {
     setLoading(true);
-    const t = setTimeout(() => {
-      api.get('/my/invoices', { params })
-        .then(({ data }) => {
-          setInvoices(data.data || []);
-          setLoading(false);
-        })
-        .catch(() => setLoading(false));
-    }, 250);
-
-    return () => clearTimeout(t);
-  }, [status, search, column, direction]);
+    try {
+      const { data } = await api.get('/my/invoices', { params: { search: q, statut, ...sortParams } });
+      setInvoices(data.data || []);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Top-of-page stats
-  const totalTtc = invoices.reduce((acc, i) => acc + Number(i.ttc || 0), 0);
-  const totalPaye = invoices.filter((i) => i.statut === 'payee').reduce((acc, i) => acc + Number(i.ttc || 0), 0);
+  const unpaidCount = invoices.filter((i) => i.statut === 'impayee').length;
   const totalImpaye = invoices.filter((i) => i.statut === 'impayee').reduce((acc, i) => acc + Number(i.ttc || 0), 0);
 
-  const handleClearFilters = () => {
-    setStatus('');
-    setSearch('');
+  const updateParam = (key, value) => {
+    const next = new URLSearchParams(searchParams);
+    if (value) next.set(key, value);
+    else next.delete(key);
+    setSearchParams(next, { replace: true });
   };
+
+  const handleSearch = (value) => updateParam('q', value);
+
+  const handleClearAll = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('q');
+    next.delete('statut');
+    setSearchParams(next, { replace: true });
+  };
+
+  const handleStatusChange = (e) => updateParam('statut', e.target.value);
 
   return (
     <div>
       <PageHeader
-        eyebrow="Espace Client"
         title="Mes Factures"
         subtitle="Consultez, telechargez et suivez vos factures."
       />
 
       {/* Inline Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <SummaryStat
           icon={Receipt}
-          label="Total facture"
-          value={formatCurrency(totalTtc)}
+          label="Nombre de factures impayees"
+          value={unpaidCount}
           accent="primary"
-        />
-        <SummaryStat
-          icon={CircleCheck}
-          label="Total paye"
-          value={formatCurrency(totalPaye)}
-          accent="success"
         />
         <SummaryStat
           icon={Wallet}
@@ -109,64 +105,34 @@ export default function MyInvoices() {
         />
       </div>
 
-      {/* Filter Bar */}
-      <Card className="p-4 mb-4">
-        <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center">
-          <div className="relative flex-1">
-            <Search
-              size={16}
-              className="absolute top-1/2 -translate-y-1/2"
-              style={{ left: 12, color: 'var(--color-smoke)' }}
-            />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Rechercher par numero de facture..."
-              className="input"
-              style={{ paddingLeft: 36 }}
-            />
-          </div>
+      <Card style={{ padding: 16, marginBottom: 16 }}>
+        <div className="flex flex-col md:flex-row" style={{ gap: 12, alignItems: 'center' }}>
+          <SearchInput
+            value={q}
+            onSearch={handleSearch}
+            onClear={handleClearAll}
+            loading={loading}
+            placeholder="Rechercher par numero de facture..."
+          />
           <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
+            value={statut}
+            onChange={handleStatusChange}
             className="select"
-            style={{ maxWidth: 220, minWidth: 160 }}
+            style={{ maxWidth: 220 }}
           >
             {statusOptions.map((s) => (
               <option key={s.value} value={s.value}>{s.label}</option>
             ))}
           </select>
-          {(search || status) && (
-            <button
-              type="button"
-              onClick={handleClearFilters}
-              className="btn btn-ghost"
-              style={{ padding: '8px 14px' }}
-            >
-              Reinitialiser
-            </button>
-          )}
-        </div>
-
-        <div
-          className="flex items-center gap-2 mt-3"
-          style={{ fontSize: 12, color: 'var(--color-steel)' }}
-        >
-          <Receipt size={13} />
-          <span>
-            {loading ? 'Chargement...' : `${invoices.length} facture${invoices.length > 1 ? 's' : ''}`}
-          </span>
         </div>
       </Card>
 
-      {/* Invoices Table */}
-      <Card className="overflow-hidden">
+      <Card style={{ padding: 0 }}>
         {loading ? (
           <div style={{ padding: 24 }}>
             {[...Array(5)].map((_, i) => (
-              <div key={i} style={{ marginBottom: 14 }}>
-                <Skeleton height={18} width="75%" />
+              <div key={i} style={{ marginBottom: 12 }}>
+                <Skeleton height={20} width="55%" />
               </div>
             ))}
           </div>
@@ -175,81 +141,87 @@ export default function MyInvoices() {
             icon={Receipt}
             title="Aucune facture trouvee"
             description={
-              search || status
-                ? "Aucun resultat ne correspond a vos filtres."
+              q || statut
+                ? 'Aucun resultat ne correspond a vos filtres.'
                 : "Aucune facture n'a ete emise a votre encontre pour le moment."
             }
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="table-clean">
-              <thead>
-                <tr>
-                  <SortHeader label="Numero" col="numero_n" currentCol={column} direction={direction} onClick={toggle} />
-                  <SortHeader label="Date" col="created_at" currentCol={column} direction={direction} onClick={toggle} />
-                  <SortHeader label="Echeance" col="date_echeance" currentCol={column} direction={direction} onClick={toggle} />
-                  <SortHeader label="HT" col="taxable" currentCol={column} direction={direction} onClick={toggle} align="right" />
-                  <SortHeader label="TVA" col="tva" currentCol={column} direction={direction} onClick={toggle} align="right" />
-                  <SortHeader label="TTC" col="ttc" currentCol={column} direction={direction} onClick={toggle} align="right" />
-                  <SortHeader label="Statut" col="statut" currentCol={column} direction={direction} onClick={toggle} />
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {invoices.map((inv) => {
-                  const id = inv.id;
-                  const focused = id.toString() === focusId;
-                  return (
-                    <tr
-                      key={id}
-                      style={
-                        focused
-                          ? { background: 'var(--color-primary-wash)' }
-                          : undefined
-                      }
-                    >
-                      <td className="font-mono-data">
-                        <span style={{ fontWeight: 600, color: 'var(--color-primary)' }}>
-                          {getInvoiceNumber(inv)}
-                        </span>
-                      </td>
-                      <td>{formatDate(inv.date_facture)}</td>
-                      <td>{formatDate(inv.date_echeance)}</td>
-                      <td className="text-right">{formatCurrency(inv.ht)}</td>
-                      <td className="text-right">{formatCurrency(inv.tva)}</td>
-                      <td className="text-right" style={{ fontWeight: 700, color: 'var(--color-graphite)' }}>
-                        {formatCurrency(inv.ttc)}
-                      </td>
-                      <td>
-                        <InvoiceStatusPill status={inv.statut} />
-                      </td>
-                      <td>
-                        <a
-                          href={`/api/my/invoices/${inv.id}/pdf`}
-                          target="_blank"
-                          rel="noreferrer"
-                          download={`${inv.numero || `FA ${inv.numero_n}/${inv.annee}`}.pdf`}
-                          className="btn btn-secondary"
-                          style={{ padding: '6px 12px', fontSize: 12 }}
-                          title="Telecharger le PDF"
-                        >
-                          <FileDown size={16} /> PDF
-                        </a>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <table className="table-clean">
+            <thead>
+              <tr>
+                <SortHeader label="Numero" col="numero_n" currentCol={column} direction={direction} onClick={toggle} />
+                <SortHeader label="Date" col="date_facture" currentCol={column} direction={direction} onClick={toggle} />
+                <SortHeader label="Echeance" col="date_echeance" currentCol={column} direction={direction} onClick={toggle} />
+                <SortHeader label="HT" col="taxable" currentCol={column} direction={direction} onClick={toggle} align="right" />
+                <SortHeader label="TVA" col="tva" currentCol={column} direction={direction} onClick={toggle} align="right" />
+                <SortHeader label="TTC" col="ttc" currentCol={column} direction={direction} onClick={toggle} align="right" />
+                <SortHeader label="Statut" col="statut" currentCol={column} direction={direction} onClick={toggle} />
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {invoices.map((inv) => {
+                const id = inv.id;
+                const focused = id.toString() === focusId;
+                return (
+                  <tr
+                    key={id}
+                    onClick={() => navigate(`/client/mes-factures/${id}`)}
+                    style={{
+                      cursor: 'pointer',
+                      background: focused ? 'var(--color-primary-wash)' : undefined,
+                    }}
+                  >
+                    <td className="font-mono-data" style={{ color: 'var(--color-primary)' }}>
+                      <span>{getInvoiceNumber(inv)}</span>
+                    </td>
+                    <td>{formatDate(inv.date_facture)}</td>
+                    <td>{formatDate(inv.date_echeance)}</td>
+                    <td className="text-right">{formatCurrency(inv.taxable)}</td>
+                    <td className="text-right">{formatCurrency(inv.tva)}</td>
+                    <td className="text-right" style={{ fontWeight: 700, color: 'var(--color-graphite)' }}>
+                      {formatCurrency(inv.ttc)}
+                    </td>
+                    <td>
+                      <InvoiceStatusPill status={inv.statut} />
+                    </td>
+                    <td onClick={(e) => e.stopPropagation()}>
+                      <a
+                        href={`/api/my/invoices/${inv.id}/pdf`}
+                        target="_blank"
+                        rel="noreferrer"
+                        download={`${inv.numero || `FA ${inv.numero_n}/${inv.annee}`}.pdf`}
+                        className="btn btn-secondary"
+                        style={{ padding: '6px 12px', fontSize: 12 }}
+                        title="Telecharger le PDF"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <FileDown size={16} /> PDF
+                      </a>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         )}
       </Card>
 
+      {!loading && invoices.length > 0 && (
+        <p
+          className="mt-3 text-center"
+          style={{ fontSize: 12, color: 'var(--color-steel)' }}
+        >
+          {invoices.length} facture{invoices.length > 1 ? 's' : ''}
+        </p>
+      )}
+
       <p
-        className="mt-6 text-center"
+        className="mt-3 text-center"
         style={{ fontSize: 12, color: 'var(--color-steel)' }}
       >
-        Pour toute question concernant vos factures, merci de contacter votre prestataire.
+        Pour toute question concernant vos factures, merci de nous contacter.
       </p>
     </div>
   );

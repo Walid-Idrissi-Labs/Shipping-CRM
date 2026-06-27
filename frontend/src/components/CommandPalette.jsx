@@ -247,7 +247,7 @@ export default function CommandPalette({ open, onClose, role }) {
               {results.quotes.map((q) => (
                 <button
                   key={q.id}
-                  onClick={() => go(`/dashboard/devis`)}
+                  onClick={() => go(`/dashboard/devis/${q.id}`)}
                   className="flex items-center w-full text-left"
                   style={{
                     padding: '10px 16px', fontSize: 14, background: 'none', border: 'none',
@@ -257,7 +257,7 @@ export default function CommandPalette({ open, onClose, role }) {
                   onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
                 >
                   <span className="font-mono-data" style={{ color: 'var(--color-primary)', marginRight: 12 }}>
-                    {q.numero}
+                    {q.quote_number || q.numero}
                   </span>
                   {q.client_name}
                 </button>

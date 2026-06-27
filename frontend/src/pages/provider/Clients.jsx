@@ -1,34 +1,51 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Search, Plus, UserPlus } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Plus, UserPlus } from 'lucide-react';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
 import EmptyState from '../../components/ui/EmptyState';
 import Skeleton from '../../components/ui/Skeleton';
 import SortHeader from '../../components/ui/SortHeader';
+import SearchInput from '../../components/ui/SearchInput';
 import { useColumnSort } from '../../hooks/useColumnSort';
 
 export default function Clients() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const q = searchParams.get('q') || '';
   const [clients, setClients] = useState([]);
-  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const { column, direction, toggle, params: sortParams } = useColumnSort('created_at', 'desc');
 
   useEffect(() => {
-    const t = setTimeout(() => fetchClients(), 250);
-    return () => clearTimeout(t);
-  }, [search, column, direction]);
+    fetchClients();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q, column, direction]);
 
   const fetchClients = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get('/clients', { params: { search, ...sortParams } });
+      const { data } = await api.get('/clients', { params: { search: q, ...sortParams } });
       setClients(data.data || []);
     } finally {
       setLoading(false);
     }
+  };
+
+  const updateParam = (key, value) => {
+    const next = new URLSearchParams(searchParams);
+    if (value) next.set(key, value);
+    else next.delete(key);
+    setSearchParams(next, { replace: true });
+  };
+
+  const handleSearch = (value) => updateParam('q', value);
+
+  const handleClearAll = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('q');
+    setSearchParams(next, { replace: true });
   };
 
   return (
@@ -42,20 +59,7 @@ export default function Clients() {
       />
 
       <Card style={{ padding: 16, marginBottom: 16 }}>
-        <div style={{ position: 'relative', maxWidth: 420 }}>
-          <Search
-            size={16}
-            style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-smoke)' }}
-          />
-          <input
-            type="text"
-            placeholder="Rechercher par nom, email, telephone, compte..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="input"
-            style={{ paddingLeft: 36 }}
-          />
-        </div>
+        <SearchInput value={q} onSearch={handleSearch} onClear={handleClearAll} loading={loading} placeholder="Rechercher par nom, email, telephone, compte..." />
       </Card>
 
       <Card style={{ padding: 0 }}>
@@ -71,9 +75,9 @@ export default function Clients() {
           <EmptyState
             icon={Plus}
             title="Aucun client"
-            description={search ? 'Aucun resultat pour votre recherche.' : 'Commencez par ajouter un nouveau client.'}
-            actionLabel={!search ? 'Ajouter un client' : undefined}
-            actionTo={!search ? '/dashboard/clients/nouveau' : undefined}
+            description={q ? 'Aucun resultat pour votre recherche.' : 'Commencez par ajouter un nouveau client.'}
+            actionLabel={!q ? 'Ajouter un client' : undefined}
+            actionTo={!q ? '/dashboard/clients/nouveau' : undefined}
           />
         ) : (
           <table className="table-clean">

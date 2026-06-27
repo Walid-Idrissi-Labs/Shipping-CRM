@@ -11,10 +11,9 @@
         $expeditions = $doc->expeditions ?? collect();
     }
 
-    // $logoPath = public_path('logos/logo_noir.jpg');
-    $logoPath = public_path('logos/dpex-logo-gif_final.png');
+    $logoPath = public_path('logos/logo_noir.jpg');
     $logoData = file_exists($logoPath) ? base64_encode(file_get_contents($logoPath)) : null;
-    $logoSrc = $logoData ? 'data:image/png;base64,' . $logoData : '';
+    $logoSrc = $logoData ? 'data:image/jpeg;base64,' . $logoData : '';
 
 $cachePath = public_path('logos/cache3.png');
     $cacheData = file_exists($cachePath) ? base64_encode(file_get_contents($cachePath)) : null;
@@ -207,7 +206,7 @@ $cachePath = public_path('logos/cache3.png');
     .client-outer {
         width: 100%;
         border-collapse: collapse;
-        margin-bottom: 20px;
+        margin-bottom: 24px;
     }
     .client-outer > tbody > tr > td.client-cell {
         width: 50%;
@@ -217,7 +216,7 @@ $cachePath = public_path('logos/cache3.png');
         width: 50%;
     }
     .party-block {
-        padding: 12px 22px;
+        padding: 18px 22px;
         border-radius: 5px;
         background: #f7f7f7;
         border: 1px solid #e0e0e0;
@@ -245,7 +244,7 @@ $cachePath = public_path('logos/cache3.png');
     .party-ids {
         margin-top: 10px;
         padding-top: 8px;
-        border-top: 2px dashed #b0b0b0;
+        border-top: 1px dashed #e0e0e0;
     }
     .id-item {
         font-size: 10px;
@@ -454,7 +453,7 @@ $cachePath = public_path('logos/cache3.png');
     .page-block {
         page-break-after: always;
     }
-    .page-block.last-page-block {
+    .page-block:last-child {
         page-break-after: auto;
     }
     .expedition-table tbody tr {
@@ -468,19 +467,6 @@ $cachePath = public_path('logos/cache3.png');
     <div class="watermark {{ $isAvoir ? 'avoir-watermark' : '' }}">{{ $watermarkText }}</div>
 @endif
 
-<!-- FOOTER (fixed at bottom, registered before paginated content for DomPDF) -->
-<div class="page-footer">
-    <div class="footer-row">
-        <span class="footer-item"><span class="footer-label">Société :</span> {{ $society }}</span>
-        <span class="footer-item"><span class="footer-label">Adresse :</span> {{ $provAddress }}{{ $provAddressFull ? ' — ' . $provAddressFull : '' }}</span>
-        <span class="footer-item"><span class="footer-label">RC :</span> {{ $provRc }}</span>
-        <span class="footer-item"><span class="footer-label">ICE :</span> {{ $provIce }}</span>
-        <span class="footer-item"><span class="footer-label">IF :</span> {{ $provIf }}</span>
-        <span class="footer-item"><span class="footer-label">Tél :</span> {{ $provTel }}</span>
-        <span class="footer-item"><span class="footer-label">Email :</span> {{ $provEmail }}</span>
-    </div>
-</div>
-
 @foreach($expeditionPages as $pageIdx => $pageExpeditions)
     @php
         $pageNum = $pageIdx + 1;
@@ -489,7 +475,7 @@ $cachePath = public_path('logos/cache3.png');
         $sectionTitle = $isFirstPage ? 'Détail des expéditions' : 'Détail (suite) des expéditions';
     @endphp
 
-    <div class="page-block {{ $loop->last ? 'last-page-block' : '' }}">
+    <div class="page-block">
 
     <!-- HEADER TABLE (repeated on every page) -->
     <table class="header-table">
@@ -637,13 +623,25 @@ $cachePath = public_path('logos/cache3.png');
         @endif
     </div>
 
-    </div>
 @endforeach
+
+<!-- FIXED FOOTER AT BOTTOM OF EVERY PAGE (outside loop so not part of page-break content) -->
+<div class="page-footer">
+    <div class="footer-row">
+        <span class="footer-item"><span class="footer-label">Société :</span> {{ $society }}</span>
+        <span class="footer-item"><span class="footer-label">Adresse :</span> {{ $provAddress }}{{ $provAddressFull ? ' — ' . $provAddressFull : '' }}</span>
+        <span class="footer-item"><span class="footer-label">RC :</span> {{ $provRc }}</span>
+        <span class="footer-item"><span class="footer-label">ICE :</span> {{ $provIce }}</span>
+        <span class="footer-item"><span class="footer-label">IF :</span> {{ $provIf }}</span>
+        <span class="footer-item"><span class="footer-label">Tél :</span> {{ $provTel }}</span>
+        <span class="footer-item"><span class="footer-label">Email :</span> {{ $provEmail }}</span>
+    </div>
+</div>
 
 <script type="text/php">
     if (isset($pdf)) {
         $font = $fontMetrics->get_font("Helvetica", "normal");
-        $pdf->page_text(542, 783, "Page {PAGE_NUM} / {PAGE_COUNT}", $font, 9, array(0, 0, 0));
+        $pdf->page_text(520, 40, "Page {PAGE_NUM} / {PAGE_COUNT}", $font, 9, array(68, 68, 68));
     }
 </script>
 </body>

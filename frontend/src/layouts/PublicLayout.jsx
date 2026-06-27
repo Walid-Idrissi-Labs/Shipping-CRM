@@ -31,16 +31,16 @@ export default function PublicLayout() {
             gap: 8,
           }}
         >
-          <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <rect x="2" y="2" width="6" height="6" rx="1" fill="var(--color-graphite)" />
-              <rect x="14" y="2" width="6" height="6" rx="1" fill="var(--color-primary)" />
-              <rect x="2" y="14" width="6" height="6" rx="1" fill="var(--color-primary)" />
-              <rect x="14" y="14" width="6" height="6" rx="1" fill="var(--color-graphite)" />
-            </svg>
-            <span style={{ fontSize: 17, fontWeight: 600, color: 'var(--color-graphite)', letterSpacing: '-0.01em' }}>
-              Shipping <span style={{ color: 'var(--color-primary)' }}>CRM</span>
-            </span>
+          <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
+            <img
+              src="/logos/dpex-logo-gif_final.png"
+              alt="Logo"
+              style={{
+                height: 36,
+                width: 'auto',
+                objectFit: 'contain',
+              }}
+            />
           </Link>
         </div>
         <GlassDockNav />

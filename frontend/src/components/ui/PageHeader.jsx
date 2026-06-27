@@ -40,7 +40,11 @@ export default function PageHeader({
 
   return (
     <div style={{ marginBottom: 28 }}>
-      {breadcrumbs && <Breadcrumbs items={breadcrumbs} />}
+      {breadcrumbs && (
+        <div style={{ marginBottom: 16 }}>
+          <Breadcrumbs items={breadcrumbs} />
+        </div>
+      )}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div className="min-w-0 flex-1">
           {eyebrow && (

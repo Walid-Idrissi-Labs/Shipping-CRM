@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useContext } from 'react';
 import LoadingOverlay from '../components/ui/LoadingOverlay';
 import LoadingContext from '../contexts/LoadingContext';
-import { LayoutDashboard, Package, Receipt, User, LogOut, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Package, Receipt, User, LogOut, Menu, FileText } from 'lucide-react';
 import { useState } from 'react';
 
 const EXPANDED_WIDTH = 240;
@@ -11,6 +11,7 @@ const EXPANDED_WIDTH = 240;
 const navGroups = [
   { parent: { path: '/client', label: 'Tableau de Bord', icon: LayoutDashboard } },
   { parent: { path: '/client/mes-expeditions', label: 'Mes Expeditions', icon: Package } },
+  { parent: { path: '/client/devis', label: 'Devis', icon: FileText } },
   { parent: { path: '/client/mes-factures', label: 'Mes Factures', icon: Receipt } },
   { parent: { path: '/client/mon-compte', label: 'Mon Compte', icon: User } },
 ];
@@ -30,22 +31,24 @@ function Sidebar({ user, onLogout, location, onNavigate }) {
       <div
         style={{
           display: 'flex',
+          justifyContent: 'center',
           alignItems: 'center',
-          padding: '18px 18px',
+          padding: '10px 18px',
           borderBottom: '1px solid var(--color-ash)',
-          gap: 10,
           minHeight: 64,
         }}
       >
-        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <rect x="2" y="2" width="6" height="6" rx="1" fill="#2544b0" />
-          <rect x="14" y="2" width="6" height="6" rx="1" fill="#1d1d20" />
-          <rect x="2" y="14" width="6" height="6" rx="1" fill="#1d1d20" />
-          <rect x="14" y="14" width="6" height="6" rx="1" fill="#2544b0" />
-        </svg>
-        <span style={{ fontWeight: 600, fontSize: 15, color: 'var(--color-graphite)', letterSpacing: '-0.01em' }}>
-          Espace&nbsp;<span style={{ color: 'var(--color-primary)' }}>Client</span>
-        </span>
+        <Link to="/client" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
+          <img
+            src="/logos/dpex-logo-gif_final.png"
+            alt="Logo"
+            style={{
+              height: 44,
+              width: 'auto',
+              objectFit: 'contain',
+            }}
+          />
+        </Link>
       </div>
 
       {/* Nav */}
@@ -95,7 +98,7 @@ function Sidebar({ user, onLogout, location, onNavigate }) {
           display: 'flex',
           alignItems: 'center',
           gap: 12,
-          padding: '14px',
+          padding: '11px 14px',
           borderTop: '1px solid var(--color-ash)',
           minHeight: 64,
         }}
@@ -111,6 +114,9 @@ function Sidebar({ user, onLogout, location, onNavigate }) {
           {user?.client?.full_name?.charAt(0).toUpperCase() || 'C'}
         </div>
         <div className="min-w-0 flex-1">
+          <div className="truncate" style={{ fontSize: 10, fontWeight: 500, color: 'var(--color-steel)', letterSpacing: '0.02em' }}>
+            Espace Client
+          </div>
           <div className="truncate" style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-graphite)' }}>
             {user?.client?.full_name || 'Client'}
           </div>
@@ -190,7 +196,7 @@ export default function ClientLayout() {
       >
         <header
           className="sticky top-0 z-10 surface-canvas"
-          style={{ borderBottom: '1px solid var(--color-ash)' }}
+          style={{ borderBottom: '1px solid var(--color-ash)', minHeight: 64 }}
         >
           <div
             className="flex items-center gap-4"

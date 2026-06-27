@@ -33,7 +33,6 @@ export default function MyAccount() {
   const passwordForm = useDirtyForm(emptyPassword);
   const [readOnly, setReadOnly] = useState({
     account_number: '',
-    provider_name: '',
     email_login: '',
   });
   const [loadingProfile, setLoadingProfile] = useState(true);
@@ -57,7 +56,6 @@ export default function MyAccount() {
         });
         setReadOnly({
           account_number: c.account_number || '-',
-          provider_name: c.provider?.company_name || '-',
           email_login: user.email || '-',
         });
         setLoadingProfile(false);
@@ -121,8 +119,8 @@ export default function MyAccount() {
         subtitle="Modifier vos informations et securite."
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="lg:col-span-3">
           <Card style={{ padding: 24, marginBottom: 24 }}>
             <div className="flex items-center gap-3 mb-5">
               <div
@@ -272,129 +270,13 @@ export default function MyAccount() {
             )}
           </Card>
 
-          <Card style={{ padding: 24 }}>
-            <div className="flex items-center gap-3 mb-5">
-              <div
-                className="flex items-center justify-center"
-                style={{
-                  width: 36, height: 36, borderRadius: 8,
-                  background: 'var(--color-bone)', color: 'var(--color-graphite)',
-                }}
-              >
-                <Lock size={18} />
-              </div>
-              <div>
-                <h3 className="section-heading">Securite</h3>
-                <p style={{ fontSize: 12, color: 'var(--color-steel)', marginTop: 2 }}>
-                  Changez votre mot de passe. Minimum 8 caracteres.
-                </p>
-              </div>
-            </div>
-
-            <form onSubmit={handlePasswordSubmit}>
-              <div className="space-y-4">
-                <div>
-                  <label className="field-label">Mot de passe actuel</label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      name="old_password"
-                      value={passwordForm.data.old_password}
-                      onChange={handlePasswordChange}
-                      className="input"
-                      style={{ paddingRight: 40 }}
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute top-1/2 -translate-y-1/2"
-                      style={{
-                        right: 10,
-                        background: 'transparent',
-                        border: 'none',
-                        padding: 4,
-                        color: 'var(--color-smoke)',
-                      }}
-                      aria-label={showPassword ? 'Masquer' : 'Afficher'}
-                    >
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="field-label">Nouveau mot de passe *</label>
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      name="new_password"
-                      value={passwordForm.data.new_password}
-                      onChange={handlePasswordChange}
-                      className="input"
-                      minLength={8}
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="field-label">Confirmer *</label>
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      name="new_password_confirmation"
-                      value={passwordForm.data.new_password_confirmation}
-                      onChange={handlePasswordChange}
-                      className="input"
-                      minLength={8}
-                      required
-                    />
-                  </div>
-                </div>
-
-                {passwordForm.data.new_password.length > 0 && pendingStrength(passwordForm.data.new_password) && (
-                  <div
-                    style={{
-                      padding: 12,
-                      background: 'var(--color-bone)',
-                      borderRadius: 4,
-                      fontSize: 12,
-                      color: 'var(--color-iron)',
-                    }}
-                  >
-                    <p style={{ marginBottom: 6, fontWeight: 500 }}>
-                      Votre mot de passe doit contenir:
-                    </p>
-                    <div className="space-y-1">
-                      <ChecklistItem ok={passwordForm.data.new_password.length >= 8} label="Au moins 8 caracteres" />
-                      <ChecklistItem ok={/[A-Z]/.test(passwordForm.data.new_password)} label="Une lettre majuscule" />
-                      <ChecklistItem ok={/[0-9]/.test(passwordForm.data.new_password)} label="Un chiffre" />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div
-                className="flex items-center gap-3 mt-6 pt-4"
-                style={{ borderTop: '1px solid var(--color-ash)' }}
-              >
-                <SaveStatusButton
-                  state={passwordForm.status}
-                  initialText="Changer le mot de passe"
-                  dirtyText="Changer le mot de passe"
-                  savingText="Mise a jour..."
-                  savedText="Mot de passe mis a jour"
-                />
-              </div>
-            </form>
-          </Card>
         </div>
 
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-2">
           <Card style={{ padding: 24 }}>
             <h3 className="section-heading mb-4">Mon Compte</h3>
             <dl className="space-y-3" style={{ fontSize: 13 }}>
               <FieldRow label="Numero de compte" value={readOnly.account_number} mono />
-              <FieldRow label="Prestataire" value={readOnly.provider_name} />
               <FieldRow label="Email de connexion" value={readOnly.email_login} />
             </dl>
             <div
@@ -402,11 +284,127 @@ export default function MyAccount() {
               style={{ borderTop: '1px solid var(--color-ash)' }}
             >
               <p style={{ fontSize: 12, color: 'var(--color-steel)', lineHeight: 1.6 }}>
-                Pour toute modification liee a votre numero de compte ou a votre prestataire, merci de contacter directement le service client.
+                Pour toute modification liee a votre numero de compte, merci de nous contacter directement.
               </p>
             </div>
           </Card>
+
+          <Card style={{ padding: 24 }}>
+  <div className="flex items-center gap-3 mb-5">
+    <div
+      className="flex items-center justify-center"
+      style={{
+        width: 36, height: 36, borderRadius: 8,
+        background: 'var(--color-bone)', color: 'var(--color-graphite)',
+      }}
+    >
+      <Lock size={18} />
+    </div>
+    <div>
+      <h3 className="section-heading">Securite</h3>
+      <p style={{ fontSize: 12, color: 'var(--color-steel)', marginTop: 2 }}>
+        Changez votre mot de passe. Minimum 8 caracteres.
+      </p>
+    </div>
+  </div>
+
+  <form onSubmit={handlePasswordSubmit}>
+    <div className="space-y-4">
+      <div>
+        <label className="field-label">Mot de passe actuel</label>
+        <div className="relative">
+          <input
+            type={showPassword ? 'text' : 'password'}
+            name="old_password"
+            value={passwordForm.data.old_password}
+            onChange={handlePasswordChange}
+            className="input"
+            style={{ paddingRight: 40 }}
+            required
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute top-1/2 -translate-y-1/2"
+            style={{
+              right: 10,
+              background: 'transparent',
+              border: 'none',
+              padding: 4,
+              color: 'var(--color-smoke)',
+            }}
+            aria-label={showPassword ? 'Masquer' : 'Afficher'}
+          >
+            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="field-label">Nouveau mot de passe *</label>
+          <input
+            type={showPassword ? 'text' : 'password'}
+            name="new_password"
+            value={passwordForm.data.new_password}
+            onChange={handlePasswordChange}
+            className="input"
+            minLength={8}
+            required
+          />
+        </div>
+
+        <div>
+          <label className="field-label">Confirmer *</label>
+          <input
+            type={showPassword ? 'text' : 'password'}
+            name="new_password_confirmation"
+            value={passwordForm.data.new_password_confirmation}
+            onChange={handlePasswordChange}
+            className="input"
+            minLength={8}
+            required
+          />
+        </div>
+      </div>
+
+      {passwordForm.data.new_password.length > 0 && pendingStrength(passwordForm.data.new_password) && (
+        <div
+          style={{
+            padding: 12,
+            background: 'var(--color-bone)',
+            borderRadius: 4,
+            fontSize: 12,
+            color: 'var(--color-iron)',
+          }}
+        >
+          <p style={{ marginBottom: 6, fontWeight: 500 }}>
+            Votre mot de passe doit contenir:
+          </p>
+          <div className="space-y-1">
+            <ChecklistItem ok={passwordForm.data.new_password.length >= 8} label="Au moins 8 caracteres" />
+            <ChecklistItem ok={/[A-Z]/.test(passwordForm.data.new_password)} label="Une lettre majuscule" />
+            <ChecklistItem ok={/[0-9]/.test(passwordForm.data.new_password)} label="Un chiffre" />
+          </div>
+        </div>
+      )}
+    </div>
+
+    <div
+      className="flex items-center gap-3 mt-6 pt-4"
+      style={{ borderTop: '1px solid var(--color-ash)' }}
+    >
+      <SaveStatusButton
+        state={passwordForm.status}
+        initialText="Changer le mot de passe"
+        dirtyText="Changer le mot de passe"
+        savingText="Mise a jour..."
+        savedText="Mot de passe mis a jour"
+      />
+    </div>
+  </form>
+</Card>
+</div>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Search, Plus, Check, X, FilePenLine } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Plus, Check, X, FilePenLine } from 'lucide-react';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
@@ -8,6 +8,7 @@ import StatusBadge from '../../components/ui/StatusBadge';
 import EmptyState from '../../components/ui/EmptyState';
 import Skeleton from '../../components/ui/Skeleton';
 import SortHeader from '../../components/ui/SortHeader';
+import SearchInput from '../../components/ui/SearchInput';
 import { useColumnSort } from '../../hooks/useColumnSort';
 
 const statusOptions = [
@@ -24,25 +25,42 @@ function formatMoney(v) {
 
 export default function Quotes() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const q = searchParams.get('q') || '';
+  const statut = searchParams.get('statut') || '';
   const [quotes, setQuotes] = useState([]);
-  const [search, setSearch] = useState('');
-  const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(true);
   const { column, direction, toggle, params: sortParams } = useColumnSort('created_at', 'desc');
 
   useEffect(() => {
-    const t = setTimeout(() => fetchQuotes(), 250);
-    return () => clearTimeout(t);
-  }, [search, status, column, direction]);
+    fetchQuotes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q, statut, column, direction]);
 
   const fetchQuotes = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get('/quotes', { params: { search, statut: status, ...sortParams } });
+      const { data } = await api.get('/quotes', { params: { search: q, statut, ...sortParams } });
       setQuotes(data.data || []);
     } finally {
       setLoading(false);
     }
+  };
+
+  const updateParam = (key, value) => {
+    const next = new URLSearchParams(searchParams);
+    if (value) next.set(key, value);
+    else next.delete(key);
+    setSearchParams(next, { replace: true });
+  };
+
+  const handleSearch = (value) => updateParam('q', value);
+
+  const handleClearAll = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('q');
+    next.delete('statut');
+    setSearchParams(next, { replace: true });
   };
 
   const updateStatus = async (id, statut) => {
@@ -66,21 +84,8 @@ export default function Quotes() {
 
       <Card style={{ padding: 16, marginBottom: 16 }}>
         <div className="flex flex-col md:flex-row" style={{ gap: 12, alignItems: 'center' }}>
-          <div style={{ position: 'relative', flex: 1 }}>
-            <Search
-              size={16}
-              style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-smoke)' }}
-            />
-            <input
-              type="text"
-              placeholder="Rechercher par numero, client..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="input"
-              style={{ paddingLeft: 36 }}
-            />
-          </div>
-          <select value={status} onChange={(e) => setStatus(e.target.value)} className="select" style={{ maxWidth: 220 }}>
+          <SearchInput value={q} onSearch={handleSearch} onClear={handleClearAll} loading={loading} placeholder="Rechercher par numero, client..." />
+          <select value={statut} onChange={(e) => updateParam('statut', e.target.value)} className="select" style={{ maxWidth: 220 }}>
             {statusOptions.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
         </div>
@@ -136,7 +141,11 @@ export default function Quotes() {
                   <td className="font-mono-data">
                     {q.montant_ttc ? `${formatMoney(q.montant_ttc)} MAD` : '—'}
                   </td>
-                  <td><StatusBadge status={q.statut} /></td>
+                  <td>
+                    <StatusBadge status={q.statut}>
+                      {q.statut === 'refuse' && q.client_id ? 'Rejetee par le client' : undefined}
+                    </StatusBadge>
+                  </td>
                   <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end" style={{ gap: 4 }}>
                       {q.statut === 'envoye' && (

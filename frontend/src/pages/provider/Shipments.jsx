@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Search, Plus, FileMinus, PackagePlus } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Plus, FileMinus, PackagePlus } from 'lucide-react';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
@@ -9,6 +9,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import Skeleton from '../../components/ui/Skeleton';
 import SortHeader from '../../components/ui/SortHeader';
 import CopyButton from '../../components/ui/CopyButton';
+import SearchInput from '../../components/ui/SearchInput';
 import { useColumnSort } from '../../hooks/useColumnSort';
 
 const statusOptions = [
@@ -20,28 +21,58 @@ const statusOptions = [
   { value: 'livre', label: 'Livre' },
 ];
 
+const sourceOptions = [
+  { value: '', label: 'Toutes les sources' },
+  { value: 'client', label: 'Creee par le client' },
+  { value: 'prestataire', label: 'Creee par nous' },
+];
+
 export default function Shipments() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const q = searchParams.get('q') || '';
+  const statut = searchParams.get('statut') || '';
+  const source = searchParams.get('source') || '';
   const [shipments, setShipments] = useState([]);
-  const [search, setSearch] = useState('');
-  const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(true);
   const { column, direction, toggle, params: sortParams } = useColumnSort('created_at', 'desc');
 
   useEffect(() => {
-    const t = setTimeout(() => fetchShipments(), 250);
-    return () => clearTimeout(t);
-  }, [search, status, column, direction]);
+    fetchShipments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q, statut, source, column, direction]);
 
   const fetchShipments = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get('/shipments', { params: { search, statut: status, ...sortParams } });
+      const { data } = await api.get('/shipments', {
+        params: { search: q, statut, created_by_role: source, ...sortParams },
+      });
       setShipments(data.data || []);
     } finally {
       setLoading(false);
     }
   };
+
+  const updateParam = (key, value) => {
+    const next = new URLSearchParams(searchParams);
+    if (value) next.set(key, value);
+    else next.delete(key);
+    setSearchParams(next, { replace: true });
+  };
+
+  const handleSearch = (value) => updateParam('q', value);
+
+  const handleClearAll = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('q');
+    next.delete('statut');
+    next.delete('source');
+    setSearchParams(next, { replace: true });
+  };
+
+  const handleStatusChange = (e) => updateParam('statut', e.target.value);
+  const handleSourceChange = (e) => updateParam('source', e.target.value);
 
   return (
     <div>
@@ -55,22 +86,12 @@ export default function Shipments() {
 
       <Card style={{ padding: 16, marginBottom: 16 }}>
         <div className="flex flex-col md:flex-row" style={{ gap: 12, alignItems: 'center' }}>
-          <div style={{ position: 'relative', flex: 1 }}>
-            <Search
-              size={16}
-              style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-smoke)' }}
-            />
-            <input
-              type="text"
-              placeholder="Rechercher par numero, expediteur, destinataire..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="input"
-              style={{ paddingLeft: 36 }}
-            />
-          </div>
-          <select value={status} onChange={(e) => setStatus(e.target.value)} className="select" style={{ maxWidth: 220 }}>
+          <SearchInput value={q} onSearch={handleSearch} onClear={handleClearAll} loading={loading} placeholder="Rechercher par numero, expediteur, destinataire..." />
+          <select value={statut} onChange={handleStatusChange} className="select" style={{ maxWidth: 220 }}>
             {statusOptions.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+          </select>
+          <select value={source} onChange={handleSourceChange} className="select" style={{ maxWidth: 240 }}>
+            {sourceOptions.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
         </div>
       </Card>
@@ -88,9 +109,9 @@ export default function Shipments() {
           <EmptyState
             icon={Plus}
             title="Aucune expedition"
-            description={search || status ? 'Aucun resultat ne correspond a vos filtres.' : 'Commencez par creer une premiere expedition.'}
-            actionLabel={!search && !status ? 'Nouvelle Expedition' : undefined}
-            actionTo={!search && !status ? '/dashboard/expeditions/nouveau' : undefined}
+            description={q || statut || source ? 'Aucun resultat ne correspond a vos filtres.' : 'Commencez par creer une premiere expedition.'}
+            actionLabel={!q && !statut && !source ? 'Nouvelle Expedition' : undefined}
+            actionTo={!q && !statut && !source ? '/dashboard/expeditions/nouveau' : undefined}
           />
         ) : (
           <table className="table-clean">
@@ -116,7 +137,14 @@ export default function Shipments() {
                     <span>{s.shipping_number}</span>
                     <CopyButton value={s.shipping_number} size={14} />
                   </td>
-                  <td>{s.client?.full_name || 'Client Divers'}</td>
+                  <td
+                    style={{
+                      color: s.creator_role === 'client' ? 'var(--color-vivid-green)' : undefined,
+                      fontWeight: s.creator_role === 'client' ? 600 : undefined,
+                    }}
+                  >
+                    {s.client?.full_name || 'Client Divers'}
+                  </td>
                   <td>{s.recipient_name}</td>
                   <td style={{ textTransform: 'capitalize' }}>{s.type_service.replace(/_/g, ' ')}</td>
                   <td style={{ whiteSpace: 'nowrap' }}>{new Date(s.created_at).toLocaleDateString('fr-FR')}</td>

@@ -43,7 +43,7 @@ export default function InvoiceCreate() {
   const [numeroN, setNumeroN] = useState('1');
   const [numeroLoading, setNumeroLoading] = useState(true);
 
-  const [typeDestination, setTypeDestination] = useState('national');
+  const [typeDestination, setTypeDestination] = useState('international');
   const [dateFacture, setDateFacture] = useState(today());
   const [dateEcheance, setDateEcheance] = useState(inThirtyDays());
   const [taxable, setTaxable] = useState('');

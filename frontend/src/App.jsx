@@ -30,6 +30,7 @@ import Invoices from './pages/provider/Invoices';
 import InvoiceCreate from './pages/provider/InvoiceCreate';
 import InvoiceDetail from './pages/provider/InvoiceDetail';
 import AvoirCreate from './pages/provider/AvoirCreate';
+import AvoirDetail from './pages/provider/AvoirDetail';
 import Fleet from './pages/provider/Fleet';
 import Vehicles from './pages/provider/Vehicles';
 import VehicleForm from './pages/provider/VehicleForm';
@@ -42,6 +43,12 @@ import ClientDashboard from './pages/client/ClientDashboard';
 import MyShipments from './pages/client/MyShipments';
 import MyInvoices from './pages/client/MyInvoices';
 import MyAccount from './pages/client/MyAccount';
+import ClientQuotes from './pages/client/ClientQuotes';
+import ClientQuoteDetail from './pages/client/ClientQuoteDetail';
+import ClientShipmentCreate from './pages/client/ClientShipmentCreate';
+import ClientQuoteRequestCreate from './pages/client/ClientQuoteRequestCreate';
+import ClientShipmentDetail from './pages/client/ClientShipmentDetail';
+import ClientInvoiceDetail from './pages/client/ClientInvoiceDetail';
 
 function App() {
   return (
@@ -79,6 +86,7 @@ function App() {
                     <Route path="/dashboard/factures/nouveau" element={<InvoiceCreate />} />
                     <Route path="/dashboard/factures/:id" element={<InvoiceDetail />} />
                     <Route path="/dashboard/avoirs/nouveau" element={<AvoirCreate />} />
+                    <Route path="/dashboard/avoirs/:id" element={<AvoirDetail />} />
                     <Route path="/dashboard/flotte" element={<Fleet />} />
                     <Route path="/dashboard/flotte/vehicules" element={<Vehicles />} />
                     <Route path="/dashboard/flotte/vehicules/nouveau" element={<VehicleForm />} />
@@ -97,9 +105,14 @@ function App() {
                   <Route element={<ClientLayout />}>
                     <Route path="/client" element={<ClientDashboard />} />
                     <Route path="/client/mes-expeditions" element={<MyShipments />} />
+                    <Route path="/client/mes-expeditions/:id" element={<ClientShipmentDetail />} />
+                    <Route path="/client/expeditions/nouveau" element={<ClientShipmentCreate />} />
                     <Route path="/client/mes-factures" element={<MyInvoices />} />
+                    <Route path="/client/mes-factures/:id" element={<ClientInvoiceDetail />} />
+                    <Route path="/client/devis" element={<ClientQuotes />} />
+                    <Route path="/client/devis/:id" element={<ClientQuoteDetail />} />
+                    <Route path="/client/demande-devis/nouveau" element={<ClientQuoteRequestCreate />} />
                     <Route path="/client/mon-compte" element={<MyAccount />} />
-                    <Route path="/client/*" element={<Navigate to="/client" replace />} />
                   </Route>
                 </Route>
 

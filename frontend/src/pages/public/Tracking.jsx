@@ -7,9 +7,17 @@ const STATUSES = [
   { key: 'information_recue', label: 'Information Recue' },
   { key: 'ramasse', label: 'Ramasse' },
   { key: 'en_transit', label: 'En Transit' },
-  { key: 'en_cours', label: 'En Cours de Livraison' },
+  { key: 'en_cours', label: 'En Cours' },
   { key: 'livre', label: 'Livre' },
 ];
+
+function formatSousStatut(s) {
+  return s.replace(/_/g, ' ')
+    .split(' ')
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}
 
 function HorizontalTimeline({ events, currentIndex }) {
   return (
@@ -23,8 +31,10 @@ function HorizontalTimeline({ events, currentIndex }) {
       }}
     >
       {STATUSES.map((status, idx) => {
-        const event = events.find((e) => e.statut === status.key);
-        const completed = !!event;
+        const event = [...events]
+          .filter((e) => e.statut === status.key)
+          .sort((a, b) => new Date(b.date_statut) - new Date(a.date_statut))[0] || null;
+        const completed = idx <= currentIndex && currentIndex !== -1;
         const current = idx === currentIndex;
         const isLast = idx === STATUSES.length - 1;
         const dotBg = current
@@ -37,7 +47,8 @@ function HorizontalTimeline({ events, currentIndex }) {
           : completed
             ? 'var(--color-primary)'
             : 'var(--color-ash)';
-        const lineBg = completed ? 'var(--color-primary)' : 'var(--color-ash)';
+        const lineRightBg = idx < currentIndex ? 'var(--color-primary)' : 'var(--color-ash)';
+        const lineLeftBg = completed ? 'var(--color-primary)' : 'var(--color-ash)';
         return (
           <div
             key={status.key}
@@ -68,7 +79,7 @@ function HorizontalTimeline({ events, currentIndex }) {
                     right: '-50%',
                     top: 23,
                     height: 3,
-                    background: lineBg,
+                    background: lineRightBg,
                     zIndex: 0,
                   }}
                 />
@@ -81,7 +92,7 @@ function HorizontalTimeline({ events, currentIndex }) {
                     right: '50%',
                     top: 23,
                     height: 3,
-                    background: lineBg,
+                    background: lineLeftBg,
                     zIndex: 0,
                   }}
                 />
@@ -116,7 +127,7 @@ function HorizontalTimeline({ events, currentIndex }) {
                 wordBreak: 'break-word',
               }}
             >
-              {status.label}
+              {(event && event.sous_statut) ? formatSousStatut(event.sous_statut) : status.label}
             </div>
             {event && (
               <>
@@ -165,8 +176,10 @@ function VerticalTimeline({ events, currentIndex }) {
   return (
     <div style={{ position: 'relative' }}>
       {STATUSES.map((status, idx) => {
-        const event = events.find((e) => e.statut === status.key);
-        const completed = !!event;
+        const event = [...events]
+          .filter((e) => e.statut === status.key)
+          .sort((a, b) => new Date(b.date_statut) - new Date(a.date_statut))[0] || null;
+        const completed = idx <= currentIndex && currentIndex !== -1;
         const current = idx === currentIndex;
         const isLast = idx === STATUSES.length - 1;
         return (
@@ -182,7 +195,7 @@ function VerticalTimeline({ events, currentIndex }) {
                   top: 22,
                   bottom: 0,
                   width: 2,
-                  background: completed ? 'var(--color-primary)' : 'var(--color-ash)',
+                  background: idx < currentIndex ? 'var(--color-primary)' : 'var(--color-ash)',
                 }}
               />
             )}
@@ -223,7 +236,7 @@ function VerticalTimeline({ events, currentIndex }) {
                 lineHeight: 1.3,
               }}
             >
-              {status.label}
+              {(event && event.sous_statut) ? formatSousStatut(event.sous_statut) : status.label}
             </div>
             {event && (
               <div
@@ -298,8 +311,12 @@ export default function Tracking() {
     performSearch(number);
   };
 
-  const currentIndex = result ? STATUSES.findIndex((s) => s.key === result.current_status) : -1;
   const events = result ? result.events : [];
+  const eventStatuses = new Set(events.map((e) => e.statut));
+  const currentIndex = STATUSES.reduce((highest, status, idx) => {
+    if (eventStatuses.has(status.key) && idx > highest) return idx;
+    return highest;
+  }, -1);
 
   return (
     <div

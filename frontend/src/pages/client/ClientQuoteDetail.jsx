@@ -1,26 +1,28 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Check, X, Package, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Check, X, ExternalLink, Package } from 'lucide-react';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import { DataCard, DetailRow } from '../../components/ui/DataCard';
 import Card from '../../components/ui/Card';
 import StatusBadge from '../../components/ui/StatusBadge';
-import Skeleton from '../../components/ui/Skeleton';
 import TruckLoader from '../../components/ui/TruckLoader';
 import { useToast } from '../../contexts/ToastContext';
+import { useDialog } from '../../contexts/DialogContext';
 
 function formatMoney(value) {
   const n = Number(value || 0);
   return n.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 }
 
-export default function QuoteDetail() {
+export default function ClientQuoteDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
+  const dialog = useDialog();
   const [quote, setQuote] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isActing, setIsActing] = useState(false);
 
   useEffect(() => {
     fetchQuote();
@@ -30,23 +32,39 @@ export default function QuoteDetail() {
   const fetchQuote = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get(`/quotes/${id}`);
+      const { data } = await api.get(`/my/quotes/${id}`);
       setQuote(data);
     } catch {
       toast.push('Devis introuvable.', 'error');
-      navigate('/dashboard/devis');
+      navigate('/client/devis');
     } finally {
       setLoading(false);
     }
   };
 
   const updateStatus = async (newStatus) => {
+    const labels = { accepte: 'Accepter', refuse: 'Refuser' };
+    const descriptions = {
+      accepte: 'Vous confirmez ce devis. Votre demande sera prise en compte.',
+      refuse: 'Vous refusez ce devis. Action irreversible.',
+    };
+    const ok = await dialog.confirm({
+      title: `${labels[newStatus]} ce devis ?`,
+      description: descriptions[newStatus],
+      confirmText: labels[newStatus],
+      cancelText: 'Annuler',
+      variant: newStatus === 'accepte' ? 'success' : 'danger',
+    });
+    if (!ok) return;
+    setIsActing(true);
     try {
-      await api.patch(`/quotes/${id}/status`, { statut: newStatus });
-      toast.push('Statut mis a jour.', 'success');
+      await api.patch(`/my/quotes/${id}/status`, { statut: newStatus });
+      toast.push(`Devis ${newStatus === 'accepte' ? 'accepte' : 'refuse'}.`, 'success');
       fetchQuote();
     } catch (err) {
       toast.push(err.response?.data?.message || 'Erreur lors du changement de statut.', 'error');
+    } finally {
+      setIsActing(false);
     }
   };
 
@@ -80,7 +98,7 @@ export default function QuoteDetail() {
     <div style={{ maxWidth: 1080 }}>
       <button
         type="button"
-        onClick={() => navigate('/dashboard/devis')}
+        onClick={() => navigate('/client/devis')}
         className="btn btn-ghost"
         style={{ marginBottom: 12 }}
       >
@@ -90,34 +108,40 @@ export default function QuoteDetail() {
       <PageHeader
         eyebrow={quote.created_at ? `Cree le ${new Date(quote.created_at).toLocaleDateString('fr-FR')}` : undefined}
         title={`Devis ${quote.quote_number}`}
-        subtitle={isAccepte
-          ? 'Devis accepte par le client.'
-          : isRefuse
-            ? quote.client_id
-              ? 'Rejetee par le client.'
-              : 'Devis refuse.'
-            : 'Proposition commerciale envoyee au client.'}
-        breadcrumbs={[{ label: 'Devis', to: '/dashboard/devis' }, { label: quote.quote_number }]}
+        subtitle={
+          isAccepte
+            ? 'Vous avez accepte ce devis.'
+            : isRefuse
+              ? 'Vous avez refuse ce devis.'
+              : 'Proposition commerciale recue.'
+        }
+        breadcrumbs={[{ label: 'Devis', to: '/client/devis' }, { label: quote.quote_number }]}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3" style={{ gap: 16, marginBottom: 24 }}>
         <div className="lg:col-span-2">
-          <DataCard title="Origine" description="Comment ce devis a ete cree.">
+          <DataCard title="Origine" description="Contexte de ce devis.">
             {quote.request ? (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                 <div>
-                  <div style={{ fontSize: 13, color: 'var(--color-iron)', marginBottom: 4 }}>Depuis une demande de devis</div>
+                  <div style={{ fontSize: 13, color: 'var(--color-iron)', marginBottom: 4 }}>
+                    Depuis une demande de devis
+                  </div>
                   <div className="font-mono-data" style={{ fontWeight: 600, color: 'var(--color-graphite)' }}>
                     Demande #{quote.request.id}
                   </div>
                 </div>
-                <Link to={`/dashboard/demandes-devis?q=${encodeURIComponent(`#${quote.request.id}`)}`} className="btn btn-secondary" title="Voir la demande">
+                <Link
+                  to={`/client/devis?tab=demandes&q=${encodeURIComponent('#' + quote.request.id)}`}
+                  className="btn btn-secondary"
+                  title="Voir la demande"
+                >
                   <ExternalLink size={14} /> Voir la demande
                 </Link>
               </div>
             ) : (
               <div style={{ fontSize: 13, color: 'var(--color-iron)' }}>
-                Devis cree manuellement (sans demande prealable).
+                Devis emis manuellement.
               </div>
             )}
           </DataCard>
@@ -126,7 +150,6 @@ export default function QuoteDetail() {
         <div>
           <DataCard title="Statut" description="Etat du devis.">
             <div
-              className={`payment-status-${quote.statut} payment-badge-pop`}
               style={{
                 padding: '14px 16px',
                 borderRadius: 12,
@@ -138,25 +161,11 @@ export default function QuoteDetail() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <StatusBadge status={quote.statut}>
-                  {quote.statut === 'refuse' && quote.client_id ? 'Rejetee par le client' : undefined}
-                </StatusBadge>
-                {!isEnvoye && (
-                  <button
-                    type="button"
-                    onClick={() => updateStatus('envoye')}
-                    className="btn btn-icon"
-                    title="Revenir a 'envoye'"
-                  >
-                    <X size={14} />
-                  </button>
-                )}
+                <StatusBadge status={quote.statut} />
                 <div style={{ fontSize: 13, color: 'var(--color-iron)' }}>
-                  {isAccepte && 'Le client a accepte ce devis.'}
-                  {isRefuse && (quote.client_id
-                    ? 'Le client a rejete ce devis.'
-                    : 'Devis refuse.')}
-                  {isEnvoye && 'En attente de reponse du client.'}
+                  {isAccepte && 'Vous avez accepte ce devis.'}
+                  {isRefuse && 'Vous avez refuse ce devis.'}
+                  {isEnvoye && 'En attente de votre reponse.'}
                 </div>
               </div>
             </div>
@@ -166,69 +175,47 @@ export default function QuoteDetail() {
                 <button
                   type="button"
                   onClick={() => updateStatus('accepte')}
+                  disabled={isActing}
                   className="btn btn-secondary"
                   style={{ flex: 1 }}
                 >
-                  <Check size={14} /> Accepté
+                  <Check size={14} /> Accepter
                 </button>
                 <button
                   type="button"
                   onClick={() => updateStatus('refuse')}
+                  disabled={isActing}
                   className="btn btn-danger"
                   style={{ flex: 1 }}
                 >
-                  <X size={14} /> Refusé
+                  <X size={14} /> Refuser
                 </button>
               </div>
             )}
 
-            {isAccepte && !quote.shipment && (
+            {isAccepte && quote.shipment && (
               <div style={{ marginTop: 18 }}>
                 <Link
-                  to={`/dashboard/expeditions/nouveau?devisId=${quote.id}`}
+                  to={`/client/mes-expeditions?focus=${quote.shipment.id}`}
                   className="btn btn-primary"
                   style={{ width: '100%' }}
                 >
-                  <Package size={14} /> Creer une expedition
-                </Link>
-              </div>
-            )}
-
-            {isAccepte && quote.shipment && (
-              <div style={{ marginTop: 12, fontSize: 13 }}>
-                <span style={{ color: 'var(--color-iron)' }}>Expedition creee: </span>
-                <Link
-                  to={`/dashboard/expeditions/${quote.shipment.id}`}
-                  className="font-mono-data"
-                  style={{ fontWeight: 600, color: 'var(--color-primary)' }}
-                >
-                  {quote.shipment.shipping_number}
+                  <Package size={14} /> Voir l'expedition
                 </Link>
               </div>
             )}
 
             {isRefuse && (
               <div style={{ marginTop: 12, fontSize: 13, color: 'var(--color-iron)' }}>
-                {quote.client_id
-                  ? 'Ce devis a ete rejete par le client.'
-                  : 'Ce devis a ete refuse.'}
-                <div style={{ marginTop: 10 }}>
-                  <button
-                    type="button"
-                    onClick={() => updateStatus('envoye')}
-                    className="btn btn-ghost"
-                  >
-                    Annuler le refus
-                  </button>
-                </div>
+                Vous avez refuse ce devis. Contactez-nous pour toute precision.
               </div>
             )}
           </DataCard>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: 16, marginBottom: 24 }}>
-        <DataCard title="Client" description={quote.client ? 'Client en compte' : 'Client divers'}>
+      <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <DataCard title="Vos coordonnees">
           <DetailRow label="Nom" value={quote.client_name} />
           <DetailRow label="Email" value={quote.client_email} />
           <DetailRow label="Telephone" value={quote.client_phone} />
@@ -243,11 +230,16 @@ export default function QuoteDetail() {
         </DataCard>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: 16, marginBottom: 24 }}>
+      <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         <DataCard title="Colis" description="Caracteristiques du colis a expedier.">
           <DetailRow label="Type de colis" value={quote.type_colis ? quote.type_colis.replace(/_/g, ' ') : '-'} />
           <DetailRow label="Poids" value={quote.poids ? `${quote.poids} kg` : '-'} />
-          <DetailRow label="Dimensions (L x l x H)" value={quote.longueur || quote.largeur || quote.hauteur ? `${quote.longueur || '-'} x ${quote.largeur || '-'} x ${quote.hauteur || '-'} cm` : '-'} />
+          <DetailRow
+            label="Dimensions (L x l x H)"
+            value={quote.longueur || quote.largeur || quote.hauteur
+              ? `${quote.longueur || '-'} x ${quote.largeur || '-'} x ${quote.hauteur || '-'} cm`
+              : '-'}
+          />
           <DetailRow label="Nombre de pieces" value={quote.nb_pieces ?? '-'} />
           <DetailRow label="Description" value={quote.description_colis || '-'} />
         </DataCard>
@@ -257,7 +249,7 @@ export default function QuoteDetail() {
         </DataCard>
       </div>
 
-      <Card style={{ padding: 24 }}>
+      <Card style={{ padding: 24, marginTop: 24 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <Row label="Montant HT" value={`${formatMoney(quote.montant_ht)} MAD`} />
           <Row label="Montant TTC" value={`${formatMoney(quote.montant_ttc)} MAD`} />
@@ -285,35 +277,6 @@ export default function QuoteDetail() {
           </div>
         </div>
       </Card>
-
-      {quote.shipment && (
-        <div style={{ marginTop: 24 }}>
-          <DataCard
-            title="Expedition liee"
-            description="La requete a donne lieu a une expedition effective."
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-              <DetailRow label="Numero d''envoi" value={quote.shipment.shipping_number} monospace />
-              <Link to={`/dashboard/expeditions/${quote.shipment.id}`} className="btn btn-secondary">
-                <ExternalLink size={14} /> Voir l'expedition
-              </Link>
-            </div>
-          </DataCard>
-        </div>
-      )}
-
-      {quote.client && (
-        <div style={{ marginTop: 24 }}>
-          <DataCard title="Fiche client" description="Acceder a la fiche complete du client.">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-              <DetailRow label="Compte" value={quote.client.account_number} monospace />
-              <Link to={`/dashboard/clients/${quote.client.id}`} className="btn btn-secondary">
-                <ExternalLink size={14} /> Voir le client
-              </Link>
-            </div>
-          </DataCard>
-        </div>
-      )}
     </div>
   );
 }

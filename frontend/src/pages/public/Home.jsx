@@ -24,7 +24,7 @@ export default function Home() {
               marginBottom: 40, maxWidth: 600, margin: '0 auto 40px',
             }}
           >
-            Plateforme complete pour les prestataires logistiques: devis express, expeditions, facturation, flotte et equipe terrain, dans une seule interface claire et precise.
+            Plateforme complete de gestion logistique: devis express, expeditions, facturation, flotte et equipe terrain, dans une seule interface claire et precise.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link to="/devis-express" className="btn btn-primary">

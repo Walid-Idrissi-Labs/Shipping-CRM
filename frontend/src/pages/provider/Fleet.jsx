@@ -136,12 +136,25 @@ export default function FleetDashboard() {
               Gerer <ArrowUpRight size={14} />
             </Link>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {Object.entries(data.vehicles_by_status).map(([key, count]) => (
-              <div key={key} className="flex items-center justify-between">
+              <Link
+                key={key}
+                to={`/dashboard/flotte/vehicules?statut=${key}`}
+                className="flex items-center justify-between"
+                style={{
+                  padding: '8px 10px',
+                  borderRadius: 6,
+                  textDecoration: 'none',
+                  color: 'var(--color-graphite)',
+                  transition: 'background 150ms ease',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-fog)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+              >
                 <StatusBadge status={key} variant="left">{VEHICLE_LABELS[key]}</StatusBadge>
-                <span style={{ fontWeight: 500, color: 'var(--color-graphite)' }}>{count}</span>
-              </div>
+                <span style={{ fontWeight: 500 }}>{count}</span>
+              </Link>
             ))}
           </div>
         </Card>
@@ -153,12 +166,25 @@ export default function FleetDashboard() {
               Gerer <ArrowUpRight size={14} />
             </Link>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {Object.entries(data.drivers_by_status).map(([key, count]) => (
-              <div key={key} className="flex items-center justify-between">
+              <Link
+                key={key}
+                to={`/dashboard/flotte/chauffeurs?statut=${key}`}
+                className="flex items-center justify-between"
+                style={{
+                  padding: '8px 10px',
+                  borderRadius: 6,
+                  textDecoration: 'none',
+                  color: 'var(--color-graphite)',
+                  transition: 'background 150ms ease',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-fog)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+              >
                 <StatusBadge status={key} variant="left">{DRIVER_LABELS[key]}</StatusBadge>
-                <span style={{ fontWeight: 500, color: 'var(--color-graphite)' }}>{count}</span>
-              </div>
+                <span style={{ fontWeight: 500 }}>{count}</span>
+              </Link>
             ))}
           </div>
         </Card>

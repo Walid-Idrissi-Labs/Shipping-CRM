@@ -23,6 +23,14 @@ const statuses = [
   { value: 'livre', label: 'Livre' },
 ];
 
+function formatSousStatut(s) {
+  return s.replace(/_/g, ' ')
+    .split(' ')
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}
+
 const subStatuses = [
   { value: '', label: '— Aucun —' },
   { value: 'en_cours_de_livraison', label: 'En cours de livraison' },
@@ -32,18 +40,21 @@ const subStatuses = [
 ];
 
 function TrackingTimeline({ events }) {
-  const completedStatuses = new Set(events.map((e) => e.statut));
-  const lastEvent = events[0];
-  const currentKey = lastEvent ? lastEvent.statut : null;
-  const currentIndex = currentKey ? statuses.findIndex((s) => s.value === currentKey) : -1;
+  const eventStatuses = new Set(events.map((e) => e.statut));
+  const currentIndex = statuses.reduce((highest, status, idx) => {
+    if (eventStatuses.has(status.value) && idx > highest) return idx;
+    return highest;
+  }, -1);
 
   return (
     <div style={{ position: 'relative' }}>
       {statuses.map((status, idx) => {
-        const completed = completedStatuses.has(status.value);
+        const completed = idx <= currentIndex && currentIndex !== -1;
         const current = idx === currentIndex;
         const isLast = idx === statuses.length - 1;
-        const matchingEvent = events.find((e) => e.statut === status.value);
+        const matchingEvent = [...events]
+          .filter((e) => e.statut === status.value)
+          .sort((a, b) => new Date(b.date_statut) - new Date(a.date_statut))[0] || null;
         return (
           <div
             key={status.value}
@@ -57,7 +68,7 @@ function TrackingTimeline({ events }) {
                   top: 22,
                   bottom: 0,
                   width: 2,
-                  background: completed ? 'var(--color-vivid-green)' : 'var(--color-ash)',
+                  background: completed ? 'var(--color-primary)' : 'var(--color-ash)',
                 }}
               />
             )}
@@ -69,27 +80,33 @@ function TrackingTimeline({ events }) {
                 width: 24,
                 height: 24,
                 borderRadius: 9999,
-                background: completed
-                  ? current
+                background: current
+                  ? 'var(--color-vivid-green)'
+                  : completed
                     ? 'var(--color-primary)'
-                    : 'var(--color-vivid-green)'
-                  : 'var(--color-bone)',
-                border: `2px solid ${completed ? (current ? 'var(--color-primary)' : 'var(--color-vivid-green)') : 'var(--color-ash)'}`,
+                    : 'var(--color-bone)',
+                border: `2px solid ${
+                  current
+                    ? 'var(--color-vivid-green)'
+                    : completed
+                      ? 'var(--color-primary)'
+                      : 'var(--color-ash)'
+                }`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: 'var(--color-paper-white)',
-                boxShadow: current ? '0 0 0 4px rgba(165,101,255,0.18)' : 'none',
+                boxShadow: current ? '0 0 0 4px rgba(74,198,76,0.22)' : 'none',
               }}
             >
-              {completed ? <Check size={12} strokeWidth={3} /> : <Circle size={6} fill="var(--color-smoke)" />}
+              {current || completed ? <Check size={12} strokeWidth={3} /> : <Circle size={6} fill="var(--color-smoke)" />}
             </div>
             <div>
               <div
                 style={{
                   fontWeight: 500,
                   fontSize: 15,
-                  color: completed ? 'var(--color-graphite)' : 'var(--color-smoke)',
+                  color: current || completed ? 'var(--color-graphite)' : 'var(--color-smoke)',
                 }}
               >
                 {status.label}
@@ -97,6 +114,21 @@ function TrackingTimeline({ events }) {
               {matchingEvent && (
                 <div style={{ fontSize: 13, color: 'var(--color-steel)', marginTop: 4 }}>
                   {new Date(matchingEvent.date_statut).toLocaleString('fr-FR')}
+                  {matchingEvent.sous_statut && (
+                    <span
+                      style={{
+                        color: 'var(--color-steel)',
+                        display: 'block',
+                        marginTop: 4,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.04em',
+                        fontSize: 11,
+                        fontWeight: 600,
+                      }}
+                    >
+                      {formatSousStatut(matchingEvent.sous_statut)}
+                    </span>
+                  )}
                   {matchingEvent.description && ` — ${matchingEvent.description}`}
                 </div>
               )}
@@ -210,14 +242,20 @@ export default function ShipmentDetail() {
       confirmText: 'Supprimer',
       cancelText: 'Annuler',
       variant: 'danger',
-      safetyGate: true,
-      requiredInput: 'supprimer',
-      inputLabel: 'Tapez supprimer pour confirmer',
     });
     if (!ok) return;
     await api.delete(`/tracking-events/${eventId}`);
     toast.push('Evenement supprime', 'success');
-    fetchShipment();
+    setEvents((prev) => {
+      const filtered = prev.filter((e) => e.id !== eventId);
+      const latest = [...filtered].sort((a, b) => new Date(b.date_statut) - new Date(a.date_statut))[0];
+      if (latest) {
+        setShipment((s) => s ? { ...s, statut_actuel: latest.statut, sous_statut_actuel: latest.sous_statut } : null);
+      } else {
+        setShipment((s) => s ? { ...s, statut_actuel: 'information_recue', sous_statut_actuel: null } : null);
+      }
+      return filtered;
+    });
   };
 
   const openLabelPdf = () => {

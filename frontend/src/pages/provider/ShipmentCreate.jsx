@@ -291,13 +291,19 @@ export default function ShipmentCreate() {
             <FormField label="Largeur (cm)"><input name="largeur" value={form.largeur} onChange={handleChange} type="number" step="0.01" min="0" className="input" /></FormField>
             <FormField label="Hauteur (cm)"><input name="hauteur" value={form.hauteur} onChange={handleChange} type="number" step="0.01" min="0" className="input" /></FormField>
             <FormField label="Pieces"><input name="nb_pieces" value={form.nb_pieces} onChange={handleChange} type="number" min="1" className="input" /></FormField>
-            <FormField label="Valeur declaree"><input name="valeur_declaree" value={form.valeur_declaree} onChange={handleChange} type="number" step="0.01" min="0" className="input" /></FormField>
-            <FormField label="Devise">
-              <select name="devise_valeur" value={form.devise_valeur} onChange={handleChange} className="select">
-                <option value="MAD">MAD</option>
-                <option value="USD">USD</option>
-                <option value="EUR">EUR</option>
-              </select>
+            <FormField label="Valeur Declaree">
+              <div style={{ display: 'flex', alignItems: 'stretch', border: '1px solid var(--color-ash)', borderRadius: 8, background: 'var(--color-paper-white)', overflow: 'hidden' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <input name="valeur_declaree" value={form.valeur_declaree} onChange={handleChange} type="number" step="0.01" min="0" className="input" style={{ borderRadius: 0, borderRight: 'none', border: 'none', boxShadow: 'none' }} />
+                </div>
+                <div style={{ width: 90, borderLeft: '1px solid var(--color-ash)', background: 'var(--color-fog)' }}>
+                  <select name="devise_valeur" value={form.devise_valeur} onChange={handleChange} className="select" style={{ borderRadius: 0, border: 'none', boxShadow: 'none', background: 'transparent' }}>
+                    <option value="MAD">MAD</option>
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                  </select>
+                </div>
+              </div>
             </FormField>
             <FormField label="Type de colis">
               <select name="type_colis" value={form.type_colis} onChange={handleChange} className="select">
@@ -306,17 +312,15 @@ export default function ShipmentCreate() {
                 <option value="palette">Palette</option>
               </select>
             </FormField>
-            <div className="col-span-2">
-              <FormField label="Service">
-                <select name="type_service" value={form.type_service} onChange={handleChange} className="select">
-                  <option value="national">National</option>
-                  <option value="international_express_dap">International Express DAP</option>
-                  <option value="fret_aerien">Fret Aerien</option>
-                  <option value="routier_groupage">Routier (Groupage)</option>
-                  <option value="maritime_groupage">Maritime (Groupage)</option>
-                </select>
-              </FormField>
-            </div>
+            <FormField label="Type de service">
+              <select name="type_service" value={form.type_service} onChange={handleChange} className="select">
+                <option value="national">National</option>
+                <option value="international_express_dap">International Express DAP</option>
+                <option value="fret_aerien">Fret Aerien</option>
+                <option value="routier_groupage">Routier (Groupage)</option>
+                <option value="maritime_groupage">Maritime (Groupage)</option>
+              </select>
+            </FormField>
           </div>
           <FormField label="Description du colis" hint="60 caracteres maximum">
             <input name="description_colis" value={form.description_colis} onChange={handleChange} maxLength={60} className="input" />

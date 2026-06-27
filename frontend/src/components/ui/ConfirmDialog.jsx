@@ -244,11 +244,11 @@ export default function ConfirmDialog({
                 padding: '10px 12px',
                 borderRadius: 8,
                 background: 'var(--color-bone)',
-                border: `1px solid ${exactMatch ? 'var(--color-vivid-green)' : 'var(--color-ash)'}`,
+                border: exactMatch ? '1px dashed var(--color-danger)' : '1px solid var(--color-ash)',
                 color: 'var(--color-graphite)',
                 outline: 'none',
                 transition: 'border-color 150ms ease, box-shadow 150ms ease',
-                boxShadow: exactMatch ? '0 0 0 3px rgba(74, 198, 76, 0.18)' : 'none',
+                boxShadow: exactMatch ? '0 0 0 3px rgba(220, 53, 69, 0.18)' : 'none',
               }}
             />
 

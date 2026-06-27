@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Search, Plus, Truck, AlertTriangle, Clock, Trash2 } from 'lucide-react';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
 import SortHeader from '../../components/ui/SortHeader';
+import SearchInput from '../../components/ui/SearchInput';
 import { useColumnSort } from '../../hooks/useColumnSort';
 import { useToast } from '../../contexts/ToastContext';
 import { useDialog } from '../../contexts/DialogContext';
@@ -60,9 +61,10 @@ function DocBadges({ vehicule }) {
 }
 
 export default function Vehicles() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const q = searchParams.get('q') || '';
+  const statut = searchParams.get('statut') || '';
   const [vehicules, setVehicules] = useState([]);
-  const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const { column, direction, toggle, params: sortParams } = useColumnSort('immatriculation', 'asc');
   const toast = useToast();
@@ -72,8 +74,8 @@ export default function Vehicles() {
     setLoading(true);
     try {
       const params = { ...sortParams };
-      if (search) params.search = search;
-      if (filter) params.statut = filter;
+      if (q) params.search = q;
+      if (statut) params.statut = statut;
       const { data } = await api.get('/vehicles', { params });
       setVehicules(data.data || []);
     } catch (err) {
@@ -84,9 +86,25 @@ export default function Vehicles() {
   };
 
   useEffect(() => {
-    const t = setTimeout(fetchVehicules, 250);
-    return () => clearTimeout(t);
-  }, [search, filter, column, direction]);
+    fetchVehicules();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q, statut, column, direction]);
+
+  const updateParam = (key, value) => {
+    const next = new URLSearchParams(searchParams);
+    if (value) next.set(key, value);
+    else next.delete(key);
+    setSearchParams(next, { replace: true });
+  };
+
+  const handleSearch = (value) => updateParam('q', value);
+
+  const handleClearAll = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('q');
+    next.delete('statut');
+    setSearchParams(next, { replace: true });
+  };
 
   const handleDelete = async (v) => {
     const ok = await dialog.confirm({
@@ -122,21 +140,8 @@ export default function Vehicles() {
 
       <Card style={{ padding: 16, marginBottom: 16 }}>
         <div className="flex flex-col sm:flex-row" style={{ gap: 12, alignItems: 'center' }}>
-          <div style={{ position: 'relative', flex: 1, maxWidth: 420 }}>
-            <Search
-              size={16}
-              style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-smoke)' }}
-            />
-            <input
-              type="text"
-              placeholder="Rechercher (immat, marque)..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="input"
-              style={{ paddingLeft: 36 }}
-            />
-          </div>
-          <select value={filter} onChange={(e) => setFilter(e.target.value)} className="select" style={{ maxWidth: 220 }}>
+          <SearchInput value={q} onSearch={handleSearch} onClear={handleClearAll} loading={loading} placeholder="Rechercher (immat, marque)..." style={{ maxWidth: 420 }} />
+          <select value={statut} onChange={(e) => updateParam('statut', e.target.value)} className="select" style={{ maxWidth: 220 }}>
             <option value="">Tous les statuts</option>
             <option value="disponible">Disponible</option>
             <option value="en_mission">En mission</option>

@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 export default function Breadcrumbs({ items = [] }) {
   if (items.length === 0) return null;
   return (
@@ -8,14 +10,14 @@ export default function Breadcrumbs({ items = [] }) {
     >
       <ol className="flex items-center gap-2 flex-wrap">
         <li>
-          <a
-            href="/dashboard"
+          <Link
+            to="/dashboard"
             style={{ color: 'var(--color-steel)' }}
             onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--color-graphite)')}
             onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--color-steel)')}
           >
             Accueil
-          </a>
+          </Link>
         </li>
         {items.map((item, idx) => {
           const last = idx === items.length - 1;
@@ -25,14 +27,14 @@ export default function Breadcrumbs({ items = [] }) {
               {last || !item.to ? (
                 <span className="font-medium" style={{ color: 'var(--color-graphite)' }}>{item.label}</span>
               ) : (
-                <a
-                  href={item.to}
+                <Link
+                  to={item.to}
                   style={{ color: 'var(--color-steel)' }}
                   onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--color-graphite)')}
                   onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--color-steel)')}
                 >
                   {item.label}
-                </a>
+                </Link>
               )}
             </li>
           );

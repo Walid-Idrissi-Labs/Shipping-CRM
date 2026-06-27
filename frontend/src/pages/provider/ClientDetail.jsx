@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Copy, Eye, EyeOff, ShieldAlert, Trash2, MapPin, Truck, User, ChevronRight } from 'lucide-react';
+import { Copy, Eye, EyeOff, ShieldAlert, Trash2, MapPin, Truck, User, ChevronRight, Package, Receipt } from 'lucide-react';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import { DataCard, DetailRow } from '../../components/ui/DataCard';
@@ -32,6 +32,17 @@ function formatDateTime(iso) {
   });
 }
 
+function formatDate(iso) {
+  if (!iso) return '-';
+  return new Date(iso).toLocaleDateString('fr-FR');
+}
+
+function formatMoney(value) {
+  const n = Number(value || 0);
+  const formatted = n.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  return `${formatted} MAD`;
+}
+
 export default function ClientDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -44,6 +55,10 @@ export default function ClientDetail() {
   const [notFound, setNotFound] = useState(false);
   const [missions, setMissions] = useState([]);
   const [missionsLoading, setMissionsLoading] = useState(true);
+  const [shipments, setShipments] = useState([]);
+  const [shipmentsLoading, setShipmentsLoading] = useState(true);
+  const [entries, setEntries] = useState([]);
+  const [entriesLoading, setEntriesLoading] = useState(true);
   const clientForm = useDirtyForm(emptyClient);
 
   useEffect(() => {
@@ -69,6 +84,22 @@ export default function ClientDetail() {
       .then((res) => setMissions(res.data.data || []))
       .catch(() => setMissions([]))
       .finally(() => setMissionsLoading(false));
+  }, [id]);
+
+  useEffect(() => {
+    setShipmentsLoading(true);
+    api.get(`/clients/${id}/shipments`)
+      .then((res) => setShipments(res.data.data || []))
+      .catch(() => setShipments([]))
+      .finally(() => setShipmentsLoading(false));
+  }, [id]);
+
+  useEffect(() => {
+    setEntriesLoading(true);
+    api.get(`/clients/${id}/invoices-entries`)
+      .then((res) => setEntries(res.data.data || []))
+      .catch(() => setEntries([]))
+      .finally(() => setEntriesLoading(false));
   }, [id]);
 
   const handleChange = (e) => {
@@ -177,7 +208,7 @@ export default function ClientDetail() {
                   Informations de Creation du Compte
                 </h3>
                 <p style={{ fontSize: 12, color: 'var(--color-steel)', margin: '4px 0 0' }}>
-                  Visible uniquement par le prestataire.
+                  Visible uniquement par notre equipe.
                 </p>
               </div>
 
@@ -231,19 +262,24 @@ export default function ClientDetail() {
         </DataCard>
       </form>
 
-      <MissionsSection missions={missions} loading={missionsLoading} navigate={navigate} />
+      <ShipmentsSection shipments={shipments} loading={shipmentsLoading} navigate={navigate} clientQuery={client.full_name} />
+      <InvoicesSection entries={entries} loading={entriesLoading} navigate={navigate} clientQuery={client.full_name} />
+      <MissionsSection missions={missions} loading={missionsLoading} navigate={navigate} clientQuery={client.full_name} />
     </div>
   );
 }
 
-function MissionsSection({ missions, loading, navigate }) {
+function MissionsSection({ missions, loading, navigate, clientQuery }) {
+  const linkTo = clientQuery
+    ? `/dashboard/flotte/affectations?q=${encodeURIComponent(clientQuery)}`
+    : '/dashboard/flotte/affectations';
   return (
     <DataCard
       title="Missions liees a ce client"
       description="Missions qui concernent les expeditions de ce client."
       actions={
         <Link
-          to="/dashboard/flotte/affectations"
+          to={linkTo}
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 4,
             fontSize: 13, fontWeight: 500, color: 'var(--color-primary)',
@@ -324,6 +360,172 @@ function MissionsSection({ missions, loading, navigate }) {
                   </td>
                 </tr>
               ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </DataCard>
+  );
+}
+
+function ShipmentsSection({ shipments, loading, navigate, clientQuery }) {
+  const linkTo = clientQuery
+    ? `/dashboard/expeditions?q=${encodeURIComponent(clientQuery)}`
+    : '/dashboard/expeditions';
+  return (
+    <DataCard
+      title="Expeditions du Client"
+      description="Liste des expeditions associees a ce client."
+      actions={
+        <Link
+          to={linkTo}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+            fontSize: 13, fontWeight: 500, color: 'var(--color-primary)',
+          }}
+        >
+          Voir toutes les expeditions <ChevronRight size={13} />
+        </Link>
+      }
+    >
+      {loading ? (
+        <div style={{ padding: 24, display: 'flex', justifyContent: 'center' }}><TruckLoader /></div>
+      ) : shipments.length === 0 ? (
+        <EmptyState
+          icon={Package}
+          title="Aucune expedition"
+          description="Aucune expedition n'a ete creee pour ce client pour le moment."
+        />
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="table-clean">
+            <thead>
+              <tr>
+                <th>Numero</th>
+                <th>Expediteur</th>
+                <th>Destinataire</th>
+                <th>Service</th>
+                <th>Date</th>
+                <th>Statut</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {shipments.map((s) => (
+                <tr
+                  key={s.id}
+                  onClick={() => navigate(`/dashboard/expeditions/${s.id}`)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <td className="font-mono-data" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
+                    {s.shipping_number}
+                  </td>
+                  <td>{s.sender_name}</td>
+                  <td>{s.recipient_name}</td>
+                  <td style={{ textTransform: 'capitalize' }}>{s.type_service?.replace(/_/g, ' ')}</td>
+                  <td style={{ fontSize: 12, color: 'var(--color-steel)', whiteSpace: 'nowrap' }}>
+                    {formatDate(s.created_at)}
+                  </td>
+                  <td><StatusBadge status={s.statut_actuel} /></td>
+                  <td style={{ textAlign: 'right' }}>
+                    <ChevronRight size={14} style={{ color: 'var(--color-smoke)' }} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </DataCard>
+  );
+}
+
+function InvoicesSection({ entries, loading, navigate, clientQuery }) {
+  const linkTo = clientQuery
+    ? `/dashboard/factures?tab=factures&q=${encodeURIComponent(clientQuery)}`
+    : '/dashboard/factures';
+  return (
+    <DataCard
+      title="Factures du Client"
+      description="Factures et avoirs lies a ce client."
+      actions={
+        <Link
+          to={linkTo}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+            fontSize: 13, fontWeight: 500, color: 'var(--color-primary)',
+          }}
+        >
+          Voir toutes les factures <ChevronRight size={13} />
+        </Link>
+      }
+    >
+      {loading ? (
+        <div style={{ padding: 24, display: 'flex', justifyContent: 'center' }}><TruckLoader /></div>
+      ) : entries.length === 0 ? (
+        <EmptyState
+          icon={Receipt}
+          title="Aucune facture"
+          description="Aucune facture ni aucun avoir n'a ete emis pour ce client pour le moment."
+        />
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="table-clean">
+            <thead>
+              <tr>
+                <th>Numero</th>
+                <th>Type</th>
+                <th>Date</th>
+                <th style={{ textAlign: 'right' }}>HT</th>
+                <th style={{ textAlign: 'right' }}>TTC</th>
+                <th>Statut</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {entries.map((e) => {
+                const isAv = e.kind === 'avoir';
+                const accent = isAv ? 'var(--color-danger)' : 'var(--color-vivid-green-dark)';
+                const amount = Math.abs(Number(e.ttc || 0));
+                const ttcDisplay = isAv ? `- ${formatMoney(amount).replace(' MAD', '')} MAD` : formatMoney(e.ttc);
+                const htDisplay = isAv ? `- ${formatMoney(Math.abs(Number(e.taxable || 0))).replace(' MAD', '')} MAD` : formatMoney(e.taxable);
+                const target = isAv ? `/dashboard/avoirs/${e.id}` : `/dashboard/factures/${e.id}`;
+                return (
+                  <tr
+                    key={`${e.kind}-${e.id}`}
+                    onClick={() => navigate(target)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <td className="font-mono-data" style={{ color: accent, fontWeight: 600 }}>
+                      {e.numero}
+                    </td>
+                    <td style={{ textTransform: 'capitalize' }}>
+                      {isAv ? 'Avoir' : (e.type_destination === 'national' ? 'Facture Nationale' : 'Facture Internationale')}
+                    </td>
+                    <td style={{ fontSize: 12, color: 'var(--color-steel)', whiteSpace: 'nowrap' }}>
+                      {formatDate(e.date_facture || e.created_at)}
+                    </td>
+                    <td className="font-mono-data" style={{ textAlign: 'right', color: accent }}>
+                      {htDisplay}
+                    </td>
+                    <td className="font-mono-data" style={{ textAlign: 'right', color: accent, fontWeight: 500 }}>
+                      {ttcDisplay}
+                    </td>
+                    <td>
+                      {isAv ? (
+                        <span style={{ fontSize: 11, color: 'var(--color-steel)', fontStyle: 'italic' }}>
+                          (lie a {e.facture_numero || '—'})
+                        </span>
+                      ) : (
+                        <StatusBadge status={e.statut} />
+                      )}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <ChevronRight size={14} style={{ color: 'var(--color-smoke)' }} />
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

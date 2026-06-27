@@ -5,7 +5,7 @@ import { FormField, Section } from '../../components/ui/Form';
 
 const initial = {
   client_name: '', client_address: '', client_city: '', client_country: 'Maroc', client_postal_code: '', client_email: '', client_phone: '',
-  recipient_name: '', recipient_company: '', recipient_address: '', recipient_city: '', recipient_country: '', recipient_postal_code: '', recipient_phone: '',
+  recipient_name: '', recipient_company: '', recipient_email: '', recipient_address: '', recipient_city: '', recipient_country: '', recipient_postal_code: '', recipient_phone: '',
   poids: '', longueur: '', largeur: '', hauteur: '', nb_pieces: 1,
   type_colis: 'paquet', type_service: 'national', description_colis: ''
 };
@@ -242,6 +242,15 @@ export default function QuoteRequest() {
                         name="recipient_company"
                         value={form.recipient_company}
                         onChange={handleChange}
+                        className="input"
+                      />
+                    </FormField>
+                    <FormField label="Email">
+                      <input
+                        name="recipient_email"
+                        value={form.recipient_email}
+                        onChange={handleChange}
+                        type="email"
                         className="input"
                       />
                     </FormField>

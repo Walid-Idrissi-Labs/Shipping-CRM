@@ -208,14 +208,14 @@ export default function ProviderDashboard() {
       value: stats?.pending_quotes ?? '—',
       icon: FileText,
       accent: 'var(--color-warning)',
-      href: '/dashboard/demandes-devis',
+      href: '/dashboard/demandes-devis?statut=en_attente',
     },
     {
       label: 'Factures Impayees',
       value: stats?.unpaid_invoices ?? '—',
       icon: Receipt,
       accent: 'var(--color-danger)',
-      href: '/dashboard/factures',
+      href: '/dashboard/factures?tab=factures&statut=impayee',
     },
   ];
 
@@ -269,7 +269,7 @@ export default function ProviderDashboard() {
           >
             <h2 className="section-heading">Documents a renouveler</h2>
             <Link
-              to="/dashboard/flotte/vehicules"
+              to="/dashboard/flotte/vehicules?statut=en_maintenance"
               style={{
                 fontSize: 13,
                 fontWeight: 500,
@@ -428,7 +428,7 @@ export default function ProviderDashboard() {
               </div>
             </Link>
             <Link
-              to="/dashboard/expeditions"
+              to="/dashboard/expeditions?statut=information_recue"
               style={{
                 flex: 1,
                 display: 'flex',
@@ -547,7 +547,7 @@ export default function ProviderDashboard() {
           </div>
 
           <Link
-            to="/dashboard/factures"
+            to="/dashboard/factures?tab=factures&statut=impayee"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -638,7 +638,14 @@ export default function ProviderDashboard() {
                     </Link>
                   </td>
                   <td style={{ whiteSpace: 'nowrap' }}>{new Date(s.created_at).toLocaleDateString('fr-FR')}</td>
-                  <td style={{ color: 'var(--color-graphite)' }}>{s.client?.full_name || 'Client Divers'}</td>
+                  <td
+                    style={{
+                      color: s.creator_role === 'client' ? 'var(--color-vivid-green)' : 'var(--color-graphite)',
+                      fontWeight: s.creator_role === 'client' ? 600 : undefined,
+                    }}
+                  >
+                    {s.client?.full_name || 'Client Divers'}
+                  </td>
                   <td>{s.recipient_name}</td>
                   <td><StatusBadge status={s.statut_actuel} /></td>
                 </tr>

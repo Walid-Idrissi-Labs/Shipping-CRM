@@ -15,7 +15,7 @@ export default function Login() {
 
   if (user) {
     if (user.role === 'prestataire') navigate('/dashboard', { replace: true });
-    else navigate('/client/mes-expeditions', { replace: true });
+    else navigate('/client', { replace: true });
     return null;
   }
 
@@ -26,7 +26,7 @@ export default function Login() {
     try {
       const loggedUser = await login(identifier, password);
       if (loggedUser.role === 'prestataire') navigate('/dashboard');
-      else navigate('/client/mes-expeditions');
+      else navigate('/client');
     } catch (err) {
       setError(err.response?.data?.message || 'Identifiants incorrects. Veuillez reessayer.');
     } finally {

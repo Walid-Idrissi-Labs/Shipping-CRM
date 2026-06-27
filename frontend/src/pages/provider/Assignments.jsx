@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Plus, Truck, User, Calendar, MapPin, ChevronRight, ClipboardList } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Truck, User, Calendar, MapPin, ChevronRight, ClipboardList } from 'lucide-react';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
@@ -18,8 +18,9 @@ function formatDateTime(iso) {
 
 export default function Assignments() {
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const statut = searchParams.get('statut') || '';
     const [assignments, setAssignments] = useState([]);
-    const [filter, setFilter] = useState('');
     const [loading, setLoading] = useState(true);
     const { column, direction, toggle, params: sortParams } = useColumnSort('date_heure_depart', 'desc');
     const toast = useToast();
@@ -28,7 +29,7 @@ export default function Assignments() {
     setLoading(true);
     try {
       const params = { ...sortParams };
-      if (filter) params.statut = filter;
+      if (statut) params.statut = statut;
       const { data } = await api.get('/assignments', { params });
       setAssignments(data.data || []);
     } catch (err) {
@@ -40,7 +41,15 @@ export default function Assignments() {
 
   useEffect(() => {
     fetchAssignments();
-  }, [filter, column, direction]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statut, column, direction]);
+
+  const updateParam = (key, value) => {
+    const next = new URLSearchParams(searchParams);
+    if (value) next.set(key, value);
+    else next.delete(key);
+    setSearchParams(next, { replace: true });
+  };
 
   const updateStatus = async (a, statut) => {
     try {
@@ -65,8 +74,8 @@ export default function Assignments() {
 
       <Card style={{ padding: 16, marginBottom: 16 }}>
         <select
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
+          value={statut}
+          onChange={(e) => updateParam('statut', e.target.value)}
           className="select"
           style={{ maxWidth: 240 }}
         >
