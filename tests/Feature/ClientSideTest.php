@@ -129,8 +129,8 @@ class ClientSideTest extends TestCase
             'total_invoices',
             'unpaid_total',
             'paid_total',
-            'recent_shipments',
-            'recent_invoices',
+            'ongoing_shipments',
+            'unpaid_invoices',
         ]);
 
         $this->assertEquals(1, $response->json('total_shipments'));
@@ -142,6 +142,83 @@ class ClientSideTest extends TestCase
     {
         Sanctum::actingAs($this->providerUser);
         $this->getJson('/api/dashboard/client')->assertStatus(403);
+    }
+
+    public function test_client_dashboard_only_shows_ongoing_shipments_and_unpaid_invoices(): void
+    {
+        Shipment::create([
+            'provider_id' => $this->provider->id,
+            'client_id' => $this->client->id,
+            'created_by' => $this->providerUser->id,
+            'shipping_number' => 'ONGOING-001',
+            'statut_actuel' => 'en_transit',
+            'sender_name' => 'S',
+            'sender_country' => 'Maroc',
+            'recipient_name' => 'R',
+            'recipient_country' => 'France',
+            'recipient_city' => 'Paris',
+            'type_service' => 'international_express_dap',
+            'type_colis' => 'paquet',
+        ]);
+
+        Shipment::create([
+            'provider_id' => $this->provider->id,
+            'client_id' => $this->client->id,
+            'created_by' => $this->providerUser->id,
+            'shipping_number' => 'DELIVERED-001',
+            'statut_actuel' => 'livre',
+            'sender_name' => 'S',
+            'sender_country' => 'Maroc',
+            'recipient_name' => 'R',
+            'recipient_country' => 'France',
+            'recipient_city' => 'Paris',
+            'type_service' => 'international_express_dap',
+            'type_colis' => 'paquet',
+        ]);
+
+        Facture::create([
+            'provider_id' => $this->provider->id,
+            'client_id' => $this->client->id,
+            'numero_n' => 1,
+            'annee' => (int) date('Y'),
+            'date_facture' => now()->toDateString(),
+            'date_echeance' => now()->addDays(30)->toDateString(),
+            'type_destination' => 'national',
+            'taux_tva' => 20,
+            'taxable' => 100,
+            'tva' => 20,
+            'ttc' => 120,
+            'statut' => 'impayee',
+        ]);
+
+        Facture::create([
+            'provider_id' => $this->provider->id,
+            'client_id' => $this->client->id,
+            'numero_n' => 2,
+            'annee' => (int) date('Y'),
+            'date_facture' => now()->toDateString(),
+            'date_echeance' => now()->addDays(30)->toDateString(),
+            'type_destination' => 'national',
+            'taux_tva' => 20,
+            'taxable' => 50,
+            'tva' => 10,
+            'ttc' => 60,
+            'statut' => 'payee',
+        ]);
+
+        Sanctum::actingAs($this->clientUser);
+        $response = $this->getJson('/api/dashboard/client');
+
+        $response->assertStatus(200);
+        $this->assertEquals(1, $response->json('total_shipments'));
+        $this->assertEquals(1, $response->json('total_invoices'));
+
+        $ongoingNumbers = collect($response->json('ongoing_shipments'))->pluck('shipping_number')->toArray();
+        $this->assertContains('ONGOING-001', $ongoingNumbers);
+        $this->assertNotContains('DELIVERED-001', $ongoingNumbers);
+
+        $unpaidNumeros = collect($response->json('unpaid_invoices'))->pluck('numero_n')->toArray();
+        $this->assertEquals([1], $unpaidNumeros);
     }
 
     // ============ My shipments ============

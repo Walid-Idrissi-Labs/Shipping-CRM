@@ -6,6 +6,9 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AvoirController;
 use App\Http\Controllers\Api\ChauffeurController;
 use App\Http\Controllers\Api\ClientController;
+use App\Http\Controllers\Api\ClientQuoteController;
+use App\Http\Controllers\Api\ClientQuoteRequestController;
+use App\Http\Controllers\Api\ClientShipmentController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\FactureController;
 use App\Http\Controllers\Api\PasswordController;
@@ -46,6 +49,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::apiResource('clients', ClientController::class);
         Route::get('/clients/{client}/missions', [AffectationController::class, 'byClient']);
+        Route::get('/clients/{client}/shipments', [ShipmentController::class, 'byClient']);
+        Route::get('/clients/{client}/invoices-entries', [FactureController::class, 'entriesByClient']);
 
         Route::apiResource('quote-requests', QuoteRequestController::class)->only(['index', 'show', 'destroy']);
         Route::patch('/quote-requests/{quoteRequest}/treat', [QuoteRequestController::class, 'markAsTreated']);
@@ -78,7 +83,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/invoices/{facture}/pdf', [FactureController::class, 'pdf']);
         Route::get('/invoices/by-client/{client}', [FactureController::class, 'byClient']);
 
-        Route::apiResource('credit-notes', AvoirController::class)->except(['update', 'destroy']);
+        Route::apiResource('credit-notes', AvoirController::class)
+            ->parameters(['credit-notes' => 'avoir'])
+            ->except(['update']);
         Route::get('/credit-notes/{avoir}/pdf', [AvoirController::class, 'pdf']);
 
         Route::get('/dashboard/fleet', [DashboardController::class, 'fleet']);
@@ -104,6 +111,22 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/my/invoices/{facture}/pdf', [FactureController::class, 'pdf']);
         Route::patch('/client/profile', [ClientController::class, 'updateOwnProfile']);
         Route::post('/client/change-password', [PasswordController::class, 'changeClientPassword']);
+
+        Route::get('my/expeditions', [ClientShipmentController::class, 'index']);
+        Route::post('my/expeditions', [ClientShipmentController::class, 'store']);
+        Route::get('my/expeditions/{shipment}', [ClientShipmentController::class, 'show']);
+        Route::get('/my/expeditions/{shipment}/timeline', [TrackingController::class, 'timeline']);
+        Route::get('/my/expeditions/{shipment}/label', [ShipmentController::class, 'label']);
+        Route::get('/my/expeditions/{shipment}/label-preview', [ShipmentController::class, 'labelPreview']);
+        Route::get('/my/expeditions/{shipment}/label-inline', [ShipmentController::class, 'labelInline']);
+
+        Route::get('my/quotes', [ClientQuoteController::class, 'index']);
+        Route::get('my/quotes/{quote}', [ClientQuoteController::class, 'show']);
+        Route::patch('/my/quotes/{quote}/status', [ClientQuoteController::class, 'updateStatus']);
+
+        Route::get('my/quote-requests', [ClientQuoteRequestController::class, 'index']);
+        Route::post('my/quote-requests', [ClientQuoteRequestController::class, 'store']);
+        Route::get('my/quote-requests/{quote_request}', [ClientQuoteRequestController::class, 'show']);
     });
 });
 

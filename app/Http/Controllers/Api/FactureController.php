@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Avoir;
 use App\Models\Client;
 use App\Models\Facture;
 use App\Models\FactureExpedition;
@@ -25,7 +26,7 @@ class FactureController extends Controller
 
     public function index(Request $request)
     {
-        $query = Facture::query()->with(['client', 'expeditions']);
+        $query = Facture::query()->with(['client', 'expeditions', 'avoir']);
 
         $user = $request->user();
         if ($user->role === 'client') {
@@ -244,6 +245,69 @@ class FactureController extends Controller
                 ->orderBy('date_facture')
                 ->paginate(25)
         );
+    }
+
+    public function entriesByClient(Request $request, Client $client)
+    {
+        $provider = $request->user()->provider;
+        if ($client->provider_id !== $provider->id) {
+            return response()->json(['message' => 'Acces refuse.'], 403);
+        }
+
+        $factures = $client->factures()
+            ->with('expeditions')
+            ->get()
+            ->map(function ($f) {
+                return [
+                    'kind' => 'facture',
+                    'id' => $f->id,
+                    'numero' => $f->numero,
+                    'numero_n' => $f->numero_n,
+                    'annee' => $f->annee,
+                    'date_facture' => $f->date_facture,
+                    'date_echeance' => $f->date_echeance,
+                    'type_destination' => $f->type_destination,
+                    'taxable' => (float) $f->taxable,
+                    'tva' => (float) $f->tva,
+                    'ttc' => (float) $f->ttc,
+                    'statut' => $f->statut,
+                    'created_at' => $f->created_at,
+                ];
+            });
+
+        $avoirs = Avoir::query()
+            ->where('client_id', $client->id)
+            ->where('provider_id', $provider->id)
+            ->with('facture')
+            ->get()
+            ->map(function ($a) {
+                return [
+                    'kind' => 'avoir',
+                    'id' => $a->id,
+                    'numero' => $a->numero,
+                    'numero_n' => $a->numero_n,
+                    'annee' => $a->annee,
+                    'date_facture' => optional($a->facture)->date_facture,
+                    'date_echeance' => null,
+                    'type_destination' => $a->type_destination,
+                    'taxable' => (float) $a->taxable,
+                    'tva' => (float) $a->tva,
+                    'ttc' => (float) $a->ttc,
+                    'statut' => $a->facture?->statut,
+                    'created_at' => $a->created_at,
+                    'facture_id' => $a->facture_id,
+                    'facture_numero' => $a->facture?->numero,
+                ];
+            });
+
+        $entries = $factures
+            ->concat($avoirs)
+            ->sortByDesc(function ($e) {
+                return [$e['created_at'] ?? '1970-01-01'];
+            })
+            ->values();
+
+        return response()->json(['data' => $entries]);
     }
 
     public function unbilledShipments(Request $request)

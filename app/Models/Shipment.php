@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
     'sender_name', 'sender_company', 'sender_address', 'sender_city', 'sender_postal_code', 'sender_country',
     'sender_email', 'sender_phone',
     'recipient_name', 'recipient_company', 'recipient_address', 'recipient_city', 'recipient_postal_code',
-    'recipient_country', 'recipient_phone',
+    'recipient_country', 'recipient_phone', 'recipient_email',
     'poids', 'longueur', 'largeur', 'hauteur', 'nb_pieces',
     'valeur_declaree', 'devise_valeur', 'type_colis', 'description_colis', 'type_service',
     'statut_actuel', 'sous_statut_actuel'

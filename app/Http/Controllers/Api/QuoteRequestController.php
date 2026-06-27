@@ -46,7 +46,7 @@ class QuoteRequestController extends Controller
 
         $provider = Provider::first();
         if (! $provider) {
-            return response()->json(['message' => 'Aucun prestataire configure.'], 503);
+            return response()->json(['message' => 'Configuration incomplete. Veuillez nous contacter.'], 503);
         }
 
         $data = array_merge($validated, [
@@ -107,6 +107,7 @@ class QuoteRequestController extends Controller
             'recipient_postal_code' => ['nullable', 'string', 'max:20'],
             'recipient_country' => ['nullable', 'string', 'max:100'],
             'recipient_phone' => ['nullable', 'string', 'max:50'],
+            'recipient_email' => ['nullable', 'email', 'max:255'],
             'poids' => ['nullable', 'numeric', 'min:0'],
             'longueur' => ['nullable', 'numeric', 'min:0'],
             'largeur' => ['nullable', 'numeric', 'min:0'],

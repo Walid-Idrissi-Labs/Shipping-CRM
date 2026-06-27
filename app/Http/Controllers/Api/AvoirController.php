@@ -108,6 +108,15 @@ class AvoirController extends Controller
         return $pdf->download($filename);
     }
 
+    public function destroy(Request $request, Avoir $avoir)
+    {
+        $this->authorizeAccess($request, $avoir);
+
+        $avoir->delete();
+
+        return response()->json(['message' => 'Avoir supprime.']);
+    }
+
     private function authorizeAccess(Request $request, Avoir $avoir): void
     {
         $user = $request->user();

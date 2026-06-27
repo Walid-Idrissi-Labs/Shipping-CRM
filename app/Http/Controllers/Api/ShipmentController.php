@@ -18,12 +18,22 @@ class ShipmentController extends Controller
 
     public function index(Request $request)
     {
-        $query = Shipment::query()->with('client');
+        $query = Shipment::query()->with(['client', 'creator']);
 
         if ($request->user()->role === 'client') {
             $query->where('client_id', $request->user()->client->id);
         } else {
             $query->where('provider_id', $request->user()->provider->id);
+            if ($createdByRole = $request->input('created_by_role')) {
+                if ($createdByRole === 'client') {
+                    $query->whereHas('creator', fn ($q) => $q->where('role', 'client'));
+                } elseif ($createdByRole === 'prestataire') {
+                    $query->where(function ($q) use ($request) {
+                        $q->whereHas('creator', fn ($sub) => $sub->where('role', 'prestataire'))
+                            ->orWhere('created_by', $request->user()->id);
+                    });
+                }
+            }
         }
 
         if ($statut = $request->input('statut')) {
@@ -49,7 +59,12 @@ class ShipmentController extends Controller
 
         $limit = $request->input('limit', 25);
 
-        return response()->json($query->paginate($limit));
+        $page = $query->paginate($limit);
+        $page->getCollection()->each(function (Shipment $shipment) {
+            $shipment->setAttribute('creator_role', $shipment->creator?->role);
+        });
+
+        return response()->json($page);
     }
 
     public function store(Request $request)
@@ -148,6 +163,22 @@ class ShipmentController extends Controller
         $shipment->delete();
 
         return response()->json(['message' => 'Expedition supprimee.']);
+    }
+
+    public function byClient(Request $request, Client $client)
+    {
+        $provider = $request->user()->provider;
+        if ($client->provider_id !== $provider->id) {
+            return response()->json(['message' => 'Acces refuse.'], 403);
+        }
+
+        $query = Shipment::query()
+            ->where('client_id', $client->id)
+            ->where('provider_id', $provider->id)
+            ->with('client')
+            ->orderByDesc('created_at');
+
+        return response()->json($query->paginate(25));
     }
 
     public function label(Request $request, Shipment $shipment)

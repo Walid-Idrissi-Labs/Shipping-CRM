@@ -74,8 +74,16 @@ class TrackingController extends Controller
         return response()->json(['message' => 'Evenement supprime.']);
     }
 
-    public function timeline(Shipment $shipment)
+    public function timeline(Request $request, Shipment $shipment)
     {
+        $user = $request->user();
+        if ($user->role === 'client' && (int) $shipment->client_id !== (int) $user->client->id) {
+            abort(403, 'Acces refuse.');
+        }
+        if ($user->role === 'prestataire' && $shipment->provider_id !== $user->provider->id) {
+            abort(403, 'Acces refuse.');
+        }
+
         return response()->json([
             'shipment' => $shipment,
             'events' => $shipment->suiviStatuts()->with('changedBy')->orderBy('date_statut')->get(),

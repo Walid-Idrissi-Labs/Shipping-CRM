@@ -141,12 +141,21 @@ class DashboardController extends Controller
         $client = $request->user()->client;
 
         return response()->json([
-            'total_shipments' => $client->shipments()->count(),
-            'total_invoices' => $client->factures()->count(),
+            'full_name' => $client->full_name,
+            'total_shipments' => $client->shipments()->where('statut_actuel', '!=', 'livre')->count(),
+            'total_invoices' => $client->factures()->where('statut', 'impayee')->count(),
             'unpaid_total' => $client->factures()->where('statut', 'impayee')->sum('ttc'),
             'paid_total' => $client->factures()->where('statut', 'payee')->sum('ttc'),
-            'recent_shipments' => $client->shipments()->orderByDesc('created_at')->limit(5)->get(),
-            'recent_invoices' => $client->factures()->orderByDesc('date_facture')->limit(5)->get(),
+            'ongoing_shipments' => $client->shipments()
+                ->where('statut_actuel', '!=', 'livre')
+                ->orderByDesc('created_at')
+                ->limit(5)
+                ->get(),
+            'unpaid_invoices' => $client->factures()
+                ->where('statut', 'impayee')
+                ->orderByDesc('date_facture')
+                ->limit(5)
+                ->get(),
         ]);
     }
 
