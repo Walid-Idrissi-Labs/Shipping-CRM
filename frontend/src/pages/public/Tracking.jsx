@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect, useCallback }  from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Search, Check, Circle, AlertCircle, Info } from 'lucide-react';
 import { GlobeFlights } from '../../components/Globe';
@@ -363,21 +363,34 @@ export default function Tracking() {
   const [error, setError] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
   const autoSearched = useRef(false);
-  const performSearchRef = useRef();
+  const abortControllerRef = useRef(null);
+  const isSearchingRef = useRef(false);
 
-  const fetchTracking = async (n) => {
-    const res = await fetch(`/api/shipments/${n}/tracking`);
+  const fetchTracking = async (n, signal) => {
+    const res = await fetch(`/api/shipments/${n}/tracking`, { signal });
     if (!res.ok) throw new Error('not found');
     return res.json();
   };
 
-  const performSearch = async (numbers) => {
+  const performSearch = useCallback(async (numbers) => {
+    if (isSearchingRef.current) return;
+    isSearchingRef.current = true;
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setLoading(true);
     setError('');
     setResults([]);
 
     try {
-      const settled = await Promise.allSettled(numbers.map((n) => fetchTracking(n)));
+      const settled = await Promise.allSettled(
+        numbers.map((n) => fetchTracking(n, controller.signal))
+      );
+      if (controller.signal.aborted) return;
       const newResults = settled.map((r, i) => {
         if (r.status === 'fulfilled') {
           return { number: numbers[i], data: r.value };
@@ -386,13 +399,20 @@ export default function Tracking() {
       });
       setResults(newResults);
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
+      isSearchingRef.current = false;
     }
-  };
+  }, []);
 
   useLayoutEffect(() => {
-    performSearchRef.current = performSearch;
-  });
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (autoSearched.current) return;
@@ -402,10 +422,10 @@ export default function Tracking() {
       const validNumbers = numbers.filter((x) => /^\d{9}$/.test(x));
       if (validNumbers.length > 0) {
         autoSearched.current = true;
-        performSearchRef.current(validNumbers);
+        performSearch(validNumbers);
       }
     }
-  }, [searchParams]);
+  }, [searchParams, performSearch]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -424,6 +444,7 @@ export default function Tracking() {
 
     const uniqueNumbers = [...new Set(numbers)];
     setSearchParams({ n: uniqueNumbers.join(',') }, { replace: true });
+    autoSearched.current = true;
     performSearch(uniqueNumbers);
   };
 

@@ -728,7 +728,7 @@ export default function LandingPage() {
         <div className="lp-container lp-hero-grid">
           <div data-reveal>
   
-            <h1>Ne Perdez pas votre temps, On a la Solution.</h1>
+            <h1>Ne Perdez plus votre temps, On a la Solution.</h1>
             <p>
               Devis express, expéditions nationales et internationales, facturation et flotte terrain réunis dans une interface claire, rapide et fiable. Conçu pour les entreprises qui veulent avancer.
             </p>
@@ -845,7 +845,7 @@ export default function LandingPage() {
       <section className="lp-section lp-segments">
         <div className="lp-container">
           <div className="lp-section-header" data-reveal>
-            <h2 className="lp-section-title">Une solution adaptee a chaque profil</h2>
+            <h2 className="lp-section-title">Une solution adaptee pour tous besoins</h2>
             <p className="lp-section-subtitle">Que vous expediez un colis unique ou que vous geriez une chaine d'approvisionnement complete.</p>
           </div>
           <div className="lp-segment-grid">
@@ -885,7 +885,7 @@ export default function LandingPage() {
               </div>
               <div className="lp-segment-content">
                 <div className="lp-segment-tag">Pour les entreprises</div>
-                <h3 className="lp-segment-title">Logistique sur mesure & API</h3>
+                <h3 className="lp-segment-title">Logistique sur mesure & Gestion Integree Complete</h3>
                 <p className="lp-segment-desc">Volume regulier, flotte dediee, integration API et reporting. Un account manager a votre ecoute.</p>
                 <Link to="/demande-compte" className="lp-btn lp-btn-primary">Solutions B2B <ArrowRight size={16} /></Link>
               </div>
@@ -920,7 +920,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Capabilities Strip */}
+      {/* Capabilities Strip
       <section className="lp-capabilities">
         <div className="lp-container">
           <div className="lp-capabilities-grid">
@@ -941,7 +941,7 @@ export default function LandingPage() {
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Final CTA */}
       <section className="lp-cta">

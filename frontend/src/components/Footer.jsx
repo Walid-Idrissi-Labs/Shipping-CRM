@@ -19,7 +19,7 @@ export default function Footer() {
             />
             <span className="lp-footer-brand">DPEX Maroc</span>
             <p className="lp-footer-desc">
-                Ne Perdez pas votre Temps, On a la Solution.
+                Ne Perdez plus votre Temps, On a la Solution.
             </p>
           </div>
           <div className="lp-footer-col">
