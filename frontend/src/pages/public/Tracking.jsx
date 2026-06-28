@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, Check, Circle } from 'lucide-react';
+import { Search, Check, Circle, AlertCircle, Info } from 'lucide-react';
 import { GlobeFlights } from '../../components/Globe';
+import Tooltip from '../../components/ui/Tooltip';
 
 const STATUSES = [
   { key: 'information_recue', label: 'Information Recue' },
@@ -268,50 +269,35 @@ function VerticalTimeline({ events, currentIndex }) {
   );
 }
 
-export default function Tracking() {
-  const [number, setNumber] = useState('');
-  const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [searchParams, setSearchParams] = useSearchParams();
-  const autoSearched = useRef(false);
+function TrackingCard({ item }) {
+  if (item.error) {
+    return (
+      <div
+        className="surface-canvas animate-fade-in-up"
+        style={{
+          width: '100%',
+          background: 'var(--color-paper-white)',
+          border: '1px solid var(--color-ash)',
+          borderRadius: 16,
+          padding: 32,
+          boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)',
+          textAlign: 'center',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 16 }}>
+          <div style={{ fontFamily: 'var(--font-mono-data)', fontSize: 24, fontWeight: 300, color: 'var(--color-primary)', letterSpacing: '0.02em' }}>
+            {item.number}
+          </div>
+          <AlertCircle size={20} style={{ color: 'var(--color-danger)' }} />
+        </div>
+        <p style={{ fontSize: 16, color: 'var(--color-graphite)', marginBottom: 8 }}>Aucun envoi trouve avec ce numero.</p>
+        <p style={{ fontSize: 13, color: 'var(--color-steel)' }}>Verifiez le numero et reessayez.</p>
+      </div>
+    );
+  }
 
-  const performSearch = async (n) => {
-    if (!n) return;
-    setLoading(true);
-    setError('');
-    setResult(null);
-    try {
-      const res = await fetch(`/api/shipments/${n}/tracking`);
-      if (!res.ok) throw new Error('not found');
-      const data = await res.json();
-      setResult(data);
-    } catch {
-      setError('Aucun envoi trouve avec ce numero.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (autoSearched.current) return;
-    const n = searchParams.get('n');
-    if (n && /^\d{9}$/.test(n)) {
-      autoSearched.current = true;
-      setNumber(n);
-      performSearch(n);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!number) return;
-    setSearchParams({ n: number }, { replace: true });
-    performSearch(number);
-  };
-
-  const events = result ? result.events : [];
+  const { data } = item;
+  const events = data.events || [];
   const eventStatuses = new Set(events.map((e) => e.statut));
   const currentIndex = STATUSES.reduce((highest, status, idx) => {
     if (eventStatuses.has(status.key) && idx > highest) return idx;
@@ -320,8 +306,139 @@ export default function Tracking() {
 
   return (
     <div
+      className="surface-canvas animate-fade-in-up"
+      style={{
+        width: '100%',
+        background: 'var(--color-paper-white)',
+        border: '1px solid var(--color-ash)',
+        borderRadius: 16,
+        padding: 40,
+        boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)',
+      }}
+    >
+      <div
+        className="flex items-center justify-between gap-4 flex-wrap"
+        style={{ marginBottom: 32, alignItems: 'center' }}
+      >
+        <div
+          style={{
+            fontFamily: 'var(--font-sans)',
+            fontSize: 30,
+            fontWeight: 300,
+            color: 'var(--color-primary)',
+            letterSpacing: '0.02em',
+          }}
+        >
+          {data.shipping_number}
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            fontSize: 19,
+            color: 'var(--color-graphite)',
+          }}
+        >
+          <span>{data.sender_city || '—'}</span>
+          <span style={{ color: 'var(--color-smoke)' }}>{'->'}</span>
+          <span>{data.recipient_city || '—'}</span>
+        </div>
+      </div>
+
+      <div className="hidden lg:block">
+        <HorizontalTimeline events={events} currentIndex={currentIndex} />
+      </div>
+      <div className="lg:hidden">
+        <VerticalTimeline events={events} currentIndex={currentIndex} />
+      </div>
+    </div>
+  );
+}
+
+export default function Tracking() {
+  const [input, setInput] = useState('');
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const autoSearched = useRef(false);
+  const performSearchRef = useRef();
+
+  const fetchTracking = async (n) => {
+    const res = await fetch(`/api/shipments/${n}/tracking`);
+    if (!res.ok) throw new Error('not found');
+    return res.json();
+  };
+
+  const performSearch = async (numbers) => {
+    setLoading(true);
+    setError('');
+    setResults([]);
+
+    try {
+      const settled = await Promise.allSettled(numbers.map((n) => fetchTracking(n)));
+      const newResults = settled.map((r, i) => {
+        if (r.status === 'fulfilled') {
+          return { number: numbers[i], data: r.value };
+        }
+        return { number: numbers[i], error: r.reason };
+      });
+      setResults(newResults);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useLayoutEffect(() => {
+    performSearchRef.current = performSearch;
+  });
+
+  useEffect(() => {
+    if (autoSearched.current) return;
+    const n = searchParams.get('n');
+    if (n) {
+      const numbers = n.split(',').filter(Boolean);
+      const validNumbers = numbers.filter((x) => /^\d{9}$/.test(x));
+      if (validNumbers.length > 0) {
+        autoSearched.current = true;
+        performSearchRef.current(validNumbers);
+      }
+    }
+  }, [searchParams]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+
+    const numbers = input
+      .split(/[ ,;.-]+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const invalid = numbers.find((n) => !/^\d{9}$/.test(n));
+    if (invalid) {
+      setError('Chaque numero d\'expedition doit contenir exactement 9 chiffres.');
+      return;
+    }
+
+    const uniqueNumbers = [...new Set(numbers)];
+    setSearchParams({ n: uniqueNumbers.join(',') }, { replace: true });
+    performSearch(uniqueNumbers);
+  };
+
+  return (
+    <div
       style={{ minHeight: '100vh', position: 'relative', overflow: 'hidden', isolation: 'isolate' }}
     >
+      <style>{`
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(16px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .page-header-fade { animation: fadeInUp 0.5s ease forwards; }
+        .page-content-fade { animation: fadeInUp 0.5s ease 0.15s forwards; opacity: 0; }
+      `}</style>
       <div
         className="hidden lg:block"
         aria-hidden="true"
@@ -344,7 +461,7 @@ export default function Tracking() {
         style={{ maxWidth: 1280, padding: '64px 32px', position: 'relative', zIndex: 1 }}
       >
         <div style={{ maxWidth: 560, margin: '0 auto' }}>
-          <div className="text-center" style={{ marginBottom: 32 }}>
+          <div className="page-header-fade text-center" style={{ marginBottom: 32 }}>
             <div
               className="inline-block mb-3"
               style={{
@@ -354,13 +471,14 @@ export default function Tracking() {
             >
               Suivi de colis
             </div>
-            <h1 className="display-headline" style={{ fontSize: 36 }}>Où est mon colis ?</h1>
+            <h1 className="display-headline" style={{ fontSize: 36 }}>Où sont mes colis ?</h1>
             <p style={{ fontSize: 14, color: 'var(--color-steel)', maxWidth: 480, margin: '16px auto 0' }}>
               Entrez votre numero d'expedition (9 chiffres) pour consulter le statut de votre envoi.
             </p>
           </div>
 
-          <form
+          <div className="page-content-fade">
+            <form
             onSubmit={handleSubmit}
             className="surface-canvas flex items-center gap-2"
             style={{
@@ -373,10 +491,10 @@ export default function Tracking() {
           >
             <input
               type="text"
-              value={number}
-              onChange={(e) => setNumber(e.target.value.replace(/\D/g, '').slice(0, 9))}
-              placeholder="Numero d'expedition"
-              inputMode="numeric"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Ex: 123456789"
+              inputMode="text"
               className="input"
               style={{ border: 'none', boxShadow: 'none', flex: 1, fontSize: 16 }}
               required
@@ -387,79 +505,66 @@ export default function Tracking() {
             </button>
           </form>
 
-          {error && (
-            <div
-              style={{
-                marginTop: 24,
-                padding: '12px 16px',
-                background: 'var(--color-danger-container)',
-                color: 'var(--color-danger)',
-                borderRadius: 8,
-                fontSize: 14,
-                textAlign: 'center',
-              }}
+          <div style={{ marginTop: 16, textAlign: 'center' }}>
+            <Tooltip
+              placement="bottom"
+              content="Saisissez plusieurs numeros (9 chiffres chacun) separes par :  (,) , (;) , (.) ou  (-)"
             >
-              {error}
-            </div>
-          )}
-
-          {!result && !error && !loading && (
-            <div className="text-center" style={{ marginTop: 40, fontSize: 13, color: 'var(--color-smoke)' }}>
-              Astuce : le numero d'expedition vous a ete communique par email lors de la creation du colis.
-            </div>
-          )}
-        </div>
-
-{result && (
-             <div style={{ marginTop: 40 }}>
-               <div
-                 className="surface-canvas animate-fade-in-up"
-                 style={{
-                   width: '100%',
-                   background: 'var(--color-paper-white)',
-                   border: '1px solid var(--color-ash)',
-                   borderRadius: 16,
-                   padding: 40,
-                   boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)',
-                 }}
-               >
-              <div
-                className="flex items-center justify-between gap-4 flex-wrap"
-                style={{ marginBottom: 32, alignItems: 'center' }}
-              >
-                <div
+              {({ onMouseEnter, onMouseLeave }) => (
+                <button
+                  type="button"
+                  onMouseEnter={onMouseEnter}
+                  onMouseLeave={onMouseLeave}
                   style={{
-                    fontFamily: 'var(--font-sans)',
-                    fontSize: 30,
-                    fontWeight: 300,
-                    color: 'var(--color-primary)',
-                    letterSpacing: '0.02em',
-                  }}
-                >
-                  {result.shipping_number}
-                </div>
-                <div
-                  style={{
-                    display: 'flex',
+                    display: 'inline-flex',
                     alignItems: 'center',
-                    gap: 8,
-                    fontSize: 19,
-                    color: 'var(--color-graphite)',
+                    gap: 1,
+                    padding: '6px 12px',
+                    fontSize: 12,
+                    fontWeight: 500,
+                    color: 'var(--color-primary)',
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
                   }}
                 >
-                  <span>{result.sender_city || '—'}</span>
-                  <span style={{ color: 'var(--color-smoke)' }}>{'->'}</span>
-                  <span>{result.recipient_city || '—'}</span>
-                </div>
-              </div>
+                  <Info size={14} />
+                  Suivi Multiple
+                </button>
+              )}
+            </Tooltip>
+          </div>
+        </div>
+      </div>
 
-              <div className="hidden lg:block">
-                <HorizontalTimeline events={events} currentIndex={currentIndex} />
+        {error && (
+          <div
+            style={{
+              marginTop: 24,
+              background: 'var(--color-paper-white)',
+              border: '1px solid var(--color-ash)',
+              borderRadius: 16,
+              padding: 32,
+              boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)',
+              textAlign: 'center',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 16 }}>
+              <div style={{ fontFamily: 'var(--font-mono-data)', fontSize: 24, fontWeight: 300, color: 'var(--color-primary)', letterSpacing: '0.02em' }}>
+                {input}
               </div>
-              <div className="lg:hidden">
-                <VerticalTimeline events={events} currentIndex={currentIndex} />
-              </div>
+              <AlertCircle size={20} style={{ color: 'var(--color-danger)' }} />
             </div>
+            <p style={{ fontSize: 16, color: 'var(--color-graphite)', marginBottom: 8 }}>{error}</p>
+            <p style={{ fontSize: 13, color: 'var(--color-steel)' }}>Verifiez le numero et reessayez.</p>
+          </div>
+        )}
+
+        {results.length > 0 && (
+          <div style={{ marginTop: 40, display: 'flex', flexDirection: 'column', gap: 24 }}>
+            {results.map((item, idx) => (
+              <TrackingCard key={`${item.number}-${idx}`} item={item} />
+            ))}
           </div>
         )}
       </div>

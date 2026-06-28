@@ -1,6 +1,7 @@
 *.log
 .DS_Store
 .env
+**/.env
 .env.backup
 .env.production
 .phpactor.json
@@ -26,3 +27,6 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 AGENTS.md
+
+**/cache*.png
+**/cache*.jpg

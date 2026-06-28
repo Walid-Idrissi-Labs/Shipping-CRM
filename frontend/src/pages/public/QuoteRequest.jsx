@@ -83,8 +83,16 @@ export default function QuoteRequest() {
 
   return (
     <div>
+      <style>{`
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(16px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .page-header-fade { animation: fadeInUp 0.5s ease forwards; }
+        .page-content-fade { animation: fadeInUp 0.5s ease 0.15s forwards; opacity: 0; }
+      `}</style>
       <div className="mx-auto" style={{ maxWidth: 1080, padding: '48px 24px 64px' }}>
-        <div className="text-center" style={{ marginBottom: 36 }}>
+        <div className="page-header-fade text-center" style={{ marginBottom: 36 }}>
           <div
             className="inline-block mb-3"
             style={{
@@ -100,16 +108,17 @@ export default function QuoteRequest() {
           </p>
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="surface-canvas"
-          style={{
-            background: 'var(--color-paper-white)',
-            border: '1px solid var(--color-ash)',
-            borderRadius: 16,
-            overflow: 'hidden',
-          }}
-        >
+        <div className="page-content-fade">
+          <form
+            onSubmit={handleSubmit}
+            className="surface-canvas"
+            style={{
+              background: 'var(--color-paper-white)',
+              border: '1px solid var(--color-ash)',
+              borderRadius: 16,
+              overflow: 'hidden',
+            }}
+          >
           {error && (
             <div
               style={{
@@ -452,6 +461,7 @@ export default function QuoteRequest() {
             </button>
           </div>
         </form>
+        </div>
       </div>
 
       <style>{`
