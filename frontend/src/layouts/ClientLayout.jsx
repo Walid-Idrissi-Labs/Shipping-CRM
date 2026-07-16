@@ -3,25 +3,30 @@ import { useAuth } from '../contexts/AuthContext';
 import { useContext } from 'react';
 import LoadingOverlay from '../components/ui/LoadingOverlay';
 import LoadingContext from '../contexts/LoadingContext';
-import { LayoutDashboard, Package, Receipt, User, LogOut, Menu, FileText } from 'lucide-react';
-import { useState } from 'react';
+import { LayoutDashboard, Package, Receipt, User, LogOut, Menu, X, FileText } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 const EXPANDED_WIDTH = 240;
 
 const navGroups = [
-  { parent: { path: '/client', label: 'Tableau de Bord', icon: LayoutDashboard } },
-  { parent: { path: '/client/mes-expeditions', label: 'Mes Expeditions', icon: Package } },
-  { parent: { path: '/client/devis', label: 'Devis', icon: FileText } },
-  { parent: { path: '/client/mes-factures', label: 'Mes Factures', icon: Receipt } },
-  { parent: { path: '/client/mon-compte', label: 'Mon Compte', icon: User } },
+  { parent: { path: '/client', label: 'Tableau de Bord', short: 'Accueil', icon: LayoutDashboard } },
+  { parent: { path: '/client/mes-expeditions', label: 'Mes Expeditions', short: 'Expéditions', icon: Package } },
+  { parent: { path: '/client/devis', label: 'Devis', short: 'Devis', icon: FileText } },
+  { parent: { path: '/client/mes-factures', label: 'Mes Factures', short: 'Factures', icon: Receipt } },
+  { parent: { path: '/client/mon-compte', label: 'Mon Compte', short: 'Compte', icon: User } },
 ];
 
-function Sidebar({ user, onLogout, location, onNavigate }) {
+function isTabActive(path, pathname) {
+  if (path === '/client') return pathname === '/client';
+  return pathname === path || pathname.startsWith(path + '/');
+}
+
+function Sidebar({ user, onLogout, location, onNavigate, width = EXPANDED_WIDTH }) {
   return (
     <aside
       className="flex flex-col sidebar-tinted"
       style={{
-        width: EXPANDED_WIDTH,
+        width,
         background: 'var(--color-sidebar-bg)',
         borderRight: '1px solid var(--color-ash)',
         flexShrink: 0,
@@ -153,10 +158,23 @@ export default function ClientLayout() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  useEffect(() => {
+    if (!mobileOpen) return undefined;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [mobileOpen]);
+
   const handleLogout = async () => {
     await logout();
     navigate('/login');
   };
+
+  const accountActive =
+    location.pathname === '/client/mon-compte' ||
+    location.pathname.startsWith('/client/mon-compte/');
 
   return (
     <div className="min-h-screen surface-canvas" style={{ background: 'var(--color-paper-white)' }}>
@@ -172,23 +190,26 @@ export default function ClientLayout() {
         />
       </div>
 
-      {mobileOpen && (
-        <>
-          <div
-            className="fixed inset-0 z-30 lg:hidden"
-            style={{ background: 'rgba(0,0,0,0.4)' }}
+      <div className={`app-drawer${mobileOpen ? ' is-open' : ''}`}>
+        <div className="app-drawer-backdrop" onClick={() => setMobileOpen(false)} />
+        <div className="app-drawer-panel">
+          <button
+            type="button"
+            className="app-drawer-close"
             onClick={() => setMobileOpen(false)}
+            aria-label="Fermer le menu"
+          >
+            <X size={18} />
+          </button>
+          <Sidebar
+            user={user}
+            onLogout={handleLogout}
+            location={location}
+            onNavigate={() => setMobileOpen(false)}
+            width="100%"
           />
-          <div className="fixed inset-y-0 left-0 z-40 lg:hidden">
-            <Sidebar
-              user={user}
-              onLogout={handleLogout}
-              location={location}
-              onNavigate={() => setMobileOpen(false)}
-            />
-          </div>
-        </>
-      )}
+        </div>
+      </div>
 
       <div
         className="client-main-wrap"
@@ -196,15 +217,16 @@ export default function ClientLayout() {
       >
         <header
           className="sticky top-0 z-10 surface-canvas"
-          style={{ borderBottom: '1px solid var(--color-ash)', minHeight: 64 }}
+          style={{ borderBottom: '1px solid var(--color-ash)' }}
         >
           <div
-            className="flex items-center gap-4"
+            className="flex items-center gap-3"
             style={{
-              padding: '12px 24px',
+              padding: '10px 16px',
               maxWidth: 1280,
               margin: '0 auto',
               width: '100%',
+              minHeight: 56,
             }}
           >
             <button
@@ -215,20 +237,68 @@ export default function ClientLayout() {
               <Menu size={20} />
             </button>
 
-            <button
-              onClick={handleLogout}
-              className="btn btn-secondary"
+            <Link
+              to="/client"
+              className="lg:hidden"
+              style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', textDecoration: 'none' }}
+            >
+              <img
+                src="/logos/dpex-logo-gif_final.png"
+                alt="DPEX"
+                style={{ height: 40, width: 'auto', objectFit: 'contain' }}
+              />
+            </Link>
+
+            <div className="hidden lg:block" style={{ marginLeft: 'auto' }}>
+              <button
+                onClick={handleLogout}
+                className="btn btn-secondary"
+                style={{ padding: '8px 14px', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              >
+                <LogOut size={14} /> Deconnexion
+              </button>
+            </div>
+
+            <Link
+              to="/client/mon-compte"
+              aria-label="Mon compte"
+              className="lg:hidden flex items-center justify-center shrink-0"
               style={{
-                marginLeft: 'auto',
-                padding: '8px 14px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
+                width: 36,
+                height: 36,
+                borderRadius: 9999,
+                background: 'var(--color-primary-glow)',
+                color: 'var(--color-graphite)',
+                fontWeight: 600,
+                fontSize: 13,
+                textDecoration: 'none',
+                boxShadow: accountActive ? '0 0 0 2px var(--color-primary)' : 'none',
+                transition: 'box-shadow 150ms ease',
               }}
             >
-              <LogOut size={14} /> Deconnexion
-            </button>
+              {user?.client?.full_name?.charAt(0).toUpperCase() || 'C'}
+            </Link>
           </div>
+
+          {/* Mobile section tab bar */}
+          <nav className="client-tabbar" aria-label="Sections">
+            {navGroups
+              .filter((group) => group.parent.path !== '/client/mon-compte')
+              .map((group) => {
+              const Icon = group.parent.icon;
+              const active = isTabActive(group.parent.path, location.pathname);
+              return (
+                <Link
+                  key={group.parent.path}
+                  to={group.parent.path}
+                  className={`client-tab${active ? ' is-active' : ''}`}
+                >
+                  <Icon size={20} strokeWidth={active ? 2.2 : 1.7} />
+                  <span>{group.parent.short}</span>
+                </Link>
+              );
+            })}
+          </nav>
         </header>
 
         <main className="app-page">

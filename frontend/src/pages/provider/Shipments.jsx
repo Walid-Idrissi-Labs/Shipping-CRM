@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, FileMinus, PackagePlus } from 'lucide-react';
+import { Plus, FileMinus, PackagePlus, CircleArrowOutUpRight, CircleArrowOutDownLeft, ChevronRight } from 'lucide-react';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
@@ -118,54 +118,82 @@ export default function Shipments() {
             <thead>
               <tr>
                 <SortHeader label="Numero" col="shipping_number" currentCol={column} direction={direction} onClick={toggle} />
-                <SortHeader label="Client" col="sender_name" currentCol={column} direction={direction} onClick={toggle} />
-                <SortHeader label="Destinataire" col="recipient_name" currentCol={column} direction={direction} onClick={toggle} />
-                <SortHeader label="Service" col="type_service" currentCol={column} direction={direction} onClick={toggle} />
                 <SortHeader label="Date" col="created_at" currentCol={column} direction={direction} onClick={toggle} />
+                <SortHeader label="Client" col="client.full_name" currentCol={column} direction={direction} onClick={toggle} />
+                <th style={{ width: 60, textAlign: 'center' }}>Direction</th>
+                <SortHeader label="Service" col="type_service" currentCol={column} direction={direction} onClick={toggle} />
+                <th>De / A</th>
                 <SortHeader label="Statut" col="statut_actuel" currentCol={column} direction={direction} onClick={toggle} />
                 <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {shipments.map((s) => (
-                <tr
-                  key={s.id}
-                  onClick={() => navigate(`/dashboard/expeditions/${s.id}`)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <td className="font-mono-data" style={{ color: 'var(--color-primary)' }}>
-                    <span>{s.shipping_number}</span>
-                    <CopyButton value={s.shipping_number} size={14} />
-                  </td>
-                  <td
-                    style={{
-                      color: s.creator_role === 'client' ? 'var(--color-vivid-green)' : undefined,
-                      fontWeight: s.creator_role === 'client' ? 600 : undefined,
-                    }}
+              {shipments.map((s) => {
+                const clientName = s.client?.full_name || 'Client Divers';
+                const isExport = s.sender_name?.toLowerCase().includes(clientName.toLowerCase());
+                const isImport = s.recipient_name?.toLowerCase().includes(clientName.toLowerCase());
+                return (
+                  <tr
+                    key={s.id}
+                    onClick={() => navigate(`/dashboard/expeditions/${s.id}`)}
+                    style={{ cursor: 'pointer' }}
                   >
-                    {s.client?.full_name || 'Client Divers'}
-                  </td>
-                  <td>{s.recipient_name}</td>
-                  <td style={{ textTransform: 'capitalize' }}>{s.type_service.replace(/_/g, ' ')}</td>
-                  <td style={{ whiteSpace: 'nowrap' }}>{new Date(s.created_at).toLocaleDateString('fr-FR')}</td>
-                  <td><StatusBadge status={s.statut_actuel} /></td>
-                  <td style={{ textAlign: 'right' }}>
-                    <div className="flex items-center justify-end" style={{ gap: 6 }}>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          window.open(`/api/shipments/${s.id}/label-inline`, '_blank');
-                        }}
-                        className="btn-icon"
-                        title="Etiquette"
-                      >
-                        <FileMinus size={22} strokeWidth={1.6} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    <td className="font-mono-data" style={{ color: 'var(--color-primary)' }}>
+                      <span>{s.shipping_number}</span>
+                      <CopyButton value={s.shipping_number} size={14} />
+                    </td>
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      {new Date(s.created_at).toLocaleDateString('fr-FR')}
+                    </td>
+                    <td>
+                      {s.client?.full_name ? (
+                        s.client.full_name
+                      ) : (
+                        <em style={{ color: 'var(--color-steel)' }}>divers</em>
+                      )}
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      {isExport ? (
+                        <CircleArrowOutUpRight size={16} style={{ color: 'var(--color-vivid-green-dark)' }} title="Export" />
+                      ) : isImport ? (
+                        <CircleArrowOutDownLeft size={16} style={{ color: 'var(--color-primary)' }} title="Import" />
+                      ) : (
+                        <span style={{ fontSize: 11, color: 'var(--color-steel)' }}>—</span>
+                      )}
+                    </td>
+                    <td style={{ textTransform: 'capitalize' }}>{s.type_service.replace(/_/g, ' ')}</td>
+                    <td style={{ fontSize: 12 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ textAlign: 'right' }}>
+                          <div>{s.sender_city || '—'}</div>
+                          {s.sender_country && <div style={{ color: 'var(--color-steel)' }}>({s.sender_country})</div>}
+                        </div>
+                        <ChevronRight size={14} style={{ color: 'var(--color-smoke)', flexShrink: 0 }} />
+                        <div>
+                          <div>{s.recipient_city || '—'}</div>
+                          {s.recipient_country && <div style={{ color: 'var(--color-steel)' }}>({s.recipient_country})</div>}
+                        </div>
+                      </div>
+                    </td>
+                    <td><StatusBadge status={s.statut_actuel} /></td>
+                    <td style={{ textAlign: 'right' }}>
+                      <div className="flex items-center justify-end" style={{ gap: 6 }}>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(`/api/shipments/${s.id}/label-inline`, '_blank');
+                          }}
+                          className="btn-icon"
+                          title="Etiquette"
+                        >
+                          <FileMinus size={22} strokeWidth={1.6} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}

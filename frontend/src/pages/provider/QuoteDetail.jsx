@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Check, X, Package, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Check, X, Package, ExternalLink, Copy, Link as LinkIcon, RefreshCw, Eye } from 'lucide-react';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import { DataCard, DetailRow } from '../../components/ui/DataCard';
@@ -15,12 +15,37 @@ function formatMoney(value) {
   return n.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 }
 
+function calculateTotals(colis) {
+  if (!colis || !colis.length) return { totalWeight: 0, totalVolume: 0, totalPieces: 0 };
+  let totalWeight = 0;
+  let totalVolume = 0;
+  let totalPieces = 0;
+  colis.forEach((item) => {
+    const pieces = Number(item.nb_pieces) || 0;
+    const weight = Number(item.poids) || 0;
+    const length = Number(item.longueur) || 0;
+    const width = Number(item.largeur) || 0;
+    const height = Number(item.hauteur) || 0;
+    totalPieces += pieces;
+    totalWeight += pieces * weight;
+    if (length > 0 && width > 0 && height > 0) {
+      const volumeM3 = (length / 100) * (width / 100) * (height / 100);
+      totalVolume += pieces * volumeM3;
+    }
+  });
+  return { totalWeight, totalVolume, totalPieces };
+}
+
 export default function QuoteDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
   const [quote, setQuote] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [linkData, setLinkData] = useState(null);
+  const [linkLoading, setLinkLoading] = useState(false);
+  const [showLink, setShowLink] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
 
   useEffect(() => {
     fetchQuote();
@@ -48,6 +73,53 @@ export default function QuoteDetail() {
     } catch (err) {
       toast.push(err.response?.data?.message || 'Erreur lors du changement de statut.', 'error');
     }
+  };
+
+  const isPublicQuote = quote && !quote.client_id;
+
+  const generateLink = async () => {
+    setLinkLoading(true);
+    try {
+      const { data } = await api.post(`/quotes/${id}/generate-link`);
+      setLinkData(data);
+      setShowLink(true);
+      toast.push('Lien genere avec succes.', 'success');
+    } catch (err) {
+      toast.push(err.response?.data?.message || 'Erreur lors de la generation du lien.', 'error');
+    } finally {
+      setLinkLoading(false);
+    }
+  };
+
+  const cancelLink = async () => {
+    try {
+      await api.post(`/quotes/${id}/cancel-link`);
+      setLinkData(null);
+      setShowLink(false);
+      toast.push('Lien annule.', 'success');
+      fetchQuote();
+    } catch (err) {
+      toast.push(err.response?.data?.message || 'Erreur lors de l\'annulation.', 'error');
+    }
+  };
+
+  const regenerateLink = async () => {
+    setLinkLoading(true);
+    try {
+      const { data } = await api.post(`/quotes/${id}/generate-link`);
+      setLinkData(data);
+      toast.push('Nouveau lien genere.', 'success');
+    } catch (err) {
+      toast.push(err.response?.data?.message || 'Erreur lors de la regeneration.', 'error');
+    } finally {
+      setLinkLoading(false);
+    }
+  };
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+    setCopySuccess(true);
+    setTimeout(() => setCopySuccess(false), 2000);
   };
 
   if (loading) {
@@ -184,13 +256,72 @@ export default function QuoteDetail() {
 
             {isAccepte && !quote.shipment && (
               <div style={{ marginTop: 18 }}>
-                <Link
-                  to={`/dashboard/expeditions/nouveau?devisId=${quote.id}`}
-                  className="btn btn-primary"
-                  style={{ width: '100%' }}
-                >
-                  <Package size={14} /> Creer une expedition
-                </Link>
+                {isPublicQuote ? (
+                  <>
+                    {!linkData && !showLink && (
+                      <button
+                        type="button"
+                        onClick={generateLink}
+                        disabled={linkLoading}
+                        className="btn btn-primary"
+                        style={{ width: '100%' }}
+                      >
+                        <LinkIcon size={14} /> Generer le lien pour le client
+                      </button>
+                    )}
+                    {(linkData || showLink) && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                          <div style={{ flex: 1, minWidth: 200, display: 'flex', alignItems: 'center', background: 'var(--color-bg)', border: '1px solid var(--color-ash)', borderRadius: 8, padding: '8px 12px' }}>
+                            <input
+                              type="text"
+                              value={linkData?.url || ''}
+                              readOnly
+                              style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', fontFamily: 'monospace', fontSize: 13, color: 'var(--color-graphite)' }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => copyToClipboard(linkData?.url)}
+                              className="btn btn-icon btn-ghost"
+                              style={{ padding: 4 }}
+                              title="Copier le lien"
+                            >
+                              <Copy size={14} color={copySuccess ? 'var(--color-vivid-green)' : 'var(--color-iron)'} />
+                            </button>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                          <button
+                            type="button"
+                            onClick={regenerateLink}
+                            disabled={linkLoading}
+                            className="btn btn-secondary"
+                          >
+                            <RefreshCw size={14} /> Regenerer le lien
+                          </button>
+                          <button
+                            type="button"
+                            onClick={cancelLink}
+                            className="btn btn-ghost"
+                          >
+                            <X size={14} /> Annuler le lien
+                          </button>
+                        </div>
+                        <p style={{ fontSize: 12, color: 'var(--color-smoke)', margin: 0 }}>
+                          Ce lien expire dans 60 jours. Une fois utilise par le client, il devient invalide.
+                        </p>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <Link
+                    to={`/dashboard/expeditions/nouveau?devisId=${quote.id}`}
+                    className="btn btn-primary"
+                    style={{ width: '100%' }}
+                  >
+                    <Package size={14} /> Creer une expedition
+                  </Link>
+                )}
               </div>
             )}
 
@@ -239,17 +370,68 @@ export default function QuoteDetail() {
           <DetailRow label="Nom" value={quote.recipient_name} />
           <DetailRow label="Entreprise" value={quote.recipient_company} />
           <DetailRow label="Telephone" value={quote.recipient_phone} />
-          <DetailRow label="Adresse" value={recipientFullAddress || '-'} />
+          <DetailRow label="Adresse" value={quote.recipient_address || '-'} />
+          <DetailRow label="Ville" value={quote.recipient_city || '-'} />
+          <DetailRow label="Code postal" value={quote.recipient_postal_code || '-'} />
+          <DetailRow label="Pays" value={quote.recipient_country || '-'} />
         </DataCard>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: 16, marginBottom: 24 }}>
         <DataCard title="Colis" description="Caracteristiques du colis a expedier.">
-          <DetailRow label="Type de colis" value={quote.type_colis ? quote.type_colis.replace(/_/g, ' ') : '-'} />
-          <DetailRow label="Poids" value={quote.poids ? `${quote.poids} kg` : '-'} />
-          <DetailRow label="Dimensions (L x l x H)" value={quote.longueur || quote.largeur || quote.hauteur ? `${quote.longueur || '-'} x ${quote.largeur || '-'} x ${quote.hauteur || '-'} cm` : '-'} />
-          <DetailRow label="Nombre de pieces" value={quote.nb_pieces ?? '-'} />
-          <DetailRow label="Description" value={quote.description_colis || '-'} />
+          {quote.colis && quote.colis.length > 0 ? (
+            <>
+              {quote.colis.map((c, idx) => (
+                <div key={idx} style={{ padding: '8px', background: 'var(--color-bg)', borderRadius: 6, border: '1px solid var(--color-border)', marginBottom: 8 }}>
+                  <div style={{ fontWeight: 600, marginBottom: 4 }}>Colis {idx + 1}</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, fontSize: 13 }}>
+                    {c.type_colis && <span><strong>Type:</strong> {c.type_colis}</span>}
+                    {c.nb_pieces && <span><strong>Pièces:</strong> {c.nb_pieces}</span>}
+                    {c.poids != null && <span><strong>Poids/pièce:</strong> {c.poids} kg</span>}
+                    {c.poids != null && c.nb_pieces && <span><strong>Poids total:</strong> {(c.nb_pieces * c.poids).toFixed(3)} kg</span>}
+                    {c.longueur && c.largeur && c.hauteur && (
+                      <span><strong>Dimensions:</strong> {c.longueur} x {c.largeur} x {c.hauteur} cm</span>
+                    )}
+                    {c.longueur && c.largeur && c.hauteur && c.nb_pieces && (
+                      <span><strong>Volume total:</strong> {(c.nb_pieces * (c.longueur/100) * (c.largeur/100) * (c.hauteur/100)).toFixed(4)} m³</span>
+                    )}
+                    {c.description_colis && <span><strong>Description:</strong> {c.description_colis}</span>}
+                  </div>
+                </div>
+              ))}
+              <div style={{ marginTop: 16, padding: 16, background: 'var(--color-bg)', borderRadius: 8, border: '1px solid var(--color-border)' }}>
+                <h4 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600 }}>Totaux</h4>
+                <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <span style={{ fontSize: 11, color: 'var(--color-smoke)', textTransform: 'uppercase' }}>Poids Total</span>
+                    <span style={{ fontSize: 18, fontWeight: 600, fontFamily: 'monospace', color: 'var(--color-primary)' }}>
+                      {calculateTotals(quote.colis).totalWeight.toFixed(3)} kg
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <span style={{ fontSize: 11, color: 'var(--color-smoke)', textTransform: 'uppercase' }}>Volume Total</span>
+                    <span style={{ fontSize: 18, fontWeight: 600, fontFamily: 'monospace', color: 'var(--color-primary)' }}>
+                      {calculateTotals(quote.colis).totalVolume.toFixed(4)} m&sup3;
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <span style={{ fontSize: 11, color: 'var(--color-smoke)', textTransform: 'uppercase' }}>Nombre Total de Pièces</span>
+                    <span style={{ fontSize: 18, fontWeight: 600, fontFamily: 'monospace', color: 'var(--color-primary)' }}>
+                      {calculateTotals(quote.colis).totalPieces}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <DetailRow label="Type de colis" value={quote.type_colis ? quote.type_colis.replace(/_/g, ' ') : '-'} />
+              <DetailRow label="Poids" value={quote.poids ? `${quote.poids} kg` : '-'} />
+              <DetailRow label="Dimensions (L x l x H)" value={quote.longueur || quote.largeur || quote.hauteur ? `${quote.longueur || '-'} x ${quote.largeur || '-'} x ${quote.hauteur || '-'} cm` : '-'} />
+              <DetailRow label="Nombre de pieces" value={quote.nb_pieces ?? '-'} />
+              <DetailRow label="Description" value={quote.description_colis || '-'} />
+            </>
+          )}
         </DataCard>
 
         <DataCard title="Service">

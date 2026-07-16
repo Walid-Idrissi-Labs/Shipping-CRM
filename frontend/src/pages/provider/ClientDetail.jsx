@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Copy, Eye, EyeOff, ShieldAlert, Trash2, MapPin, Truck, User, ChevronRight, Package, Receipt } from 'lucide-react';
+import { Copy, Eye, EyeOff, ShieldAlert, Trash2, MapPin, Truck, User, ChevronRight, Package, Receipt, CircleArrowOutUpRight, CircleArrowOutDownLeft, Edit2, X } from 'lucide-react';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import { DataCard, DetailRow } from '../../components/ui/DataCard';
@@ -57,9 +57,10 @@ export default function ClientDetail() {
   const [missionsLoading, setMissionsLoading] = useState(true);
   const [shipments, setShipments] = useState([]);
   const [shipmentsLoading, setShipmentsLoading] = useState(true);
-  const [entries, setEntries] = useState([]);
+const [entries, setEntries] = useState([]);
   const [entriesLoading, setEntriesLoading] = useState(true);
   const clientForm = useDirtyForm(emptyClient);
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -107,6 +108,21 @@ export default function ClientDetail() {
     clientForm.update({ [name]: value });
   };
 
+  const handleCancel = async () => {
+    if (clientForm.isDirty) {
+      const ok = await dialog.confirm({
+        title: 'Abandonner les modifications ?',
+        description: 'Vous allez perdre les changements non sauvegardes.',
+        confirmText: 'Abandonner',
+        cancelText: 'Continuer a modifier',
+        variant: 'warning',
+      });
+      if (!ok) return;
+    }
+    clientForm.reset();
+    setIsEditing(false);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (clientForm.status === 'saving') return;
@@ -115,6 +131,7 @@ export default function ClientDetail() {
       await api.patch(`/clients/${id}`, clientForm.data);
       clientForm.succeedSave();
       toast.push('Client mis a jour', 'success');
+      setIsEditing(false);
     } catch (err) {
       clientForm.failSave();
       toast.push(err.response?.data?.message || 'Erreur lors de la sauvegarde.', 'error');
@@ -170,38 +187,89 @@ export default function ClientDetail() {
           breadcrumbs={[{ label: 'Clients', to: '/dashboard/clients' }, { label: client.account_number || '-' }]}
         />
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+<form onSubmit={handleSubmit} className="space-y-6">
         <DataCard
-          title="Informations du Compte"
-          description="Coordonnees, adresse et identifiants lies a ce client."
+          title={isEditing ? 'Modifier les Informations du Compte' : 'Informations du Compte'}
+          description={isEditing ? 'Coordonnees, adresse et identifiants lies a ce client.' : 'Coordonnees et adresse du client.'}
           actions={
-            <>
-              <SaveStatusButton state={clientForm.status} />
-              <button type="button" onClick={handleDelete} className="btn btn-danger">
-                <Trash2 size={14} />
-                Supprimer
-              </button>
-            </>
+            isEditing ? (
+              <>
+                <button type="button" onClick={handleCancel} className="btn btn-secondary" style={{ gap: 6 }}>
+                  <X size={14} />
+                  Annuler
+                </button>
+                <SaveStatusButton state={clientForm.status} />
+              </>
+            ) : (
+              <>
+                <button type="button" onClick={() => setIsEditing(true)} className="btn btn-primary" style={{ gap: 6 }}>
+                  <Edit2 size={14} />
+                  Modifier Infos
+                </button>
+                <button type="button" onClick={handleDelete} className="btn btn-danger">
+                  <Trash2 size={14} />
+                  Supprimer Client
+                </button>
+              </>
+            )
           }
         >
           <div className="flex flex-col md:flex-row gap-6">
-            {/* Left: Form Fields */}
+            {/* Left: Form Fields / View Fields */}
             <div className="w-full md:w-2/3">
-              <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 16 }}>
-                <FormField label="Nom / Entreprise"><input name="full_name" value={client.full_name || ''} onChange={handleChange} className="input" /></FormField>
-                <FormField label="Email"><input name="email" type="email" value={client.email || ''} onChange={handleChange} className="input" /></FormField>
-                <FormField label="Telephone"><input name="phone" value={client.phone || ''} onChange={handleChange} className="input" /></FormField>
-                <FormField label="ICE"><input name="ice" value={client.ice || ''} onChange={handleChange} className="input" /></FormField>
-                <div className="md:col-span-2">
-                  <FormField label="Adresse"><input name="address" value={client.address || ''} onChange={handleChange} className="input" /></FormField>
+              {isEditing ? (
+                <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 16 }}>
+                  <FormField label="Nom / Entreprise"><input name="full_name" value={client.full_name || ''} onChange={handleChange} className="input" /></FormField>
+                  <FormField label="Email"><input name="email" type="email" value={client.email || ''} onChange={handleChange} className="input" /></FormField>
+                  <FormField label="Telephone"><input name="phone" value={client.phone || ''} onChange={handleChange} className="input" /></FormField>
+                  <FormField label="ICE"><input name="ice" value={client.ice || ''} onChange={handleChange} className="input" /></FormField>
+                  <div className="md:col-span-2">
+                    <FormField label="Adresse"><input name="address" value={client.address || ''} onChange={handleChange} className="input" /></FormField>
+                  </div>
+                  <FormField label="Ville"><input name="city" value={client.city || ''} onChange={handleChange} className="input" /></FormField>
+                  <FormField label="Code Postal"><input name="postal_code" value={client.postal_code || ''} onChange={handleChange} className="input" /></FormField>
+                  <FormField label="Pays"><input name="country" value={client.country || ''} onChange={handleChange} className="input" /></FormField>
                 </div>
-                <FormField label="Ville"><input name="city" value={client.city || ''} onChange={handleChange} className="input" /></FormField>
-                <FormField label="Code Postal"><input name="postal_code" value={client.postal_code || ''} onChange={handleChange} className="input" /></FormField>
-                <FormField label="Pays"><input name="country" value={client.country || ''} onChange={handleChange} className="input" /></FormField>
-              </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 16 }}>
+                  <div style={{ padding: '8px 0' }}>
+                    <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--color-steel)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>Nom / Entreprise</div>
+                    <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-graphite)' }}>{client.full_name || <span style={{ color: 'var(--color-steel)' }}>—</span>}</div>
+                  </div>
+                  <div style={{ padding: '8px 0' }}>
+                    <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--color-steel)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>Email</div>
+                    <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-graphite)' }}>{client.email || <span style={{ color: 'var(--color-steel)' }}>—</span>}</div>
+                  </div>
+                  <div style={{ padding: '8px 0' }}>
+                    <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--color-steel)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>Telephone</div>
+                    <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-graphite)' }}>{client.phone || <span style={{ color: 'var(--color-steel)' }}>—</span>}</div>
+                  </div>
+                  <div style={{ padding: '8px 0' }}>
+                    <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--color-steel)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>ICE</div>
+                    <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-graphite)' }}>{client.ice || <span style={{ color: 'var(--color-steel)' }}>—</span>}</div>
+                  </div>
+                  <div className="md:col-span-2" style={{ padding: '8px 0' }}>
+                    <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--color-steel)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>Adresse</div>
+                    <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-graphite)' }}>{client.address || <span style={{ color: 'var(--color-steel)' }}>—</span>}</div>
+                  </div>
+                  <div style={{ padding: '8px 0' }}>
+                    <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--color-steel)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>Ville</div>
+                    <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-graphite)' }}>{client.city || <span style={{ color: 'var(--color-steel)' }}>—</span>}</div>
+                  </div>
+                  <div style={{ padding: '8px 0' }}>
+                    <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--color-steel)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>Code Postal</div>
+                    <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-graphite)' }}>{client.postal_code || <span style={{ color: 'var(--color-steel)' }}>—</span>}</div>
+                  </div>
+                  <div style={{ padding: '8px 0' }}>
+                    <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--color-steel)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>Pays</div>
+                    <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-graphite)' }}>{client.country || <span style={{ color: 'var(--color-steel)' }}>—</span>}</div>
+                  </div>
+                </div>
+              )}
+
             </div>
 
-            {/* Right: Account Creation Info */}
+            {/* Right: Account Creation Info (always visible) */}
             <div className="w-full md:w-1/3">
               <div style={{ marginBottom: 16 }}>
                 <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-graphite)', margin: 0 }}>
@@ -240,17 +308,15 @@ export default function ClientDetail() {
 
               <div
                 className="flex items-start"
-                style={
-                  {
-                    marginTop: 24,
-                    gap: 10,
-                    background: 'var(--color-warning-container)',
-                    color: 'var(--color-graphite)',
-                    padding: '12px 16px',
-                    borderRadius: 8,
-                    fontSize: 13,
-                  }
-                }
+                style={{
+                  marginTop: 24,
+                  gap: 10,
+                  background: 'var(--color-warning-container)',
+                  color: 'var(--color-graphite)',
+                  padding: '12px 16px',
+                  borderRadius: 8,
+                  fontSize: 13,
+                }}
               >
                 <ShieldAlert size={18} color="var(--color-warning)" style={{ flexShrink: 0, marginTop: 2 }} />
                 <div>
@@ -402,36 +468,61 @@ function ShipmentsSection({ shipments, loading, navigate, clientQuery }) {
             <thead>
               <tr>
                 <th>Numero</th>
-                <th>Expediteur</th>
-                <th>Destinataire</th>
-                <th>Service</th>
                 <th>Date</th>
+                <th>Direction</th>
+                <th>Service</th>
+                <th>De / A</th>
                 <th>Statut</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
-              {shipments.map((s) => (
-                <tr
-                  key={s.id}
-                  onClick={() => navigate(`/dashboard/expeditions/${s.id}`)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <td className="font-mono-data" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
-                    {s.shipping_number}
-                  </td>
-                  <td>{s.sender_name}</td>
-                  <td>{s.recipient_name}</td>
-                  <td style={{ textTransform: 'capitalize' }}>{s.type_service?.replace(/_/g, ' ')}</td>
-                  <td style={{ fontSize: 12, color: 'var(--color-steel)', whiteSpace: 'nowrap' }}>
-                    {formatDate(s.created_at)}
-                  </td>
-                  <td><StatusBadge status={s.statut_actuel} /></td>
-                  <td style={{ textAlign: 'right' }}>
-                    <ChevronRight size={14} style={{ color: 'var(--color-smoke)' }} />
-                  </td>
-                </tr>
-              ))}
+              {shipments.map((s) => {
+                const clientName = (clientQuery || '').toLowerCase();
+                const isExport = s.sender_name?.toLowerCase().includes(clientName);
+                const isImport = s.recipient_name?.toLowerCase().includes(clientName);
+                return (
+                  <tr
+                    key={s.id}
+                    onClick={() => navigate(`/dashboard/expeditions/${s.id}`)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <td className="font-mono-data" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
+                      {s.shipping_number}
+                    </td>
+                    <td style={{ fontSize: 12, color: 'var(--color-steel)', whiteSpace: 'nowrap' }}>
+                      {formatDate(s.created_at)}
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      {isExport ? (
+                        <CircleArrowOutUpRight size={16} style={{ color: 'var(--color-vivid-green-dark)' }} title="Export" />
+                      ) : isImport ? (
+                        <CircleArrowOutDownLeft size={16} style={{ color: 'var(--color-primary)' }} title="Import" />
+                      ) : (
+                        <span style={{ fontSize: 11, color: 'var(--color-steel)' }}>—</span>
+                      )}
+                    </td>
+                    <td style={{ textTransform: 'capitalize' }}>{s.type_service?.replace(/_/g, ' ')}</td>
+                    <td style={{ fontSize: 12 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ textAlign: 'right' }}>
+                          <div>{s.sender_city || '—'}</div>
+                          {s.sender_country && <div style={{ color: 'var(--color-steel)' }}>({s.sender_country})</div>}
+                        </div>
+                        <ChevronRight size={14} style={{ color: 'var(--color-smoke)', flexShrink: 0 }} />
+                        <div>
+                          <div>{s.recipient_city || '—'}</div>
+                          {s.recipient_country && <div style={{ color: 'var(--color-steel)' }}>({s.recipient_country})</div>}
+                        </div>
+                      </div>
+                    </td>
+                    <td><StatusBadge status={s.statut_actuel} /></td>
+                    <td style={{ textAlign: 'right' }}>
+                      <ChevronRight size={14} style={{ color: 'var(--color-smoke)' }} />
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

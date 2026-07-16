@@ -1,9 +1,17 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, Navigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { FormField } from '../../components/ui/Form';
 import Globe from '../../components/ui/Globe';
+
+const HOME_BY_ROLE = {
+  prestataire: '/dashboard',
+  employe: '/employe/changer-statut',
+  client: '/client',
+};
+
+const homeFor = (role) => HOME_BY_ROLE[role] || '/client';
 
 export default function Login() {
   const [identifier, setIdentifier] = useState('');
@@ -13,10 +21,9 @@ export default function Login() {
   const { login, user } = useAuth();
   const navigate = useNavigate();
 
+  // If already authenticated, redirect to the appropriate home
   if (user) {
-    if (user.role === 'prestataire') navigate('/dashboard', { replace: true });
-    else navigate('/client', { replace: true });
-    return null;
+    return <Navigate to={homeFor(user.role)} replace />;
   }
 
   const handleSubmit = async (e) => {
@@ -25,10 +32,18 @@ export default function Login() {
     setLoading(true);
     try {
       const loggedUser = await login(identifier, password);
-      if (loggedUser.role === 'prestataire') navigate('/dashboard');
-      else navigate('/client');
+      navigate(homeFor(loggedUser.role));
     } catch (err) {
-      setError(err.response?.data?.message || 'Identifiants incorrects. Veuillez reessayer.');
+      const status = err.response?.status;
+      if (status === 401) {
+        setError('Identifiants incorrects. Veuillez reessayer.');
+      } else if (status === 419) {
+        setError('Votre session a expire. Veuillez recharger la page et reessayer.');
+      } else if (!err.response) {
+        setError('Serveur injoignable. Verifiez votre connexion et reessayer.');
+      } else {
+        setError(err.response?.data?.message || 'Une erreur est survenue. Veuillez reessayer.');
+      }
     } finally {
       setLoading(false);
     }
@@ -71,14 +86,22 @@ export default function Login() {
             }}
           >
             <div style={{ textAlign: 'center', marginBottom: 28 }}>
-              <div
-                className="inline-block mb-3"
-                style={{
-                  fontSize: 12, fontWeight: 500, color: 'var(--color-steel)',
-                  textTransform: 'uppercase', letterSpacing: '0.12em',
-                }}
-              >
-                Connexion
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0, marginBottom: 22 }}>
+                <div
+                  style={{
+                    fontSize: 12, fontWeight: 500, color: 'var(--color-steel)',
+                    textTransform: 'uppercase', letterSpacing: '0.12em',
+                  }}
+                >
+                   
+                </div>
+                <Link to="/" className="lp-logo" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                  <img
+                    src="/logos/dpex-logo-gif_final.png"
+                    alt="DPEX"
+                    style={{ height: 50, width: 'auto', objectFit: 'contain' }}
+                  />
+                </Link>
               </div>
               <h1 className="display-headline" style={{ fontSize: 30 }}>Accedez a votre espace</h1>
             </div>

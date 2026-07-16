@@ -8,11 +8,13 @@ import ProtectedRoute from './components/ProtectedRoute';
 import PublicLayout from './layouts/PublicLayout';
 import ProviderLayout from './layouts/ProviderLayout';
 import ClientLayout from './layouts/ClientLayout';
+import EmployeLayout from './layouts/EmployeLayout';
 import Home from './pages/public/Home';
 import Login from './pages/public/Login';
 import Tracking from './pages/public/Tracking';
 import QuoteRequest from './pages/public/QuoteRequest';
 import AccountRequest from './pages/public/AccountRequest';
+import CompleteExpedition from './pages/public/CompleteExpedition';
 import ProviderDashboard from './pages/provider/Dashboard';
 import Quotes from './pages/provider/Quotes';
 import QuoteCreate from './pages/provider/QuoteCreate';
@@ -39,6 +41,8 @@ import DriverForm from './pages/provider/DriverForm';
 import Assignments from './pages/provider/Assignments';
 import AssignmentCreate from './pages/provider/AssignmentCreate';
 import AssignmentDetail from './pages/provider/AssignmentDetail';
+import ExpeditionRequests from './pages/provider/ExpeditionRequests';
+import ExpeditionRequestDetail from './pages/provider/ExpeditionRequestDetail';
 import ClientDashboard from './pages/client/ClientDashboard';
 import MyShipments from './pages/client/MyShipments';
 import MyInvoices from './pages/client/MyInvoices';
@@ -49,6 +53,10 @@ import ClientShipmentCreate from './pages/client/ClientShipmentCreate';
 import ClientQuoteRequestCreate from './pages/client/ClientQuoteRequestCreate';
 import ClientShipmentDetail from './pages/client/ClientShipmentDetail';
 import ClientInvoiceDetail from './pages/client/ClientInvoiceDetail';
+import ChangerStatut from './pages/employe/ChangerStatut';
+import MonHistorique from './pages/employe/MonHistorique';
+import Employes from './pages/provider/Employes';
+import EmployeTransactions from './pages/provider/EmployeTransactions';
 
 function App() {
   return (
@@ -64,6 +72,7 @@ function App() {
                   <Route path="/suivi" element={<Tracking />} />
                   <Route path="/devis-express" element={<QuoteRequest />} />
                   <Route path="/demande-compte" element={<AccountRequest />} />
+                  <Route path="/completer-expedition/:token" element={<CompleteExpedition />} />
                 </Route>
 
                 <Route path="/login" element={<Login />} />
@@ -78,6 +87,8 @@ function App() {
                     <Route path="/dashboard/expeditions" element={<Shipments />} />
                     <Route path="/dashboard/expeditions/nouveau" element={<ShipmentCreate />} />
                     <Route path="/dashboard/expeditions/:id" element={<ShipmentDetail />} />
+                    <Route path="/dashboard/demandes-expedition" element={<ExpeditionRequests />} />
+                    <Route path="/dashboard/demandes-expedition/:id" element={<ExpeditionRequestDetail />} />
                     <Route path="/dashboard/clients" element={<Clients />} />
                     <Route path="/dashboard/clients/nouveau" element={<ClientCreate />} />
                     <Route path="/dashboard/clients/:id" element={<ClientDetail />} />
@@ -98,6 +109,8 @@ function App() {
                     <Route path="/dashboard/flotte/affectations/nouveau" element={<AssignmentCreate />} />
                     <Route path="/dashboard/flotte/affectations/:id" element={<AssignmentDetail />} />
                     <Route path="/dashboard/parametres" element={<Settings />} />
+                    <Route path="/dashboard/employes" element={<Employes />} />
+                    <Route path="/dashboard/employes/historique" element={<EmployeTransactions />} />
                   </Route>
                 </Route>
 
@@ -113,6 +126,14 @@ function App() {
                     <Route path="/client/devis/:id" element={<ClientQuoteDetail />} />
                     <Route path="/client/demande-devis/nouveau" element={<ClientQuoteRequestCreate />} />
                     <Route path="/client/mon-compte" element={<MyAccount />} />
+                  </Route>
+                </Route>
+
+                <Route element={<ProtectedRoute role="employe" />}>
+                  <Route element={<EmployeLayout />}>
+                    <Route path="/employe" element={<Navigate to="/employe/changer-statut" replace />} />
+                    <Route path="/employe/changer-statut" element={<ChangerStatut />} />
+                    <Route path="/employe/mon-historique" element={<MonHistorique />} />
                   </Route>
                 </Route>
 

@@ -136,7 +136,7 @@ export default function AccountRequest() {
             </div>
           </Section>
 
-          <Section title="Adresse" description="Optionnel. Peut etre complete ulterieurement.">
+          <Section title="Adresse" description="Optionnel. Peut etre completé ulterieurement.">
             <FormField label="Adresse"><input name="address" value={form.address} onChange={handleChange} className="input" /></FormField>
             <div className="grid grid-cols-1 md:grid-cols-3" style={{ gap: 16 }}>
               <FormField label="Ville"><input name="city" value={form.city} onChange={handleChange} className="input" /></FormField>

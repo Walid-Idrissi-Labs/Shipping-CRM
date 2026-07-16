@@ -217,6 +217,7 @@ export default function ClientInvoiceDetail() {
 
       <Card style={{ padding: 24, marginTop: 24 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <RowSet label="Montant Non Taxable" value={`${formatMoney(facture.non_taxable || 0)} MAD`} />
           <RowSet label="Montant HT" value={`${formatMoney(facture.taxable)} MAD`} />
           <RowSet label="Montant TVA" value={`${formatMoney(facture.tva)} MAD`} />
           <div

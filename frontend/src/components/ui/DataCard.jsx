@@ -24,6 +24,13 @@ export function DetailRow({ label, value, monospace = false }) {
 }
 
 export function DataCard({ title, description, children, actions, padding = 24, style }) {
+  // Cards holding a full-bleed table pass padding={0}. The header still needs its own
+  // inset, otherwise the title and description sit flush against the card border.
+  const headerStyle =
+    padding === 0
+      ? { padding: '16px 16px 0', marginBottom: 16 }
+      : { marginBottom: 20 };
+
   return (
     <section
       style={{
@@ -36,14 +43,14 @@ export function DataCard({ title, description, children, actions, padding = 24, 
       }}
     >
       {(title || actions) && (
-        <div className="flex items-start justify-between gap-4" style={{ marginBottom: 20 }}>
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3" style={headerStyle}>
           <div className="min-w-0">
             {title && <h2 className="section-heading">{title}</h2>}
             {description && (
               <p style={{ fontSize: 13, color: 'var(--color-steel)', marginTop: 4 }}>{description}</p>
             )}
           </div>
-          {actions && <div className="flex" style={{ gap: 8 }}>{actions}</div>}
+          {actions && <div className="flex shrink-0" style={{ gap: 8 }}>{actions}</div>}
         </div>
       )}
       {children}

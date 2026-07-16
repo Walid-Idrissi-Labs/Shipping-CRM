@@ -123,11 +123,11 @@ export default function Settings() {
 
           <Section title="Identifiants fiscaux" description="Numéros de registre officiels.">
             <div className="grid grid-cols-2 md:grid-cols-5" style={{ gap: 12 }}>
-              <input name="ice" value={settingsForm.data.ice || ''} onChange={handleFieldChange} placeholder="ICE" className="input" />
-              <input name="rc" value={settingsForm.data.rc || ''} onChange={handleFieldChange} placeholder="RC" className="input" />
-              <input name="if_" value={settingsForm.data.if_ || ''} onChange={handleFieldChange} placeholder="IF" className="input" />
-              <input name="cnss" value={settingsForm.data.cnss || ''} onChange={handleFieldChange} placeholder="CNSS" className="input" />
-              <input name="patente" value={settingsForm.data.patente || ''} onChange={handleFieldChange} placeholder="Patente" className="input" />
+              <FormField label="ICE"><input name="ice" value={settingsForm.data.ice || ''} onChange={handleFieldChange} className="input" /></FormField>
+              <FormField label="RC"><input name="rc" value={settingsForm.data.rc || ''} onChange={handleFieldChange} className="input" /></FormField>
+              <FormField label="IF"><input name="if_" value={settingsForm.data.if_ || ''} onChange={handleFieldChange} className="input" /></FormField>
+              <FormField label="CNSS"><input name="cnss" value={settingsForm.data.cnss || ''} onChange={handleFieldChange} className="input" /></FormField>
+              <FormField label="Patente"><input name="patente" value={settingsForm.data.patente || ''} onChange={handleFieldChange} className="input" /></FormField>
             </div>
           </Section>
 

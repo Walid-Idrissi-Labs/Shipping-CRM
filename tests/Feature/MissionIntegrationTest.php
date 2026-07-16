@@ -278,6 +278,47 @@ class MissionIntegrationTest extends TestCase
         $this->assertEquals([], $response->json('affectations'));
     }
 
+    public function test_shipment_show_returns_sous_etapes_grouped_by_statut(): void
+    {
+        $s = $this->makeShipment();
+
+        // Create sous-etapes for different statuts
+        $se1 = $s->sousEtapes()->create([
+            'statut' => 'en_transit',
+            'description' => 'Depart de l\'entrepot',
+            'user_id' => $this->providerUser->id,
+        ]);
+        sleep(1); // ensure different timestamps
+        $se2 = $s->sousEtapes()->create([
+            'statut' => 'en_transit',
+            'description' => 'Arriver au hub',
+            'user_id' => $this->providerUser->id,
+        ]);
+        sleep(1); // ensure different timestamps
+        $se3 = $s->sousEtapes()->create([
+            'statut' => 'en_cours',
+            'description' => 'En cours de livraison',
+            'user_id' => $this->providerUser->id,
+        ]);
+
+        Sanctum::actingAs($this->providerUser);
+        $response = $this->getJson("/api/shipments/{$s->id}");
+
+        $response->assertStatus(200);
+        $response->assertJsonStructure(['sous_etapes']);
+        
+        $sousEtapes = $response->json('sous_etapes');
+        $this->assertArrayHasKey('en_transit', $sousEtapes);
+        $this->assertArrayHasKey('en_cours', $sousEtapes);
+        $this->assertCount(2, $sousEtapes['en_transit']);
+        $this->assertCount(1, $sousEtapes['en_cours']);
+        
+        // Verify newest first ordering within each statut group
+        $this->assertEquals($se2->id, $sousEtapes['en_transit'][0]['id']);
+        $this->assertEquals($se1->id, $sousEtapes['en_transit'][1]['id']);
+        $this->assertEquals($se3->id, $sousEtapes['en_cours'][0]['id']);
+    }
+
     // ============== assignmentShowShape ==============
 
     public function test_assignment_show_returns_client_relation(): void

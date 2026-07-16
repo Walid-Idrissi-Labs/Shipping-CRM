@@ -1,273 +1,9 @@
 import { useState, useEffect, useRef, useLayoutEffect, useCallback }  from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, Check, Circle, AlertCircle, Info } from 'lucide-react';
+import { Search, AlertCircle, Info, X } from 'lucide-react';
 import { GlobeFlights } from '../../components/Globe';
 import Tooltip from '../../components/ui/Tooltip';
-
-const STATUSES = [
-  { key: 'information_recue', label: 'Information Recue' },
-  { key: 'ramasse', label: 'Ramasse' },
-  { key: 'en_transit', label: 'En Transit' },
-  { key: 'en_cours', label: 'En Cours' },
-  { key: 'livre', label: 'Livre' },
-];
-
-function formatSousStatut(s) {
-  return s.replace(/_/g, ' ')
-    .split(' ')
-    .filter(Boolean)
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ');
-}
-
-function HorizontalTimeline({ events, currentIndex }) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'flex-start',
-        justifyContent: 'space-between',
-        gap: 20,
-        position: 'relative',
-      }}
-    >
-      {STATUSES.map((status, idx) => {
-        const event = [...events]
-          .filter((e) => e.statut === status.key)
-          .sort((a, b) => new Date(b.date_statut) - new Date(a.date_statut))[0] || null;
-        const completed = idx <= currentIndex && currentIndex !== -1;
-        const current = idx === currentIndex;
-        const isLast = idx === STATUSES.length - 1;
-        const dotBg = current
-          ? 'var(--color-vivid-green)'
-          : completed
-            ? 'var(--color-primary)'
-            : 'var(--color-bone)';
-        const dotBorder = current
-          ? 'var(--color-vivid-green)'
-          : completed
-            ? 'var(--color-primary)'
-            : 'var(--color-ash)';
-        const lineRightBg = idx < currentIndex ? 'var(--color-primary)' : 'var(--color-ash)';
-        const lineLeftBg = completed ? 'var(--color-primary)' : 'var(--color-ash)';
-        return (
-          <div
-            key={status.key}
-            style={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              position: 'relative',
-              minWidth: 0,
-            }}
-          >
-            <div
-              style={{
-                position: 'relative',
-                width: '100%',
-                height: 40,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              {!isLast && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    left: '50%',
-                    right: '-50%',
-                    top: 23,
-                    height: 3,
-                    background: lineRightBg,
-                    zIndex: 0,
-                  }}
-                />
-              )}
-              {!isLast && idx !== 0 && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    left: '-50%',
-                    right: '50%',
-                    top: 23,
-                    height: 3,
-                    background: lineLeftBg,
-                    zIndex: 0,
-                  }}
-                />
-              )}
-              <div
-                style={{
-                  position: 'relative',
-                  zIndex: 1,
-                  width: 40,
-                  height: 40,
-                  borderRadius: 9999,
-                  background: dotBg,
-                  border: `3px solid ${dotBorder}`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--color-paper-white)',
-                  boxShadow: current ? '0 0 0 6px rgba(74,198,76,0.22)' : 'none',
-                }}
-              >
-                {completed ? <Check size={18} strokeWidth={3} /> : <Circle size={8} fill="var(--color-smoke)" />}
-              </div>
-            </div>
-            <div
-              style={{
-                marginTop: 18,
-                textAlign: 'center',
-                fontWeight: 600,
-                fontSize: 16,
-                color: completed ? 'var(--color-graphite)' : 'var(--color-smoke)',
-                lineHeight: 1.3,
-                wordBreak: 'break-word',
-              }}
-            >
-              {(event && event.sous_statut) ? formatSousStatut(event.sous_statut) : status.label}
-            </div>
-            {event && (
-              <>
-                <div
-                  style={{
-                    fontSize: 14,
-                    color: 'var(--color-steel)',
-                    marginTop: 8,
-                    textAlign: 'center',
-                    lineHeight: 1.3,
-                  }}
-                >
-                  {new Date(event.date_statut).toLocaleString('fr-FR', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </div>
-                {event.description && (
-                  <div
-                    style={{
-                      fontSize: 13,
-                      color: 'var(--color-graphite)',
-                      marginTop: 6,
-                      textAlign: 'center',
-                      lineHeight: 1.4,
-                      maxWidth: 180,
-                      wordBreak: 'break-word',
-                    }}
-                  >
-                    {event.description}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function VerticalTimeline({ events, currentIndex }) {
-  return (
-    <div style={{ position: 'relative' }}>
-      {STATUSES.map((status, idx) => {
-        const event = [...events]
-          .filter((e) => e.statut === status.key)
-          .sort((a, b) => new Date(b.date_statut) - new Date(a.date_statut))[0] || null;
-        const completed = idx <= currentIndex && currentIndex !== -1;
-        const current = idx === currentIndex;
-        const isLast = idx === STATUSES.length - 1;
-        return (
-          <div
-            key={status.key}
-            style={{ position: 'relative', paddingLeft: 36, paddingBottom: isLast ? 0 : 22 }}
-          >
-            {!isLast && (
-              <div
-                style={{
-                  position: 'absolute',
-                  left: 11,
-                  top: 22,
-                  bottom: 0,
-                  width: 2,
-                  background: idx < currentIndex ? 'var(--color-primary)' : 'var(--color-ash)',
-                }}
-              />
-            )}
-            <div
-              style={{
-                position: 'absolute',
-                left: 0,
-                top: 0,
-                width: 28,
-                height: 28,
-                borderRadius: 9999,
-                background: current
-                  ? 'var(--color-vivid-green)'
-                  : completed
-                    ? 'var(--color-primary)'
-                    : 'var(--color-bone)',
-                border: `2px solid ${
-                  current
-                    ? 'var(--color-vivid-green)'
-                    : completed
-                      ? 'var(--color-primary)'
-                      : 'var(--color-ash)'
-                }`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--color-paper-white)',
-                boxShadow: current ? '0 0 0 4px rgba(74,198,76,0.22)' : 'none',
-              }}
-            >
-              {completed ? <Check size={14} strokeWidth={3} /> : <Circle size={7} fill="var(--color-smoke)" />}
-            </div>
-            <div
-              style={{
-                fontWeight: 600,
-                fontSize: 15,
-                color: completed ? 'var(--color-graphite)' : 'var(--color-smoke)',
-                lineHeight: 1.3,
-              }}
-            >
-              {(event && event.sous_statut) ? formatSousStatut(event.sous_statut) : status.label}
-            </div>
-            {event && (
-              <div
-                style={{
-                  fontSize: 13,
-                  color: 'var(--color-steel)',
-                  marginTop: 4,
-                  lineHeight: 1.3,
-                }}
-              >
-                {new Date(event.date_statut).toLocaleString('fr-FR', {
-                  day: '2-digit',
-                  month: '2-digit',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-                {event.description && (
-                  <span style={{ color: 'var(--color-graphite)', display: 'block', marginTop: 2 }}>
-                    {event.description}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
+import { STATUSES, HorizontalTimeline, VerticalTimeline } from '../../components/ShipmentStatusTimeline';
 
 function TrackingCard({ item }) {
   if (item.error) {
@@ -298,6 +34,7 @@ function TrackingCard({ item }) {
 
   const { data } = item;
   const events = data.events || [];
+  const sousEtapes = data.sous_etapes || {};
   const eventStatuses = new Set(events.map((e) => e.statut));
   const currentIndex = STATUSES.reduce((highest, status, idx) => {
     if (eventStatuses.has(status.key) && idx > highest) return idx;
@@ -313,7 +50,7 @@ function TrackingCard({ item }) {
         border: '1px solid var(--color-ash)',
         borderRadius: 16,
         padding: 40,
-        boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)',
+        boxShadow: '0 8px 10px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)',
       }}
     >
       <div
@@ -323,10 +60,10 @@ function TrackingCard({ item }) {
         <div
           style={{
             fontFamily: 'var(--font-sans)',
-            fontSize: 30,
+            fontSize: 32,
             fontWeight: 300,
             color: 'var(--color-primary)',
-            letterSpacing: '0.02em',
+            letterSpacing: '0.01em',
           }}
         >
           {data.shipping_number}
@@ -335,8 +72,8 @@ function TrackingCard({ item }) {
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 8,
-            fontSize: 19,
+            gap: 6,
+            fontSize: 21,
             color: 'var(--color-graphite)',
           }}
         >
@@ -347,10 +84,10 @@ function TrackingCard({ item }) {
       </div>
 
       <div className="hidden lg:block">
-        <HorizontalTimeline events={events} currentIndex={currentIndex} />
+        <HorizontalTimeline events={events} currentIndex={currentIndex} sousEtapes={sousEtapes} />
       </div>
       <div className="lg:hidden">
-        <VerticalTimeline events={events} currentIndex={currentIndex} />
+        <VerticalTimeline events={events} currentIndex={currentIndex} sousEtapes={sousEtapes} />
       </div>
     </div>
   );
@@ -362,9 +99,7 @@ export default function Tracking() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
-  const autoSearched = useRef(false);
   const abortControllerRef = useRef(null);
-  const isSearchingRef = useRef(false);
 
   const fetchTracking = async (n, signal) => {
     const res = await fetch(`/api/shipments/${n}/tracking`, { signal });
@@ -373,9 +108,6 @@ export default function Tracking() {
   };
 
   const performSearch = useCallback(async (numbers) => {
-    if (isSearchingRef.current) return;
-    isSearchingRef.current = true;
-
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -390,7 +122,6 @@ export default function Tracking() {
       const settled = await Promise.allSettled(
         numbers.map((n) => fetchTracking(n, controller.signal))
       );
-      if (controller.signal.aborted) return;
       const newResults = settled.map((r, i) => {
         if (r.status === 'fulfilled') {
           return { number: numbers[i], data: r.value };
@@ -398,15 +129,14 @@ export default function Tracking() {
         return { number: numbers[i], error: r.reason };
       });
       setResults(newResults);
+    } catch {
+      // ignore — individual results handled via Promise.allSettled
     } finally {
-      if (!controller.signal.aborted) {
-        setLoading(false);
-      }
-      isSearchingRef.current = false;
+      setLoading(false);
     }
   }, []);
 
-  useLayoutEffect(() => {
+useLayoutEffect(() => {
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -415,14 +145,11 @@ export default function Tracking() {
   }, []);
 
   useEffect(() => {
-    if (autoSearched.current) return;
     const n = searchParams.get('n');
     if (n) {
       const numbers = n.split(',').filter(Boolean);
-      const validNumbers = numbers.filter((x) => /^\d{9}$/.test(x));
-      if (validNumbers.length > 0) {
-        autoSearched.current = true;
-        performSearch(validNumbers);
+      if (numbers.length > 0) {
+        performSearch(numbers);
       }
     }
   }, [searchParams, performSearch]);
@@ -436,17 +163,20 @@ export default function Tracking() {
       .map((s) => s.trim())
       .filter(Boolean);
 
-    const invalid = numbers.find((n) => !/^\d{9}$/.test(n));
-    if (invalid) {
-      setError('Chaque numero d\'expedition doit contenir exactement 9 chiffres.');
-      return;
-    }
-
     const uniqueNumbers = [...new Set(numbers)];
     setSearchParams({ n: uniqueNumbers.join(',') }, { replace: true });
-    autoSearched.current = true;
-    performSearch(uniqueNumbers);
   };
+
+  const handleClear = useCallback(() => {
+    setSearchParams({}, { replace: true });
+    setInput('');
+    setResults([]);
+    setError('');
+    setLoading(false);
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+  }, [setSearchParams]);
 
   return (
     <div
@@ -520,6 +250,24 @@ export default function Tracking() {
               style={{ border: 'none', boxShadow: 'none', flex: 1, fontSize: 16 }}
               required
             />
+            {(searchParams.get('n') || results.length > 0 || error) && (
+              <button
+                type="button"
+                onClick={handleClear}
+                disabled={loading}
+                className="btn btn-ghost"
+                style={{
+                  padding: '6px 10px',
+                  color: 'var(--color-steel)',
+                  borderRadius: 9999,
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--color-danger)')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--color-steel)')}
+                title="Effacer la recherche"
+              >
+                <X size={16} />
+              </button>
+            )}
             <button type="submit" disabled={loading} className="btn btn-primary">
               <Search size={16} />
               {loading ? 'Recherche...' : 'Rechercher'}

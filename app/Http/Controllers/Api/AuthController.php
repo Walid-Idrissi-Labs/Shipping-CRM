@@ -129,6 +129,13 @@ class AuthController extends Controller
             ];
         }
 
+        if ($user->role === 'employe' && $user->provider) {
+            $data['provider'] = [
+                'id' => $user->provider->id,
+                'company_name' => $user->provider->company_name,
+            ];
+        }
+
         return $data;
     }
 }

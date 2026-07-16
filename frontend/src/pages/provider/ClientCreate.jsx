@@ -1,11 +1,28 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ChevronDown, ChevronUp, FileText, Save, ArrowLeft, Check } from 'lucide-react';
+import { ChevronDown, ChevronUp, FileText, Save, ArrowLeft, UserRound, Plus, List } from 'lucide-react';
 import api from '../../api/axios';
 import { useToast } from '../../contexts/ToastContext';
+import { useSuccess } from '../../contexts/SuccessModalContext';
 import PageHeader from '../../components/ui/PageHeader';
 import { DataCard } from '../../components/ui/DataCard';
 import { FormField } from '../../components/ui/Form';
+import CopyButton from '../../components/ui/CopyButton';
+
+function CredentialRow({ label, value }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+      <span style={{ color: 'var(--color-steel)' }}>{label}</span>
+      {/* CopyButton brings its own marginLeft, so no gap here */}
+      <span style={{ display: 'inline-flex', alignItems: 'center', minWidth: 0 }}>
+        <span className="font-mono-data" style={{ color: 'var(--color-graphite)', fontWeight: 600 }}>
+          {value}
+        </span>
+        <CopyButton value={value} title={`Copier : ${label.toLowerCase()}`} />
+      </span>
+    </div>
+  );
+}
 
 const EMPTY_FORM = {
   full_name: '', company_name: '', email: '', phone: '', ice: '', address: '', postal_code: '', city: '', country: 'Maroc'
@@ -17,10 +34,10 @@ export default function ClientCreate() {
 
   const navigate = useNavigate();
   const toast = useToast();
+  const success = useSuccess();
   const toastShown = useRef(false);
 
   const [form, setForm] = useState(EMPTY_FORM);
-  const [created, setCreated] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [demande, setDemande] = useState(null);
@@ -96,76 +113,51 @@ export default function ClientCreate() {
           toast.warning('Client cree, mais la demande n\'a pas pu etre marquee comme approuvee.');
         }
       }
-      setCreated(data);
       setForm(EMPTY_FORM);
+      success.show({
+        title: 'Compte client cree avec succes',
+        message: 'Communiquez ces identifiants au client pour sa premiere connexion.',
+        detail: (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <CredentialRow label="Numero de compte" value={data.account_number} />
+            <CredentialRow label="Mot de passe temporaire" value={data.origin_password} />
+            <p
+              style={{
+                margin: 0,
+                paddingTop: 10,
+                borderTop: '1px solid rgba(29,29,32,0.08)',
+                fontSize: 12,
+                color: 'var(--color-steel)',
+              }}
+            >
+              Ce mot de passe reste consultable a tout moment depuis la fiche du client.
+            </p>
+          </div>
+        ),
+        primaryAction: {
+          label: 'Voir la fiche du client',
+          icon: UserRound,
+          onClick: () => { success.hide(); navigate(`/dashboard/clients/${data.client.id}`); },
+        },
+        secondaryActions: [
+          {
+            label: 'Creer un autre',
+            icon: Plus,
+            onClick: () => { success.hide(); setDemande(null); navigate('/dashboard/clients/nouveau'); },
+          },
+          {
+            label: 'Voir la liste',
+            icon: List,
+            onClick: () => { success.hide(); navigate('/dashboard/clients'); },
+          },
+        ],
+      });
     } catch (err) {
       setError(err.response?.data?.message || 'Erreur lors de la creation.');
     } finally {
       setLoading(false);
     }
   };
-
-  if (created) {
-    return (
-      <div style={{ maxWidth: 560 }}>
-        <PageHeader title="Client cree" />
-        <DataCard style={{ padding: 32, textAlign: 'center' }}>
-          <div
-            className="mx-auto flex items-center justify-center"
-            style={{
-              width: 56, height: 56, borderRadius: 9999,
-              background: 'var(--color-bone)', color: 'var(--color-vivid-green-dark)',
-              marginBottom: 16,
-            }}
-          >
-            <Check size={28} />
-          </div>
-          <h1 className="display-headline" style={{ fontSize: 28 }}>Compte cree avec succes</h1>
-          <div
-            style={{
-              padding: 16, borderRadius: 8, background: 'var(--color-bone)',
-              display: 'inline-block', textAlign: 'left', marginTop: 24,
-            }}
-          >
-            <div style={{ fontSize: 12, color: 'var(--color-steel)', textTransform: 'uppercase' }}>Numero de compte</div>
-            <div className="font-mono-data" style={{ fontSize: 22, color: 'var(--color-primary)', fontWeight: 500 }}>{created.account_number}</div>
-            <div style={{ fontSize: 12, color: 'var(--color-steel)', textTransform: 'uppercase', marginTop: 12 }}>Mot de passe temporaire</div>
-            <div className="font-mono-data" style={{ fontSize: 18, color: 'var(--color-graphite)', fontWeight: 500 }}>{created.origin_password}</div>
-          </div>
-          <p style={{ fontSize: 14, color: 'var(--color-iron)', marginTop: 24, maxWidth: 420, margin: '24px auto 0' }}>
-            Communiquez ces identifiants au client pour sa premiere connexion.
-          </p>
-          <p style={{ fontSize: 12, color: 'var(--color-steel)', marginTop: 8, fontStyle: 'italic' }}>
-            Ce mot de passe reste consultable a tout moment depuis la fiche du client.
-          </p>
-          <div className="flex flex-wrap justify-center" style={{ marginTop: 24, gap: 10 }}>
-            <button
-              onClick={() => {
-                setCreated(null);
-                setDemande(null);
-                navigate('/dashboard/clients/nouveau');
-              }}
-              className="btn btn-primary"
-            >
-              Creer un Autre
-            </button>
-            <button
-              onClick={() => navigate(`/dashboard/clients/${created.client.id}`)}
-              className="btn btn-secondary"
-            >
-              Voir la Fiche du Client
-            </button>
-            <button
-              onClick={() => navigate('/dashboard/clients')}
-              className="btn btn-ghost"
-            >
-              Retour a la Liste
-            </button>
-          </div>
-        </DataCard>
-      </div>
-    );
-  }
 
   return (
     <div style={{ maxWidth: 960 }}>

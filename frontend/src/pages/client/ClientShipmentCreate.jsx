@@ -7,14 +7,16 @@ import { DataCard } from '../../components/ui/DataCard';
 import { FormField } from '../../components/ui/Form';
 import { useToast } from '../../contexts/ToastContext';
 import { useSuccess } from '../../contexts/SuccessModalContext';
+import { MultiColisForm } from '../../components/MultiColisForm';
 
 const initialRecipient = {
   recipient_name: '', recipient_company: '', recipient_address: '', recipient_city: '', recipient_postal_code: '', recipient_country: '', recipient_phone: '', recipient_email: '',
 };
 
 const initialPackage = {
-  poids: '', longueur: '', largeur: '', hauteur: '', nb_pieces: 1,
-  valeur_declaree: '', devise_valeur: 'MAD', type_colis: 'paquet', description_colis: '', type_service: 'national',
+  // Colis fields - now handled by MultiColisForm
+  colis: [],
+  valeur_declaree: '', devise_valeur: 'MAD', type_service: 'national',
 };
 
 export default function ClientShipmentCreate() {
@@ -32,6 +34,15 @@ export default function ClientShipmentCreate() {
   const navigate = useNavigate();
   const toast = useToast();
   const success = useSuccess();
+  const [colis, setColis] = useState([{
+    nb_pieces: 1,
+    poids: '',
+    longueur: '',
+    largeur: '',
+    hauteur: '',
+    type_colis: 'paquet',
+    description_colis: ''
+  }]);
 
   useEffect(() => {
     api.get('/auth/me')
@@ -54,6 +65,28 @@ export default function ClientShipmentCreate() {
             .then((res) => {
               const s = res.data.shipment || res.data || {};
               setCopySource({ id: s.id, shipping_number: s.shipping_number });
+              // Handle colis from source shipment
+              const sourceColis = s.colis && s.colis.length > 0
+                ? s.colis.map((c, i) => ({
+                    position: c.position ?? i,
+                    nb_pieces: c.nb_pieces ?? 1,
+                    poids: c.poids ?? '',
+                    longueur: c.longueur ?? '',
+                    largeur: c.largeur ?? '',
+                    hauteur: c.hauteur ?? '',
+                    type_colis: c.type_colis || 'paquet',
+                    description_colis: c.description_colis || ''
+                  }))
+                : [{
+                    nb_pieces: s.nb_pieces ?? 1,
+                    poids: s.poids ?? '',
+                    longueur: s.longueur ?? '',
+                    largeur: s.largeur ?? '',
+                    hauteur: s.hauteur ?? '',
+                    type_colis: s.type_colis || 'paquet',
+                    description_colis: s.description_colis || ''
+                  }];
+              
               setSender({
                 sender_name: s.sender_name || baseSender.sender_name,
                 sender_company: s.sender_company ?? baseSender.sender_company,
@@ -75,17 +108,12 @@ export default function ClientShipmentCreate() {
                 recipient_email: s.recipient_email || '',
               });
               setPkg({
-                poids: s.poids ?? '',
-                longueur: s.longueur ?? '',
-                largeur: s.largeur ?? '',
-                hauteur: s.hauteur ?? '',
-                nb_pieces: s.nb_pieces ?? 1,
+                colis: sourceColis,
                 valeur_declaree: s.valeur_declaree ?? '',
                 devise_valeur: s.devise_valeur || 'MAD',
-                type_colis: s.type_colis || 'paquet',
-                description_colis: s.description_colis || '',
                 type_service: s.type_service || 'national',
               });
+              setColis(sourceColis);
             })
             .catch(() => {
               toast.push('Impossible de charger l\'expedition source.', 'error');
@@ -140,11 +168,28 @@ export default function ClientShipmentCreate() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // Validate at least one colis has poids and type_colis
+    const hasValidColis = colis.some(c => c.poids && c.type_colis);
+    if (!hasValidColis) {
+      setError('Veuillez renseigner au moins un colis avec un poids et un type.');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
       const all = { ...sender, ...recipient, ...pkg };
-      const payload = Object.fromEntries(Object.entries(all).map(([k, v]) => [k, v === '' ? null : v]));
+      const payload = {
+        ...Object.fromEntries(Object.entries(all).map(([k, v]) => [k, v === '' ? null : v])),
+        colis: colis.map(c => ({
+          nb_pieces: c.nb_pieces,
+          poids: c.poids ? Number(c.poids) : 0,
+          longueur: c.longueur ? Number(c.longueur) : null,
+          largeur: c.largeur ? Number(c.largeur) : null,
+          hauteur: c.hauteur ? Number(c.hauteur) : null,
+          type_colis: c.type_colis,
+          description_colis: c.description_colis || null
+        }))
+      };
       const { data } = await api.post('/my/expeditions', payload);
       const createdId = data.shipment.id;
       toast.push('Expedition creee', 'success');
@@ -294,45 +339,33 @@ export default function ClientShipmentCreate() {
         </div>
 
         <DataCard title="Colis" description="Dimensions et caracteristiques.">
-          <div className="grid grid-cols-2 md:grid-cols-4" style={{ gap: 16 }}>
-            <FormField label="Poids (kg)"><input name="poids" value={pkg.poids} onChange={handlePackage} type="number" step="0.001" min="0" className="input" /></FormField>
-            <FormField label="Longueur (cm)"><input name="longueur" value={pkg.longueur} onChange={handlePackage} type="number" step="0.01" min="0" className="input" /></FormField>
-            <FormField label="Largeur (cm)"><input name="largeur" value={pkg.largeur} onChange={handlePackage} type="number" step="0.01" min="0" className="input" /></FormField>
-            <FormField label="Hauteur (cm)"><input name="hauteur" value={pkg.hauteur} onChange={handlePackage} type="number" step="0.01" min="0" className="input" /></FormField>
-            <FormField label="Pieces"><input name="nb_pieces" value={pkg.nb_pieces} onChange={handlePackage} type="number" min="1" className="input" /></FormField>
-            <FormField label="Valeur Declaree">
-              <div style={{ display: 'flex', alignItems: 'stretch', border: '1px solid var(--color-ash)', borderRadius: 8, background: 'var(--color-paper-white)', overflow: 'hidden' }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <input name="valeur_declaree" value={pkg.valeur_declaree} onChange={handlePackage} type="number" step="0.01" min="0" className="input" style={{ borderRadius: 0, borderRight: 'none', border: 'none', boxShadow: 'none' }} />
-                </div>
-                <div style={{ width: 90, borderLeft: '1px solid var(--color-ash)', background: 'var(--color-fog)' }}>
-                  <select name="devise_valeur" value={pkg.devise_valeur} onChange={handlePackage} className="select" style={{ borderRadius: 0, border: 'none', boxShadow: 'none', background: 'transparent' }}>
-                    <option value="MAD">MAD</option>
-                    <option value="USD">USD</option>
-                    <option value="EUR">EUR</option>
-                  </select>
-                </div>
+          <MultiColisForm
+            colis={colis}
+            onChange={setColis}
+            showTotals={true}
+          />
+          <FormField label="Valeur Declaree">
+            <div style={{ display: 'flex', alignItems: 'stretch', border: '1px solid var(--color-ash)', borderRadius: 8, background: 'var(--color-paper-white)', overflow: 'hidden' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <input name="valeur_declaree" value={pkg.valeur_declaree} onChange={handlePackage} type="number" step="0.01" min="0" className="input" style={{ borderRadius: 0, borderRight: 'none', border: 'none', boxShadow: 'none' }} />
               </div>
-            </FormField>
-            <FormField label="Type de colis">
-              <select name="type_colis" value={pkg.type_colis} onChange={handlePackage} className="select">
-                <option value="document">Document</option>
-                <option value="paquet">Paquet</option>
-                <option value="palette">Palette</option>
-              </select>
-            </FormField>
-            <FormField label="Type de service" required>
-              <select name="type_service" value={pkg.type_service} onChange={handlePackage} className="select">
-                <option value="national">National</option>
-                <option value="international_express_dap">International Express DAP</option>
-                <option value="fret_aerien">Fret Aerien</option>
-                <option value="routier_groupage">Routier (Groupage)</option>
-                <option value="maritime_groupage">Maritime (Groupage)</option>
-              </select>
-            </FormField>
-          </div>
-          <FormField label="Description du colis" hint="60 caracteres maximum">
-            <input name="description_colis" value={pkg.description_colis} onChange={handlePackage} maxLength={60} className="input" />
+              <div style={{ width: 90, borderLeft: '1px solid var(--color-ash)', background: 'var(--color-fog)' }}>
+                <select name="devise_valeur" value={pkg.devise_valeur} onChange={handlePackage} className="select" style={{ borderRadius: 0, border: 'none', boxShadow: 'none', background: 'transparent' }}>
+                  <option value="MAD">MAD</option>
+                  <option value="USD">USD</option>
+                  <option value="EUR">EUR</option>
+                </select>
+              </div>
+            </div>
+          </FormField>
+          <FormField label="Type de service" required>
+            <select name="type_service" value={pkg.type_service} onChange={handlePackage} className="select">
+              <option value="national">National</option>
+              <option value="international_express_dap">International Express DAP</option>
+              <option value="fret_aerien">Fret Aerien</option>
+              <option value="routier_groupage">Routier (Groupage)</option>
+              <option value="maritime_groupage">Maritime (Groupage)</option>
+            </select>
           </FormField>
         </DataCard>
 

@@ -5,13 +5,20 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Shipment;
 use App\Models\SuiviStatut;
+use App\Models\SousEtape;
 use Illuminate\Http\Request;
 
 class TrackingController extends Controller
 {
     public function publicTrack($number)
     {
-        $shipment = Shipment::where('shipping_number', $number)->with('suiviStatuts')->firstOrFail();
+        $shipment = Shipment::where('shipping_number', $number)
+            ->with(['suiviStatuts', 'sousEtapes'])
+            ->firstOrFail();
+
+        $sousEtapesByStatut = $shipment->sousEtapes
+            ->sortByDesc('created_at')
+            ->groupBy('statut');
 
         return response()->json([
             'shipping_number' => $shipment->shipping_number,
@@ -23,6 +30,7 @@ class TrackingController extends Controller
             'recipient_city' => $shipment->recipient_city,
             'created_at' => $shipment->created_at,
             'events' => $shipment->suiviStatuts,
+            'sous_etapes' => $sousEtapesByStatut,
         ]);
     }
 
@@ -84,9 +92,16 @@ class TrackingController extends Controller
             abort(403, 'Acces refuse.');
         }
 
+        $shipment->load('suiviStatuts.changedBy', 'sousEtapes');
+
+        $sousEtapesByStatut = $shipment->sousEtapes
+            ->sortByDesc('created_at')
+            ->groupBy('statut');
+
         return response()->json([
             'shipment' => $shipment,
-            'events' => $shipment->suiviStatuts()->with('changedBy')->orderBy('date_statut')->get(),
+            'events' => $shipment->suiviStatuts,
+            'sous_etapes' => $sousEtapesByStatut,
         ]);
     }
 }

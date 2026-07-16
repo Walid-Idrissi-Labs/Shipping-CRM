@@ -10,7 +10,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['role', 'email', 'password_hash', 'origin_password_hash', 'origin_password_encrypted', 'first_login_completed'])]
+#[Fillable(['role', 'name', 'email', 'password_hash', 'origin_password_hash', 'origin_password_encrypted', 'first_login_completed', 'provider_id'])]
 #[Hidden(['password_hash', 'origin_password_hash', 'origin_password_encrypted', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -29,7 +29,20 @@ class User extends Authenticatable
 
     public function provider()
     {
+        if ($this->role === 'prestataire') {
+            return $this->hasOne(Provider::class);
+        }
+        
+        if ($this->role === 'employe') {
+            return $this->belongsTo(Provider::class, 'provider_id');
+        }
+        
         return $this->hasOne(Provider::class);
+    }
+
+    public function employeeShipments()
+    {
+        return $this->hasMany(EmployeeShipment::class, 'employee_id');
     }
 
     public function passwordViews()
@@ -42,8 +55,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'first_login_completed' => 'boolean',
-            'password_hash' => 'hashed',
-            'origin_password_hash' => 'hashed',
+            'provider_id' => 'integer',
         ];
     }
 }

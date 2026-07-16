@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
-import { User, Lock, Save, Eye, EyeOff, Check } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { User, Lock, Eye, EyeOff, Check, LogOut } from 'lucide-react';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
 import SaveStatusButton from '../../components/ui/SaveStatusButton';
 import { useDirtyForm } from '../../hooks/useDirtyForm';
 import { useToast } from '../../contexts/ToastContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 const emptyProfile = {
   full_name: '',
@@ -29,6 +31,8 @@ const countryOptions = ['Maroc', 'France', 'Espagne', 'Allemagne', 'Belgique', '
 
 export default function MyAccount() {
   const toast = useToast();
+  const navigate = useNavigate();
+  const { logout } = useAuth();
   const profileForm = useDirtyForm(emptyProfile);
   const passwordForm = useDirtyForm(emptyPassword);
   const [readOnly, setReadOnly] = useState({
@@ -109,6 +113,11 @@ export default function MyAccount() {
       passwordForm.failSave();
       toast.push(err.response?.data?.message || 'Erreur lors du changement de mot de passe.', 'error');
     }
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
   };
 
   return (
@@ -284,12 +293,12 @@ export default function MyAccount() {
               style={{ borderTop: '1px solid var(--color-ash)' }}
             >
               <p style={{ fontSize: 12, color: 'var(--color-steel)', lineHeight: 1.6 }}>
-                Pour toute modification liee a votre numero de compte, merci de nous contacter directement.
+                Pour toute modification liee a votre numero de compte ou email de connexion, merci de nous contacter.
               </p>
             </div>
           </Card>
 
-          <Card style={{ padding: 24 }}>
+          <Card style={{ padding: 24 , marginTop: 26 }}>
   <div className="flex items-center gap-3 mb-5">
     <div
       className="flex items-center justify-center"
@@ -298,7 +307,15 @@ export default function MyAccount() {
         background: 'var(--color-bone)', color: 'var(--color-graphite)',
       }}
     >
-      <Lock size={18} />
+        <div
+              className="flex items-center justify-center"
+              style={{
+                width: 36, height: 36, borderRadius: 8,
+                background: 'rgba(255,0,0,0.1)', color: 'rgba(255,0,0,0.4)',
+              }}
+            >    
+            <Lock size={18} />
+        </div>
     </div>
     <div>
       <h3 className="section-heading">Securite</h3>
@@ -405,6 +422,17 @@ export default function MyAccount() {
   </form>
 </Card>
 </div>
+      </div>
+
+      <div style={{ marginTop: 28, display: 'flex', justifyContent: 'center' }}>
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="btn btn-danger"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 8, minWidth: 200 }}
+        >
+          <LogOut size={16} /> Se deconnecter
+        </button>
       </div>
     </div>
   );

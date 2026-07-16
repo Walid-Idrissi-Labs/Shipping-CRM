@@ -7,12 +7,17 @@ import { DataCard } from '../../components/ui/DataCard';
 import { FormField } from '../../components/ui/Form';
 import { useToast } from '../../contexts/ToastContext';
 import { useSuccess } from '../../contexts/SuccessModalContext';
+import { MultiColisForm } from '../../components/MultiColisForm';
+import CountrySelect from '../../components/ui/CountrySelect';
 
 const initial = {
   client_name: '', client_email: '', client_phone: '', client_address: '', client_city: '', client_postal_code: '', client_country: '',
+  origin_city: '', origin_country: 'MA',
   recipient_name: '', recipient_company: '', recipient_email: '', recipient_address: '', recipient_city: '', recipient_postal_code: '', recipient_country: '', recipient_phone: '',
-  poids: '', longueur: '', largeur: '', hauteur: '', nb_pieces: 1,
-  type_colis: 'paquet', type_service: 'national', description_colis: '',
+  // Colis fields - now handled by MultiColisForm
+  colis: [],
+  type_service: 'national',
+  valeur_declaree: '', devise_valeur: 'MAD'
 };
 
 export default function ClientQuoteRequestCreate() {
@@ -22,6 +27,15 @@ export default function ClientQuoteRequestCreate() {
   const navigate = useNavigate();
   const toast = useToast();
   const success = useSuccess();
+  const [colis, setColis] = useState([{
+    nb_pieces: 1,
+    poids: '',
+    longueur: '',
+    largeur: '',
+    hauteur: '',
+    type_colis: 'paquet',
+    description_colis: ''
+  }]);
 
   useEffect(() => {
     api.get('/auth/me')
@@ -49,10 +63,27 @@ export default function ClientQuoteRequestCreate() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // Validate at least one colis has poids and type_colis
+    const hasValidColis = colis.some(c => c.poids && c.type_colis);
+    if (!hasValidColis) {
+      setError('Veuillez renseigner au moins un colis avec un poids et un type.');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
-      const payload = Object.fromEntries(Object.entries(form).map(([k, v]) => [k, v === '' ? null : v]));
+      const payload = {
+        ...Object.fromEntries(Object.entries(form).map(([k, v]) => [k, v === '' ? null : v])),
+        colis: colis.map(c => ({
+          nb_pieces: c.nb_pieces,
+          poids: c.poids ? Number(c.poids) : 0,
+          longueur: c.longueur ? Number(c.longueur) : null,
+          largeur: c.largeur ? Number(c.largeur) : null,
+          hauteur: c.hauteur ? Number(c.hauteur) : null,
+          type_colis: c.type_colis,
+          description_colis: c.description_colis || null
+        }))
+      };
       const { data } = await api.post('/my/quote-requests', payload);
       const id = data.quote_request.id;
       toast.push('Demande de devis envoyee', 'success');
@@ -147,6 +178,13 @@ export default function ClientQuoteRequestCreate() {
           </div>
         </DataCard>
 
+        <DataCard title="Origine" description="Adresse d'enlèvement du colis.">
+          <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 16 }}>
+            <FormField label="Ville d'origine" required><input name="origin_city" value={form.origin_city} onChange={handleChange} className="input" required /></FormField>
+            <FormField label="Pays d'origine" required><CountrySelect name="origin_country" value={form.origin_country} onChange={handleChange} required /></FormField>
+          </div>
+        </DataCard>
+
         <DataCard title="Destinataire" description="Personne physique ou morale qui recevra le colis.">
           <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 16 }}>
             <FormField label="Nom" required><input name="recipient_name" value={form.recipient_name} onChange={handleChange} className="input" required /></FormField>
@@ -156,38 +194,38 @@ export default function ClientQuoteRequestCreate() {
             <FormField label="Adresse" required><input name="recipient_address" value={form.recipient_address} onChange={handleChange} className="input" required /></FormField>
             <FormField label="Ville" required><input name="recipient_city" value={form.recipient_city} onChange={handleChange} className="input" required /></FormField>
             <FormField label="Code postal" required><input name="recipient_postal_code" value={form.recipient_postal_code} onChange={handleChange} className="input" required /></FormField>
-            <FormField label="Pays" required><input name="recipient_country" value={form.recipient_country} onChange={handleChange} className="input" required /></FormField>
+            <FormField label="Pays" required><CountrySelect name="recipient_country" value={form.recipient_country} onChange={handleChange} required /></FormField>
           </div>
         </DataCard>
 
-        <DataCard title="Colis" description="Dimensions et caracteristiques du colis a expedier.">
-          <div className="grid grid-cols-2 md:grid-cols-4" style={{ gap: 16 }}>
-            <FormField label="Poids (kg)"><input name="poids" value={form.poids} onChange={handleChange} type="number" step="0.001" min="0" className="input" /></FormField>
-            <FormField label="Longueur (cm)"><input name="longueur" value={form.longueur} onChange={handleChange} type="number" step="0.01" min="0" className="input" /></FormField>
-            <FormField label="Largeur (cm)"><input name="largeur" value={form.largeur} onChange={handleChange} type="number" step="0.01" min="0" className="input" /></FormField>
-            <FormField label="Hauteur (cm)"><input name="hauteur" value={form.hauteur} onChange={handleChange} type="number" step="0.01" min="0" className="input" /></FormField>
-            <FormField label="Pieces"><input name="nb_pieces" value={form.nb_pieces} onChange={handleChange} type="number" min="1" className="input" /></FormField>
-            <FormField label="Type de colis">
-              <select name="type_colis" value={form.type_colis} onChange={handleChange} className="select">
-                <option value="document">Document</option>
-                <option value="paquet">Paquet</option>
-                <option value="palette">Palette</option>
-              </select>
-            </FormField>
-            <div className="col-span-2">
-              <FormField label="Service" required>
-                <select name="type_service" value={form.type_service} onChange={handleChange} className="select">
-                  <option value="national">National</option>
-                  <option value="international_express_dap">International Express DAP</option>
-                  <option value="fret_aerien">Fret Aerien</option>
-                  <option value="routier_groupage">Routier (Groupage)</option>
-                  <option value="maritime_groupage">Maritime (Groupage)</option>
+        <DataCard title="Colis" description="Ajoutez un ou plusieurs colis. Chaque colis peut contenir plusieurs pieces identiques.">
+          <MultiColisForm
+            colis={colis}
+            onChange={setColis}
+            showTotals={true}
+          />
+          <FormField label="Valeur Totale Declaree" style={{ marginTop: 12 }} hint="Valeur totale declaree pour l'ensemble des colis.">
+            <div style={{ display: 'flex', alignItems: 'stretch', border: '1px solid var(--color-ash)', borderRadius: 8, background: 'var(--color-paper-white)', overflow: 'hidden' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <input name="valeur_declaree" value={form.valeur_declaree} onChange={handleChange} type="number" step="0.01" min="0" className="input" style={{ borderRadius: 0, borderRight: 'none', border: 'none', boxShadow: 'none' }} />
+              </div>
+              <div style={{ width: 90, borderLeft: '1px solid var(--color-ash)', background: 'var(--color-fog)' }}>
+                <select name="devise_valeur" value={form.devise_valeur} onChange={handleChange} className="select" style={{ borderRadius: 0, border: 'none', boxShadow: 'none', background: 'transparent' }}>
+                  <option value="MAD">MAD</option>
+                  <option value="USD">USD</option>
+                  <option value="EUR">EUR</option>
                 </select>
-              </FormField>
+              </div>
             </div>
-          </div>
-          <FormField label="Description du colis" hint="60 caracteres maximum">
-            <input name="description_colis" value={form.description_colis} onChange={handleChange} maxLength={60} className="input" />
+          </FormField>
+          <FormField label="Type de service">
+            <select name="type_service" value={form.type_service} onChange={handleChange} className="select">
+              <option value="national">National</option>
+              <option value="international_express_dap">International Express DAP</option>
+              <option value="fret_aerien">Fret Aerien</option>
+              <option value="routier_groupage">Routier (Groupage)</option>
+              <option value="maritime_groupage">Maritime (Groupage)</option>
+            </select>
           </FormField>
         </DataCard>
 

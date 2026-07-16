@@ -13,15 +13,9 @@ import { useToast } from '../../contexts/ToastContext';
 import {
   Download, Trash2, Check, Circle, ExternalLink, ChevronDown,
   Truck, User, MapPin, Calendar, ArrowRight, ChevronRight, Copy, CopyPlus,
+  Plus,
 } from 'lucide-react';
-
-const statuses = [
-  { value: 'information_recue', label: 'Information Recue' },
-  { value: 'ramasse', label: 'Ramasse' },
-  { value: 'en_transit', label: 'En Transit' },
-  { value: 'en_cours', label: 'En Cours' },
-  { value: 'livre', label: 'Livre' },
-];
+import Tooltip from '../../components/ui/Tooltip';
 
 function formatSousStatut(s) {
   return s.replace(/_/g, ' ')
@@ -31,6 +25,37 @@ function formatSousStatut(s) {
     .join(' ');
 }
 
+function mergeHistory(events = [], sousEtapes = {}) {
+  const eventItems = (events || []).map((e) => ({
+    ...e,
+    _type: 'event',
+    _date: e.date_statut,
+    _statut: e.statut,
+    _id: e.id,
+  }));
+
+  const sousEtapeItems = Object.values(sousEtapes).flatMap((arr) =>
+    (arr || []).map((se) => ({
+      ...se,
+      _type: 'sous-etape',
+      _date: se.created_at,
+      _statut: se.statut,
+      _id: se.id,
+    }))
+  );
+
+  return [...eventItems, ...sousEtapeItems]
+    .sort((a, b) => new Date(b._date) - new Date(a._date));
+}
+
+const statuses = [
+  { value: 'information_recue', label: 'Information Recue' },
+  { value: 'ramasse', label: 'Ramasse' },
+  { value: 'en_transit', label: 'En Transit' },
+  { value: 'en_cours', label: 'En Cours' },
+  { value: 'livre', label: 'Livre' },
+];
+
 const subStatuses = [
   { value: '', label: '— Aucun —' },
   { value: 'en_cours_de_livraison', label: 'En cours de livraison' },
@@ -39,12 +64,14 @@ const subStatuses = [
   { value: 'retour', label: 'Retour' },
 ];
 
-function TrackingTimeline({ events }) {
+function TrackingTimeline({ events, sousEtapes = {} }) {
   const eventStatuses = new Set(events.map((e) => e.statut));
   const currentIndex = statuses.reduce((highest, status, idx) => {
     if (eventStatuses.has(status.value) && idx > highest) return idx;
     return highest;
   }, -1);
+
+  const sousEtapesByStatut = sousEtapes || {};
 
   return (
     <div style={{ position: 'relative' }}>
@@ -55,84 +82,189 @@ function TrackingTimeline({ events }) {
         const matchingEvent = [...events]
           .filter((e) => e.statut === status.value)
           .sort((a, b) => new Date(b.date_statut) - new Date(a.date_statut))[0] || null;
+
+        // Provider view: oldest first (latest at bottom)
+        const sousEtapesForStatus = [...(sousEtapesByStatut[status.value] || [])].sort(
+          (a, b) => new Date(a.created_at) - new Date(b.created_at)
+        );
+        const sousEtapeCount = sousEtapesForStatus.length;
+
         return (
           <div
             key={status.value}
-            style={{ position: 'relative', paddingLeft: 36, paddingBottom: isLast ? 0 : 22 }}
+            style={{ position: 'relative', paddingLeft: 36 }}
           >
+            {/* Main vertical line - centered on status dots (left: 12 = center of 24px dot) */}
             {!isLast && (
               <div
                 style={{
                   position: 'absolute',
-                  left: 11,
-                  top: 22,
+                  left: 12,
+                  top: 0,
                   bottom: 0,
                   width: 2,
                   background: completed ? 'var(--color-primary)' : 'var(--color-ash)',
+                  zIndex: 1,
                 }}
               />
             )}
+
+            {/* Status node row */}
             <div
               style={{
-                position: 'absolute',
-                left: 0,
-                top: 0,
-                width: 24,
-                height: 24,
-                borderRadius: 9999,
-                background: current
-                  ? 'var(--color-vivid-green)'
-                  : completed
-                    ? 'var(--color-primary)'
-                    : 'var(--color-bone)',
-                border: `2px solid ${
-                  current
-                    ? 'var(--color-vivid-green)'
-                    : completed
-                      ? 'var(--color-primary)'
-                      : 'var(--color-ash)'
-                }`,
+                position: 'relative',
+                zIndex: 2,
                 display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--color-paper-white)',
-                boxShadow: current ? '0 0 0 4px rgba(74,198,76,0.22)' : 'none',
+                alignItems: 'flex-start',
+                gap: 12,
               }}
             >
-              {current || completed ? <Check size={12} strokeWidth={3} /> : <Circle size={6} fill="var(--color-smoke)" />}
-            </div>
-            <div>
+              {/* Status dot - centered on vertical line at left: 12 */}
               <div
                 style={{
-                  fontWeight: 500,
-                  fontSize: 15,
-                  color: current || completed ? 'var(--color-graphite)' : 'var(--color-smoke)',
+                  position: 'absolute',
+                  left: -36,
+                  top: 0,
+                  width: 28,
+                  height: 28,
+                  borderRadius: 9999,
+                  background: current
+                    ? 'var(--color-vivid-green)'
+                    : completed
+                    ? 'var(--color-primary)'
+                    : 'var(--color-bone)',
+                  border: `2px solid ${
+                    current
+                      ? 'var(--color-vivid-green)'
+                      : completed
+                      ? 'var(--color-primary)'
+                      : 'var(--color-ash)'
+                  }`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--color-paper-white)',
+                  boxShadow: current ? '0 0 0 4px rgba(74,198,76,0.22)' : 'none',
+                  // boxShadow: current ? '0 0 0 4px rgba(242, 140, 40,0.82)' : 'none',
                 }}
               >
-                {status.label}
+                {current || completed ? <Check size={12} strokeWidth={3} /> : <Circle size={6} fill="var(--color-smoke)" />}
               </div>
-              {matchingEvent && (
-                <div style={{ fontSize: 13, color: 'var(--color-steel)', marginTop: 4 }}>
-                  {new Date(matchingEvent.date_statut).toLocaleString('fr-FR')}
-                  {matchingEvent.sous_statut && (
-                    <span
-                      style={{
-                        color: 'var(--color-steel)',
-                        display: 'block',
-                        marginTop: 4,
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.04em',
-                        fontSize: 11,
-                        fontWeight: 600,
-                      }}
-                    >
-                      {formatSousStatut(matchingEvent.sous_statut)}
-                    </span>
-                  )}
-                  {matchingEvent.description && ` — ${matchingEvent.description}`}
+
+              <div style={{ flex: 1, minWidth: 0, marginLeft: 36 }}>
+                <div
+                  style={{
+                    fontWeight: 500,
+                    fontSize: 15,
+                    color: current || completed ? 'var(--color-graphite)' : 'var(--color-smoke)',
+                  }}
+                >
+                  {status.label}
                 </div>
-              )}
+                {matchingEvent && (
+                  <div style={{ fontSize: 13, color: 'var(--color-steel)', marginTop: 4 }}>
+                    {new Date(matchingEvent.date_statut).toLocaleString('fr-FR')}
+                    {matchingEvent.sous_statut && (
+                      <span
+                        style={{
+                          color: 'var(--color-steel)',
+                          display: 'block',
+                          marginTop: 4,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.04em',
+                          fontSize: 11,
+                          fontWeight: 600,
+                        }}
+                      >
+                        {formatSousStatut(matchingEvent.sous_statut)}
+                      </span>
+                    )}
+                    {matchingEvent.description && ` — ${matchingEvent.description}`}
+                  </div>
+                )}
+              </div>
             </div>
+
+            {/* Sous-etapes: horizontal branches from vertical line, stacked vertically, oldest first (latest at bottom) */}
+            {sousEtapeCount > 0 && (
+              <div style={{ marginTop: 8 }}>
+                {sousEtapesForStatus.map((se, si) => (
+                  <div
+                    key={se.id}
+                    style={{
+                      position: 'relative',
+                      display: 'flex',
+                      alignItems: 'center',
+                      marginBottom: si === sousEtapeCount - 1 ? 8 : 12,
+                    }}
+                  >
+                    {/* Horizontal branch from main vertical line (centered at left: 12) to card */}
+                    <div
+                      style={{
+                        position: 'absolute',
+                        left: -24,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        width: 14,
+                        height: 2,
+                        background: completed ? 'var(--color-primary)' : 'var(--color-ash)',
+                        borderRadius: 1,
+                        zIndex: 1,
+                      }}
+                    />
+                    {/* Dot at junction on the vertical line (centered at left: 12) */}
+                    <div
+                      style={{
+                        position: 'absolute',
+                        left: -11,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        width: 12,
+                        height: 12,
+                        borderRadius: 9999,
+                        background: 'var(--color-primary)',
+                        border: '2px solid var(--color-paper-white)',
+                        boxShadow: '0 0 0 1px var(--color-ash)',
+                        zIndex: 2,
+                      }}
+                    />
+                    {/* Sous-etape card - shifted right to make room for branch */}
+                      <div
+                        style={{
+                          flex: 1,
+                          marginLeft: 5,
+                          background: 'var(--color-bone)',
+                          border: '2px solid var(--color-ash)',
+                          borderRadius: 6,
+                          padding: '8px 10px',
+                          fontSize: 13,
+                          color: 'var(--color-graphite)',
+                          minWidth: 200,
+                          maxWidth: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <span>{se.description}</span>
+
+                        <span
+                          style={{
+                            fontSize: 11,
+                            color: 'var(--color-steel)',
+                            marginLeft: 'auto',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {new Date(se.created_at).toLocaleString('fr-FR')}
+                        </span>
+                      </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Gap after status + sous-etapes before next status */}
+            {!isLast && <div style={{ height: 20 }} />}
           </div>
         );
       })}
@@ -145,13 +277,16 @@ export default function ShipmentDetail() {
   const navigate = useNavigate();
   const [shipment, setShipment] = useState(null);
   const [events, setEvents] = useState([]);
+  const [sousEtapes, setSousEtapes] = useState({});
   const [affectations, setAffectations] = useState([]);
-  const [newEvent, setNewEvent] = useState({
-    statut: '',
-    sous_statut: '',
-    date_statut: new Date().toISOString().slice(0, 16),
-    description: '',
-  });
+const [newEvent, setNewEvent] = useState({
+     statut: '',
+     sous_statut: '',
+     date_statut: new Date().toISOString().slice(0, 16),
+     description: '',
+     addSousEtape: false,
+     sousEtapeDescription: '',
+   });
   const [loading, setLoading] = useState(true);
   const [labelHtml, setLabelHtml] = useState(null);
   const [labelLoading, setLabelLoading] = useState(true);
@@ -196,11 +331,17 @@ export default function ShipmentDetail() {
     const s = data.shipment || data;
     setShipment(s);
     setEvents(s.suivi_statuts || data.suivi_statuts || []);
+    // Load sous_etapes from the API response
+    if (data.sous_etapes) {
+      setSousEtapes(data.sous_etapes);
+    }
     setAffectations(data.affectations || []);
     setNewEvent((prev) => ({
       ...prev,
       statut: s.statut_actuel || '',
       sous_statut: s.sous_statut_actuel || '',
+      addSousEtape: false,
+      sousEtapeDescription: '',
     }));
     setLoading(false);
   };
@@ -224,13 +365,40 @@ export default function ShipmentDetail() {
 
   const handleAddEvent = async (e) => {
     e.preventDefault();
-    await api.post(`/shipments/${id}/tracking`, newEvent);
+
+    const isNewStatus = !usedStatuses.has(newEvent.statut) && newEvent.statut !== shipment?.statut_actuel;
+    const isRepeatable = ['en_cours', 'en_transit'].includes(newEvent.statut);
+    const shouldCreateStatusEvent = isNewStatus || isRepeatable;
+
+    // 1. Create the status event if needed
+    if (shouldCreateStatusEvent) {
+      const { data } = await api.post(`/shipments/${id}/tracking`, {
+        statut: newEvent.statut,
+        sous_statut: newEvent.sous_statut,
+        date_statut: newEvent.date_statut,
+        description: newEvent.description,
+      });
+      // The response includes the created event
+    }
+
+    // 2. Create sous-etape if requested
+    if (newEvent.addSousEtape && newEvent.sousEtapeDescription.trim()) {
+      await api.post(`/shipments/${id}/sous-etapes`, {
+        statut: newEvent.statut,
+        description: newEvent.sousEtapeDescription.trim(),
+      });
+    }
+
+    // Reset form
     setNewEvent({
       statut: '',
       sous_statut: '',
       date_statut: new Date().toISOString().slice(0, 16),
       description: '',
+      addSousEtape: false,
+      sousEtapeDescription: '',
     });
+
     fetchShipment();
     fetchLabel();
   };
@@ -256,6 +424,20 @@ export default function ShipmentDetail() {
       }
       return filtered;
     });
+  };
+
+  const handleDeleteSousEtape = async (sousEtapeId) => {
+    const ok = await dialog.confirm({
+      title: 'Supprimer cette sous-etape ?',
+      description: 'Cette note sera definitivement retiree du dossier.',
+      confirmText: 'Supprimer',
+      cancelText: 'Annuler',
+      variant: 'danger',
+    });
+    if (!ok) return;
+    await api.delete(`/sous-etapes/${sousEtapeId}`);
+    toast.push('Sous-etape supprimee', 'success');
+    fetchShipment();
   };
 
   const openLabelPdf = () => {
@@ -347,7 +529,19 @@ export default function ShipmentDetail() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: 16, marginBottom: 24 }}>
-        <DataCard title="Ajouter un Statut" description="Suivi manuel de la livraison.">
+        <DataCard
+          title="Ajouter un Statut"
+          description="Suivi manuel de la livraison."
+          actions={
+            shipment.has_employee_changes && (
+              <Tooltip placement="top" content={`Modifié par ${shipment.employee_name} le ${new Date(shipment.employee_changed_at).toLocaleString('fr-FR')}`}>
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 6, background: 'var(--color-primary-wash)', color: 'var(--color-primary)' }}>
+                  <User size={14} />
+                </span>
+              </Tooltip>
+            )
+          }
+        >
           <form onSubmit={handleAddEvent}>
             <FormField label="Statut" required>
               <select
@@ -387,6 +581,31 @@ export default function ShipmentDetail() {
                 className="input"
               />
             </FormField>
+
+            <FormField label="Ajouter une Sous-Etape" hint="Note supplementaire pour ce statut (max 60 caracteres)">
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={newEvent.addSousEtape}
+                  onChange={(e) => setNewEvent({ ...newEvent, addSousEtape: e.target.checked })}
+                  style={{ width: 16, height: 16, accentColor: 'var(--color-primary)' }}
+                />
+                <span style={{ fontSize: 14, color: 'var(--color-graphite)' }}>Activer pour ajouter une note sous ce statut</span>
+              </label>
+            </FormField>
+
+            {newEvent.addSousEtape && (
+              <FormField label="Sous-Etape (max 60 caracteres)" hint={`${newEvent.sousEtapeDescription.length}/60`}>
+                <input
+                  value={newEvent.sousEtapeDescription}
+                  onChange={(e) => setNewEvent({ ...newEvent, sousEtapeDescription: e.target.value })}
+                  maxLength={60}
+                  className="input"
+                  placeholder="..."
+                />
+              </FormField>
+            )}
+
             <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
               Ajouter l'evenement
             </button>
@@ -399,59 +618,74 @@ export default function ShipmentDetail() {
               Aucun evenement enregistre pour le moment.
             </div>
           ) : (
-            <TrackingTimeline events={events} />
+            <TrackingTimeline events={events} sousEtapes={sousEtapes} />
           )}
         </DataCard>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: 16, alignItems: 'start' }}>
         <DataCard title="Historique" description="Liste complete des evenements de suivi.">
-          {events.length === 0 ? (
+          {events.length === 0 && Object.keys(sousEtapes).length === 0 ? (
             <div style={{ fontSize: 14, color: 'var(--color-steel)', padding: 12 }}>
               Aucun evenement pour l'instant.
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {events.map((e) => (
-                <div
-                  key={e.id}
-                  style={{
-                    padding: 12,
-                    borderRadius: 6,
-                    background: 'var(--color-bone)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 6,
-                  }}
-                >
+              {mergeHistory(events, sousEtapes).map((item) => {
+                const isEvent = item._type === 'event';
+                const date = isEvent ? item.date_statut : item.created_at;
+                const statut = item._statut;
+                const description = isEvent ? item.description : item.description;
+                const sousStatut = isEvent ? item.sous_statut : null;
+                const onDelete = isEvent ? () => handleDeleteEvent(item.id) : () => handleDeleteSousEtape(item.id);
+
+                return (
                   <div
+                    key={item._id}
                     style={{
+                      padding: 12,
+                      borderRadius: 6,
+                      background: isEvent ? 'var(--color-bone)' : 'var(--color-cream)',
+                      borderLeft: isEvent ? 'none' : '3px solid var(--color-primary)',
                       display: 'flex',
-                      alignItems: 'center',
-                      gap: 10,
-                      flexWrap: 'nowrap',
+                      flexDirection: 'column',
+                      gap: 6,
                     }}
                   >
-                    <StatusBadge status={e.statut} />
-                    {e.sous_statut && <StatusBadge status={e.sous_statut} />}
-                    <span style={{ fontSize: 12, color: 'var(--color-steel)', marginLeft: 'auto' }}>
-                      {new Date(e.date_statut).toLocaleString('fr-FR')}
-                    </span>
-                    <button
-                      onClick={() => handleDeleteEvent(e.id)}
-                      className="btn btn-danger"
-                      style={{ padding: '4px 10px' }}
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        flexWrap: 'nowrap',
+                      }}
                     >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                  {e.description && (
-                    <div style={{ fontSize: 13, color: 'var(--color-graphite)', lineHeight: 1.45 }}>
-                      {e.description}
+                      <StatusBadge status={statut} />
+                      {sousStatut && <StatusBadge status={sousStatut} />}
+                      {!isEvent && (
+                        <span style={{ fontSize: 11, color: 'var(--color-primary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                          Sous-etape
+                        </span>
+                      )}
+                      <span style={{ fontSize: 12, color: 'var(--color-steel)', marginLeft: 'auto' }}>
+                        {new Date(date).toLocaleString('fr-FR')}
+                      </span>
+                      <button
+                        onClick={onDelete}
+                        className="btn btn-danger"
+                        style={{ padding: '4px 10px' }}
+                      >
+                        <Trash2 size={13} />
+                      </button>
                     </div>
-                  )}
-                </div>
-              ))}
+                    {description && (
+                      <div style={{ fontSize: 13, color: 'var(--color-graphite)', lineHeight: 1.45 }}>
+                        {description}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </DataCard>

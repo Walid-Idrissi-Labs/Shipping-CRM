@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 #[Fillable([
     'provider_id', 'client_id', 'quote_id', 'created_by', 'shipping_number', 'label_url',
@@ -44,6 +45,11 @@ class Shipment extends Model
         return $this->hasMany(SuiviStatut::class, 'expedition_id')->orderBy('date_statut');
     }
 
+    public function sousEtapes()
+    {
+        return $this->hasMany(SousEtape::class, 'shipment_id')->orderBy('created_at');
+    }
+
     public function factureExpedition()
     {
         return $this->hasOne(FactureExpedition::class, 'expedition_id');
@@ -57,6 +63,36 @@ class Shipment extends Model
     public function affectations()
     {
         return $this->belongsToMany(Affectation::class, 'affectation_expeditions', 'expedition_id', 'affectation_id');
+    }
+
+    public function employeeShipments()
+    {
+        return $this->hasMany(EmployeeShipment::class, 'shipment_id')->orderByDesc('changed_at');
+    }
+
+    public function colis(): MorphMany
+    {
+        return $this->morphMany(Colis::class, 'colisable')->orderBy('position');
+    }
+
+    public function getTotalPoidsAttribute(): float
+    {
+        return $this->colis->sum(fn ($c) => ($c->nb_pieces ?? 0) * ($c->poids ?? 0));
+    }
+
+    public function getTotalVolumeAttribute(): float
+    {
+        return $this->colis->sum(function ($c) {
+            if (! $c->longueur || ! $c->largeur || ! $c->hauteur) {
+                return 0;
+            }
+            return ($c->nb_pieces ?? 0) * (($c->longueur / 100) * ($c->largeur / 100) * ($c->hauteur / 100));
+        });
+    }
+
+    public function getTotalPiecesAttribute(): int
+    {
+        return $this->colis->sum('nb_pieces');
     }
 
     public function scopeUnbilledForProvider($query, $providerId, $clientId = null)

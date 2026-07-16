@@ -12,7 +12,7 @@ export default function PublicLayout() {
   }, [location.pathname]);
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'radial-gradient(ellipse 80% 60% at 50% 0%, rgba(200, 208, 245, 0.35) 0%, rgba(238, 241, 251, 0.25) 50%, transparent 100%), #ffffff' }}>
       <NavBar onMenuClick={() => setMenuOpen((v) => !v)} menuOpen={menuOpen} />
       <main style={{ flex: 1, width: '100%' }}>
         <Outlet />

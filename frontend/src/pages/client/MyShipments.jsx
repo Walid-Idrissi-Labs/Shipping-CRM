@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, PackagePlus } from 'lucide-react';
+import { Plus, PackagePlus, CircleArrowOutUpRight, CircleArrowOutDownLeft } from 'lucide-react';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
@@ -124,28 +124,43 @@ export default function MyShipments() {
               <tr>
                 <SortHeader label="Numero" col="shipping_number" currentCol={column} direction={direction} onClick={toggle} />
                 <SortHeader label="Destinataire" col="recipient_name" currentCol={column} direction={direction} onClick={toggle} />
+                <th style={{ width: 60, textAlign: 'center' }}>Direction</th>
                 <SortHeader label="Service" col="type_service" currentCol={column} direction={direction} onClick={toggle} />
                 <SortHeader label="Statut" col="statut_actuel" currentCol={column} direction={direction} onClick={toggle} />
                 <SortHeader label="Date" col="created_at" currentCol={column} direction={direction} onClick={toggle} />
               </tr>
             </thead>
             <tbody>
-              {shipments.map((s) => (
-                <tr
-                  key={s.id}
-                  onClick={() => navigate(`/client/mes-expeditions/${s.id}`)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <td className="font-mono-data" style={{ color: 'var(--color-primary)' }}>
-                    <span>{s.shipping_number}</span>
-                    <CopyButton value={s.shipping_number} size={14} />
-                  </td>
-                  <td>{s.recipient_name}</td>
-                  <td style={{ textTransform: 'capitalize' }}>{(s.type_service || '').replace(/_/g, ' ')}</td>
-                  <td><StatusBadge status={s.statut_actuel} /></td>
-                  <td style={{ whiteSpace: 'nowrap' }}>{new Date(s.created_at).toLocaleDateString('fr-FR')}</td>
-                </tr>
-              ))}
+              {shipments.map((s) => {
+                const clientName = s.client?.full_name || '';
+                const isExport = s.sender_name?.toLowerCase().includes(clientName.toLowerCase());
+                const isImport = s.recipient_name?.toLowerCase().includes(clientName.toLowerCase());
+                return (
+                  <tr
+                    key={s.id}
+                    onClick={() => navigate(`/client/mes-expeditions/${s.id}`)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <td className="font-mono-data" style={{ color: 'var(--color-primary)' }}>
+                      <span>{s.shipping_number}</span>
+                      <CopyButton value={s.shipping_number} size={14} />
+                    </td>
+                    <td>{s.recipient_name}</td>
+                    <td style={{ textAlign: 'center' }}>
+                      {isExport ? (
+                        <CircleArrowOutUpRight size={16} style={{ color: 'var(--color-vivid-green-dark)' }} title="Export" />
+                      ) : isImport ? (
+                        <CircleArrowOutDownLeft size={16} style={{ color: 'var(--color-primary)' }} title="Import" />
+                      ) : (
+                        <span style={{ fontSize: 11, color: 'var(--color-steel)' }}>—</span>
+                      )}
+                    </td>
+                    <td style={{ textTransform: 'capitalize' }}>{(s.type_service || '').replace(/_/g, ' ')}</td>
+                    <td><StatusBadge status={s.statut_actuel} /></td>
+                    <td style={{ whiteSpace: 'nowrap' }}>{new Date(s.created_at).toLocaleDateString('fr-FR')}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}

@@ -4,9 +4,10 @@ import { useContext } from 'react';
 import LoadingOverlay from '../components/ui/LoadingOverlay';
 import LoadingContext from '../contexts/LoadingContext';
 import {
-  LayoutDashboard, FileText, Package, Users, Receipt, Truck, Settings, LogOut,
+  LayoutDashboard, Package, Users, Receipt, Truck, Settings, LogOut,
   Menu, X, UserPlus, ClipboardList, Search,
-  FileEdit, Undo2, Car, UserCog, CalendarRange,
+  FileEdit, Undo2, Car, UserCog, CalendarRange, ScreenShare,
+  User, History,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import CommandPalette from '../components/CommandPalette';
@@ -27,7 +28,9 @@ const navGroups = [
   },
   {
     parent: { path: '/dashboard/expeditions', label: 'Expeditions', icon: Package },
-    children: [],
+    children: [
+      { path: '/dashboard/demandes-expedition', label: 'Demandes d\'Expedition', icon: ClipboardList },
+    ],
   },
   {
     parent: { path: '/dashboard/clients', label: 'Clients', icon: Users },
@@ -56,6 +59,17 @@ const navGroups = [
     parent: { path: '/dashboard/parametres', label: 'Parametres', icon: Settings },
     children: [],
   },
+  {
+    parent: { path: '/dashboard/employes', label: 'Employés', icon: User },
+    children: [
+      { path: '/dashboard/employes', label: 'Liste', icon: User },
+      { path: '/dashboard/employes/historique', label: 'Historique', icon: History },
+    ],
+  },
+  {
+    parent: { path: '/', label: 'Retour à l\'accueil', icon: ScreenShare },
+    children: [],
+  },
 ];
 
 function isGroupActive(group, pathname, search) {
@@ -65,6 +79,11 @@ function isGroupActive(group, pathname, search) {
 }
 
 function isChildActive(child, pathname, search) {
+  // For child paths that match the parent path exactly (e.g., /dashboard/employes)
+  // Only match exactly, not with startsWith
+  if (child.path === '/dashboard/employes' || child.path === '/dashboard/factures') {
+    return pathname === child.path;
+  }
   if (pathname.startsWith(child.path + '/')) return true;
   const [basePath, queryString] = child.path.split('?');
   if (pathname !== basePath) return false;
@@ -78,12 +97,12 @@ function isChildActive(child, pathname, search) {
   return true;
 }
 
-function Sidebar({ user, onLogout, location, onNavigate }) {
+function Sidebar({ user, onLogout, location, onNavigate, width = EXPANDED_WIDTH }) {
   return (
     <aside
       className="flex flex-col sidebar-tinted"
       style={{
-        width: EXPANDED_WIDTH,
+        width,
         background: 'var(--color-sidebar-bg)',
         borderRight: '1px solid var(--color-ash)',
         flexShrink: 0,
@@ -121,6 +140,12 @@ function Sidebar({ user, onLogout, location, onNavigate }) {
         {navGroups.map((group) => {
           const ParentIcon = group.parent.icon;
           const isParentActive = isGroupActive(group, location.pathname, location.search);
+          // Several groups point at the same route as their first child (Employés/Liste,
+          // Factures/Factures). Filling both reads as two selected tabs at once, so only
+          // the most specific match gets the fill; the parent keeps the accent colour to
+          // show which section you are in.
+          const childActive = group.children.some((c) => isChildActive(c, location.pathname, location.search));
+          const isParentFilled = isParentActive && !childActive;
           return (
             <div key={group.parent.path} style={{ marginBottom: 4 }}>
               <Link
@@ -135,13 +160,13 @@ function Sidebar({ user, onLogout, location, onNavigate }) {
                   fontSize: 14,
                   fontWeight: 500,
                   textDecoration: 'none',
-                  background: isParentActive ? 'var(--color-primary-wash)' : 'transparent',
+                  background: isParentFilled ? 'var(--color-primary-wash)' : 'transparent',
                   color: isParentActive ? 'var(--color-primary)' : 'var(--color-iron)',
                   marginBottom: 2,
                   transition: 'background 150ms ease, color 150ms ease',
                 }}
-                onMouseEnter={(e) => { if (!isParentActive) e.currentTarget.style.background = 'var(--color-bone)'; }}
-                onMouseLeave={(e) => { if (!isParentActive) e.currentTarget.style.background = 'transparent'; }}
+                onMouseEnter={(e) => { if (!isParentFilled) e.currentTarget.style.background = 'var(--color-bone)'; }}
+                onMouseLeave={(e) => { if (!isParentFilled) e.currentTarget.style.background = 'transparent'; }}
               >
                 <ParentIcon size={18} strokeWidth={isParentActive ? 2.2 : 1.7} style={{ flexShrink: 0 }} />
                 <span>{group.parent.label}</span>
@@ -276,6 +301,15 @@ export default function ProviderLayout() {
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
+  useEffect(() => {
+    if (!mobileOpen) return undefined;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [mobileOpen]);
+
   const handleLogout = async () => {
     await logout();
     navigate('/login');
@@ -295,23 +329,26 @@ export default function ProviderLayout() {
         />
       </div>
 
-      {mobileOpen && (
-        <>
-          <div
-            className="fixed inset-0 z-30 lg:hidden"
-            style={{ background: 'rgba(0,0,0,0.4)' }}
+      <div className={`app-drawer${mobileOpen ? ' is-open' : ''}`}>
+        <div className="app-drawer-backdrop" onClick={() => setMobileOpen(false)} />
+        <div className="app-drawer-panel">
+          <button
+            type="button"
+            className="app-drawer-close"
             onClick={() => setMobileOpen(false)}
+            aria-label="Fermer le menu"
+          >
+            <X size={18} />
+          </button>
+          <Sidebar
+            user={user}
+            onLogout={handleLogout}
+            location={location}
+            onNavigate={() => setMobileOpen(false)}
+            width="100%"
           />
-          <div className="fixed inset-y-0 left-0 z-40 lg:hidden">
-            <Sidebar
-              user={user}
-              onLogout={handleLogout}
-              location={location}
-              onNavigate={() => setMobileOpen(false)}
-            />
-          </div>
-        </>
-      )}
+        </div>
+      </div>
 
       <div
         className="provider-main-wrap"
@@ -341,7 +378,7 @@ export default function ProviderLayout() {
             <button
               type="button"
               onClick={() => setPaletteOpen(true)}
-              className="flex items-center gap-2 surface-recessed"
+              className="flex items-center gap-2 surface-recessed provider-search-trigger"
               style={{
                 marginLeft: 'auto',
                 padding: '8px 12px',
@@ -350,13 +387,11 @@ export default function ProviderLayout() {
                 fontSize: 13,
                 color: 'var(--color-smoke)',
                 background: 'var(--color-bone)',
-                minWidth: 260,
-                maxWidth: 380,
               }}
             >
               <Search size={15} />
-              <span>Rechercher...</span>
-              <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--color-smoke)' }}>
+              <span className="provider-search-label">Rechercher...</span>
+              <span className="provider-search-kbd" style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--color-smoke)' }}>
                 {typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || '')
                   ? '⌘K'
                   : 'Ctrl K'}

@@ -276,6 +276,29 @@ class ClientShipmentsQuotesTest extends TestCase
         $response->assertStatus(422);
     }
 
+    public function test_client_quote_request_stores_origin_fields(): void
+    {
+        Sanctum::actingAs($this->clientUser);
+
+        $response = $this->postJson('/api/my/quote-requests', [
+            'origin_city' => 'Casablanca',
+            'origin_country' => 'Maroc',
+            'recipient_name' => 'John Doe',
+            'recipient_address' => '12 rue',
+            'recipient_city' => 'Madrid',
+            'recipient_postal_code' => '28001',
+            'recipient_country' => 'Espagne',
+            'recipient_phone' => '+34000000000',
+            'type_service' => 'international_express_dap',
+            'type_colis' => 'paquet',
+            'poids' => 2.5,
+        ]);
+
+        $response->assertStatus(201);
+        $this->assertEquals('Casablanca', $response->json('quote_request.origin_city'));
+        $this->assertEquals('Maroc', $response->json('quote_request.origin_country'));
+    }
+
     // ============ Client quotes list/show/status ============
 
     public function test_client_only_sees_own_quotes(): void

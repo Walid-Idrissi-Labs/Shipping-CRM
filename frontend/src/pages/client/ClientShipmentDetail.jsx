@@ -3,8 +3,6 @@ import { Link } from 'react-router-dom';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
-  Check,
-  Circle,
   CopyPlus,
   Download,
   ExternalLink,
@@ -17,298 +15,7 @@ import StatusBadge from '../../components/ui/StatusBadge';
 import CopyButton from '../../components/ui/CopyButton';
 import TruckLoader from '../../components/ui/TruckLoader';
 import { useToast } from '../../contexts/ToastContext';
-
-function formatSousStatut(s) {
-  return s.replace(/_/g, ' ')
-    .split(' ')
-    .filter(Boolean)
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ');
-}
-
-const TRACKING_STATUSES = [
-  { value: 'information_recue', label: 'Information Recue' },
-  { value: 'ramasse', label: 'Ramasse' },
-  { value: 'en_transit', label: 'En Transit' },
-  { value: 'en_cours', label: 'En Cours' },
-  { value: 'livre', label: 'Livre' },
-];
-
-function HorizontalTimeline({ events }) {
-  const eventStatuses = new Set(events.map((e) => e.statut));
-  const currentIndex = TRACKING_STATUSES.reduce((highest, status, idx) => {
-    if (eventStatuses.has(status.value) && idx > highest) return idx;
-    return highest;
-  }, -1);
-
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'flex-start',
-        justifyContent: 'space-between',
-        gap: 16,
-        position: 'relative',
-      }}
-    >
-      {TRACKING_STATUSES.map((status, idx) => {
-        const event = [...events]
-          .filter((e) => e.statut === status.value)
-          .sort((a, b) => new Date(b.date_statut) - new Date(a.date_statut))[0] || null;
-        const completed = idx <= currentIndex && currentIndex !== -1;
-        const current = idx === currentIndex;
-        const isLast = idx === TRACKING_STATUSES.length - 1;
-        const dotBg = current
-          ? 'var(--color-vivid-green)'
-          : completed
-            ? 'var(--color-primary)'
-            : 'var(--color-bone)';
-        const dotBorder = current
-          ? 'var(--color-vivid-green)'
-          : completed
-            ? 'var(--color-primary)'
-            : 'var(--color-ash)';
-        const lineRightBg = idx < currentIndex ? 'var(--color-primary)' : 'var(--color-ash)';
-        const lineLeftBg = completed ? 'var(--color-primary)' : 'var(--color-ash)';
-        return (
-          <div
-            key={status.value}
-            style={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              position: 'relative',
-              minWidth: 0,
-            }}
-          >
-            <div
-              style={{
-                position: 'relative',
-                width: '100%',
-                height: 40,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              {!isLast && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    left: '50%',
-                    right: '-50%',
-                    top: 23,
-                    height: 3,
-                    background: lineRightBg,
-                    zIndex: 0,
-                  }}
-                />
-              )}
-              {!isLast && idx !== 0 && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    left: '-50%',
-                    right: '50%',
-                    top: 23,
-                    height: 3,
-                    background: lineLeftBg,
-                    zIndex: 0,
-                  }}
-                />
-              )}
-              <div
-                style={{
-                  position: 'relative',
-                  zIndex: 1,
-                  width: 40,
-                  height: 40,
-                  borderRadius: 9999,
-                  background: dotBg,
-                  border: `3px solid ${dotBorder}`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--color-paper-white)',
-                  boxShadow: current ? '0 0 0 6px rgba(74,198,76,0.22)' : 'none',
-                }}
-              >
-                {completed ? <Check size={18} strokeWidth={3} /> : <Circle size={8} fill="var(--color-smoke)" />}
-              </div>
-            </div>
-            <div
-              style={{
-                marginTop: 18,
-                textAlign: 'center',
-                fontWeight: 600,
-                fontSize: 15,
-                color: completed ? 'var(--color-graphite)' : 'var(--color-smoke)',
-                lineHeight: 1.3,
-                wordBreak: 'break-word',
-              }}
-            >
-              {(event && event.sous_statut) ? formatSousStatut(event.sous_statut) : status.label}
-            </div>
-            {event && (
-              <>
-                <div
-                  style={{
-                    fontSize: 13,
-                    color: 'var(--color-steel)',
-                    marginTop: 8,
-                    textAlign: 'center',
-                    lineHeight: 1.3,
-                  }}
-                >
-                  {new Date(event.date_statut).toLocaleString('fr-FR', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </div>
-                {event.description && (
-                  <div
-                    style={{
-                      fontSize: 13,
-                      color: 'var(--color-graphite)',
-                      marginTop: 6,
-                      textAlign: 'center',
-                      lineHeight: 1.4,
-                      maxWidth: 200,
-                      wordBreak: 'break-word',
-                    }}
-                  >
-                    {event.description}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function VerticalTimeline({ events }) {
-  const eventStatuses = new Set(events.map((e) => e.statut));
-  const currentIndex = TRACKING_STATUSES.reduce((highest, status, idx) => {
-    if (eventStatuses.has(status.value) && idx > highest) return idx;
-    return highest;
-  }, -1);
-
-  return (
-    <div style={{ position: 'relative' }}>
-      {TRACKING_STATUSES.map((status, idx) => {
-        const event = [...events]
-          .filter((e) => e.statut === status.value)
-          .sort((a, b) => new Date(b.date_statut) - new Date(a.date_statut))[0] || null;
-        const completed = idx <= currentIndex && currentIndex !== -1;
-        const current = idx === currentIndex;
-        const isLast = idx === TRACKING_STATUSES.length - 1;
-        return (
-          <div
-            key={status.value}
-            style={{ position: 'relative', paddingLeft: 36, paddingBottom: isLast ? 0 : 22 }}
-          >
-            {!isLast && (
-              <div
-                style={{
-                  position: 'absolute',
-                  left: 11,
-                  top: 22,
-                  bottom: 0,
-                  width: 2,
-                  background: idx < currentIndex ? 'var(--color-primary)' : 'var(--color-ash)',
-                }}
-              />
-            )}
-            <div
-              style={{
-                position: 'absolute',
-                left: 0,
-                top: 0,
-                width: 28,
-                height: 28,
-                borderRadius: 9999,
-                background: current
-                  ? 'var(--color-vivid-green)'
-                  : completed
-                    ? 'var(--color-primary)'
-                    : 'var(--color-bone)',
-                border: `2px solid ${
-                  current
-                    ? 'var(--color-vivid-green)'
-                    : completed
-                      ? 'var(--color-primary)'
-                      : 'var(--color-ash)'
-                }`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--color-paper-white)',
-                boxShadow: current ? '0 0 0 4px rgba(74,198,76,0.22)' : 'none',
-              }}
-            >
-              {completed ? <Check size={14} strokeWidth={3} /> : <Circle size={7} fill="var(--color-smoke)" />}
-            </div>
-            <div
-              style={{
-                fontWeight: 600,
-                fontSize: 15,
-                color: completed ? 'var(--color-graphite)' : 'var(--color-smoke)',
-                lineHeight: 1.3,
-              }}
-            >
-              {(event && event.sous_statut) ? formatSousStatut(event.sous_statut) : status.label}
-            </div>
-            {event && (
-              <div
-                style={{
-                  fontSize: 13,
-                  color: 'var(--color-steel)',
-                  marginTop: 4,
-                  lineHeight: 1.3,
-                }}
-              >
-                {new Date(event.date_statut).toLocaleString('fr-FR', {
-                  day: '2-digit',
-                  month: '2-digit',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-                {event.sous_statut && (
-                  <span
-                    style={{
-                      color: 'var(--color-steel)',
-                      display: 'block',
-                      marginTop: 4,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.04em',
-                      fontSize: 11,
-                      fontWeight: 600,
-                    }}
-                  >
-                    {formatSousStatut(event.sous_statut)}
-                  </span>
-                )}
-                {event.description && (
-                  <span style={{ color: 'var(--color-graphite)', display: 'block', marginTop: 2 }}>
-                    {event.description}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
+import { ShipmentStatusTimeline } from '../../components/ShipmentStatusTimeline';
 
 function LabelPreview({ html }) {
   const containerRef = useRef(null);
@@ -370,6 +77,7 @@ export default function ClientShipmentDetail() {
   const toast = useToast();
   const [shipment, setShipment] = useState(null);
   const [events, setEvents] = useState([]);
+  const [sousEtapes, setSousEtapes] = useState({});
   const [loading, setLoading] = useState(true);
   const [labelHtml, setLabelHtml] = useState(null);
   const [labelLoading, setLabelLoading] = useState(true);
@@ -400,6 +108,11 @@ export default function ClientShipmentDetail() {
       setShipment(data.shipment || data);
       const suivi = data.suivi_statuts || data.shipment?.suiviStatuts || [];
       setEvents(suivi);
+
+      // Load sous_etapes from the API response
+      if (data.sous_etapes) {
+        setSousEtapes(data.sous_etapes);
+      }
     } catch {
       toast.push('Expedition introuvable.', 'error');
       navigate('/client/mes-expeditions');
@@ -507,14 +220,7 @@ export default function ClientShipmentDetail() {
             Aucun evenement de suivi pour le moment.
           </div>
         ) : (
-          <div className="hidden lg:block">
-            <HorizontalTimeline events={events} />
-          </div>
-        )}
-        {events.length > 0 && (
-          <div className="lg:hidden">
-            <VerticalTimeline events={events} />
-          </div>
+          <ShipmentStatusTimeline events={events} sousEtapes={sousEtapes} />
         )}
       </DataCard>
 

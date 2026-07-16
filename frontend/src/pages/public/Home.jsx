@@ -1,21 +1,21 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  Truck,
-  FileText,
   Search,
-  LogIn,
   ArrowRight,
-  Globe2,
-  PackageCheck,
-  Building2,
-  CheckCircle2,
-  ShieldCheck,
-  Clock,
-  MapPin,
-  Calculator,
-  Headphones,
   ArrowUpRight,
+  Globe2,
+  Calculator,
+  LogIn,
+  Truck,
+  Package,
+  ShieldCheck,
+  Headphones,
+  Radar,
+  Earth,
+  ReceiptText,
+  Boxes,
+  Building2,
 } from 'lucide-react';
 
 export default function LandingPage() {
@@ -50,7 +50,7 @@ export default function LandingPage() {
           }
         });
       },
-      { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }
+      { threshold: 0.12, rootMargin: '0px 0px -60px 0px' }
     );
 
     targets.forEach((el) => observer.observe(el));
@@ -60,307 +60,367 @@ export default function LandingPage() {
   return (
     <div ref={revealRef} className="lp-root">
       <style>{`
-        :root {
-          /* --- Core palette (blue + green + neutrals) --- */
-          --color-primary: #2544b0;
-          --color-primary-hover: #1c368c;
-          --color-primary-wash: #eef1fb;
-          --color-primary-glow: #c8d0f5;
-          --color-vivid-green: #4ac64c;
-          --color-vivid-green-dark: #36a138;
-          --color-success-wash: #dcfae0;
-
-          --color-paper-white: #ffffff;
-          --color-bone: #f7f7f7;
-          --color-fog: #f1f1f1;
-          --color-silver: #efefef;
-          --color-marble: #fff6df;
-
-          --color-graphite: #1d1d20;
-          --color-slate: #42424a;
-          --color-iron: #505050;
-          --color-steel: #757575;
-          --color-smoke: #92939e;
-          --color-ash: #e5e7eb;
-          --color-mist: #d1d9e4;
-
-          --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          --font-display: 'Playfair Display', ui-serif, Georgia, 'Times New Roman', serif;
-
-          --page-max-width: 1200px;
-          --section-gap: 80px;
-          --card-padding: 24px;
-        }
-
         .lp-root {
+          --font-serif: 'Fraunces', var(--font-display), ui-serif, Georgia, serif;
           font-family: var(--font-sans);
           color: var(--color-iron);
-          background-color: var(--color-paper-white);
+          background: var(--color-paper-white);
           line-height: 1.5;
           -webkit-font-smoothing: antialiased;
+          overflow-x: clip;
         }
-
-        .lp-container {
-          max-width: var(--page-max-width);
+        .lp-root .lp-container {
+          max-width: 1200px;
           margin: 0 auto;
           padding: 0 24px;
         }
 
-        /* --- Navbar (shared with PublicLayout) --- */
-        .lp-navbar {
-          background: rgba(255, 255, 255, 0.95);
-          border-bottom: 1px solid var(--color-ash);
-          position: sticky;
-          top: 0;
-          z-index: 100;
-          backdrop-filter: blur(8px);
-        }
-        .lp-navbar-inner {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          height: 64px;
-        }
-        .lp-logo {
-          text-decoration: none;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-        .lp-nav-links {
-          display: flex;
-          gap: 32px;
-        }
-        .lp-nav-link {
-          font-size: 14px;
-          font-weight: 500;
-          color: var(--color-iron);
-          text-decoration: none;
-          transition: color 200ms ease;
-        }
-        .lp-nav-link:hover,
-        .lp-nav-link.is-active { color: var(--color-graphite); }
-        .lp-nav-actions {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-        }
-        .lp-menu-btn { display: none; background: none; border: none; cursor: pointer; color: var(--color-graphite); }
-
-        /* --- Buttons --- */
-        .lp-btn {
+        /* ---------- Shared type ---------- */
+        .lp-root .lp-eyebrow {
           display: inline-flex;
           align-items: center;
           gap: 8px;
-          padding: 10px 20px;
+          padding: 6px 14px 6px 10px;
+          border-radius: 9999px;
+          background: rgba(255, 255, 255, 0.7);
+          border: 1px solid var(--color-ash);
+          box-shadow: var(--shadow-secondary);
+          backdrop-filter: blur(6px);
+          font-size: 12px;
+          font-weight: 500;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          color: var(--color-slate);
+        }
+        .lp-root .lp-eyebrow .dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: var(--color-vivid-green);
+          box-shadow: 0 0 0 4px rgba(74, 198, 76, 0.16);
+        }
+        .lp-root .lp-eyebrow.is-blue .dot {
+          background: var(--color-primary);
+          box-shadow: 0 0 0 4px rgba(37, 68, 176, 0.14);
+        }
+
+        .lp-root .lp-serif {
+          font-family: var(--font-serif);
+          font-weight: 340;
+          color: var(--color-graphite);
+          letter-spacing: -0.02em;
+          line-height: 1.04;
+          font-optical-sizing: auto;
+        }
+        .lp-root .lp-serif em {
+          font-style: italic;
+          font-weight: 380;
+          color: var(--color-primary);
+        }
+
+        .lp-root .lp-section {
+          padding: 88px 0;
+          position: relative;
+        }
+        .lp-root .lp-section-head {
+          max-width: 660px;
+          margin: 0 0 44px;
+        }
+        .lp-root .lp-section-head.is-center {
+          margin-left: auto;
+          margin-right: auto;
+          text-align: center;
+        }
+        .lp-root .lp-kicker {
+          display: inline-block;
+          font-size: 12px;
+          font-weight: 600;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: var(--color-steel);
+          margin-bottom: 14px;
+        }
+        .lp-root .lp-section-title {
+          font-family: var(--font-serif);
+          font-weight: 340;
+          font-size: 42px;
+          line-height: 1.05;
+          letter-spacing: -0.02em;
+          color: var(--color-graphite);
+          font-optical-sizing: auto;
+        }
+        .lp-root .lp-section-sub {
+          margin-top: 16px;
+          font-size: 17px;
+          line-height: 1.6;
+          color: var(--color-steel);
+          font-weight: 400;
+        }
+
+        /* ---------- Buttons (landing-scoped niceties) ---------- */
+        .lp-root .lp-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          padding: 11px 22px;
           font-family: var(--font-sans);
           font-size: 14px;
           font-weight: 500;
           border-radius: 9999px;
           text-decoration: none;
-          transition: all 200ms ease;
           cursor: pointer;
           border: 1px solid transparent;
+          transition: transform 200ms ease, background 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
         }
-        .lp-btn-primary {
+        .lp-root .lp-btn svg { transition: transform 200ms ease; }
+        .lp-root .lp-btn:hover svg { transform: translateX(2px); }
+        .lp-root .lp-btn-primary {
           background: var(--color-primary);
-          color: var(--color-paper-white);
+          color: #fff;
           box-shadow:
             0 0 0 1px rgba(58, 58, 64, 0.1),
             0 1px 3px 0 rgba(0, 0, 0, 0.1),
-            0 1px 2px -1px rgba(0, 0, 0, 0.1),
-            0 0 8px 2px rgba(37, 68, 176, 0.35);
+            0 8px 20px -8px rgba(37, 68, 176, 0.55);
         }
-        .lp-btn-primary:hover {
+        .lp-root .lp-btn-primary:hover {
           background: var(--color-primary-hover);
+          transform: translateY(-1px);
+          box-shadow:
+            0 0 0 1px rgba(58, 58, 64, 0.12),
+            0 2px 4px 0 rgba(0, 0, 0, 0.1),
+            0 14px 28px -10px rgba(37, 68, 176, 0.6);
         }
-        .lp-btn-secondary {
+        .lp-root .lp-btn-secondary {
           background: var(--color-paper-white);
           color: var(--color-graphite);
-          border-color: var(--color-silver);
-          box-shadow: 0 0 0 1px rgba(29, 29, 32, 0.08);
+          border-color: var(--color-ash);
+          box-shadow: 0 0 0 1px rgba(29, 29, 32, 0.05);
         }
-        .lp-btn-secondary:hover {
+        .lp-root .lp-btn-secondary:hover {
           background: var(--color-bone);
           border-color: var(--color-mist);
+          transform: translateY(-1px);
         }
-        .lp-text-link {
-          font-size: 14px;
-          font-weight: 500;
-          color: var(--color-primary);
-          text-decoration: none;
-          display: inline-flex;
-          align-items: center;
-          gap: 4px;
-        }
-        .lp-text-link:hover { text-decoration: underline; }
 
-        /* --- Hero Section --- */
+        /* ========================================================= HERO */
         .lp-hero {
-          padding: 80px 0 100px;
           position: relative;
-          overflow: hidden;
+          overflow: clip;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          min-height: calc(100vh - 69px);
+          min-height: calc(100svh - 69px);
+          padding: 56px 0;
           background:
-            radial-gradient(ellipse 80% 60% at 50% 0%, rgba(200, 208, 245, 0.35) 0%, rgba(238, 241, 251, 0.25) 50%, transparent 100%),
+            radial-gradient(ellipse 60% 55% at 82% 4%, rgba(74, 198, 76, 0.07), transparent 62%),
+            radial-gradient(ellipse 70% 60% at 8% 0%, rgba(37, 68, 176, 0.10), transparent 58%),
             var(--color-paper-white);
         }
-        .lp-hero-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 60px;
-          align-items: center;
+        .lp-hero > .lp-container { width: 100%; }
+        .lp-hero::after {
+          content: '';
+          position: absolute;
+          left: 0; right: 0; bottom: 0;
+          height: 1px;
+          background: var(--color-ash);
         }
-        .lp-hero-eyebrow {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          background: var(--color-paper-white);
-          color: var(--color-steel);
-          padding: 6px 12px;
-          border-radius: 9999px;
-          font-size: 12px;
-          font-weight: 500;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          margin-bottom: 24px;
-          border: 1px solid var(--color-ash);
-          box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05);
+
+        /* --- Dotted world map --- */
+        .lp-hero-map {
+          position: absolute;
+          top: -6%;
+          right: -8%;
+          width: 70%;
+          height: 112%;
+          pointer-events: none;
+          z-index: 0;
+          -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 30%, #000 92%, transparent 100%);
+          mask-image: linear-gradient(90deg, transparent 0%, #000 30%, #000 92%, transparent 100%);
         }
-        .lp-hero-eyebrow .dot {
-          width: 8px;
-          height: 8px;
-          background: var(--color-vivid-green);
+        .lp-map-layer {
+          position: absolute;
+          inset: 0;
+          -webkit-mask: url('/world-map.svg') center / contain no-repeat;
+          mask: url('/world-map.svg') center / contain no-repeat;
+        }
+        .lp-map-tint {
+          background: linear-gradient(120deg,
+            rgba(37, 68, 176, 0.9) 0%,
+            rgba(37, 68, 176, 0.5) 58%,
+            rgba(74, 198, 76, 0.4) 100%);
+          opacity: 0.16;
+        }
+        .lp-map-dots {
+          background-image: radial-gradient(circle, rgba(74, 198, 76, 0.7) 0.9px, transparent 1.15px);
+          background-size: 7px 7px;
+          opacity: 0.55;
+        }
+        .lp-map-hub {
+          position: absolute;
+          width: 9px;
+          height: 9px;
           border-radius: 50%;
+          transform: translate(-50%, -50%);
         }
+        .lp-map-hub::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          border-radius: 50%;
+          background: inherit;
+          opacity: 0.35;
+          animation: lpPulse 2.8s ease-out infinite;
+        }
+        @keyframes lpPulse {
+          0% { transform: scale(1); opacity: 0.5; }
+          70% { transform: scale(3.4); opacity: 0; }
+          100% { transform: scale(3.4); opacity: 0; }
+        }
+
+        .lp-hero-grid {
+          position: relative;
+          z-index: 1;
+          display: grid;
+          grid-template-columns: 1.05fr 0.95fr;
+          grid-template-areas:
+            "head widget"
+            "actions widget";
+          column-gap: 56px;
+          row-gap: 30px;
+          align-items: center;
+        }
+        .lp-hero-head { grid-area: head; }
         .lp-hero h1 {
-          font-family: var(--font-display);
-          font-size: 46px;
-          font-weight: 300;
-          color: var(--color-graphite);
-          line-height: 1.0;
+          font-family: var(--font-serif);
+          font-weight: 340;
+          font-size: 58px;
+          line-height: 1.02;
           letter-spacing: -0.025em;
-          margin-bottom: 24px;
+          color: var(--color-graphite);
+          margin: 0;
+          font-optical-sizing: auto;
         }
-        .lp-hero p {
-          font-size: 16px;
+        .lp-hero h1 em {
+          font-style: italic;
+          font-weight: 400;
+          color: var(--color-primary);
+        }
+        .lp-hero-lead {
+          margin: 22px 0 0;
+          font-size: 18px;
+          line-height: 1.6;
           color: var(--color-steel);
-          line-height: 1.63;
-          margin-bottom: 32px;
           max-width: 520px;
           font-weight: 400;
         }
         .lp-hero-actions {
+          grid-area: actions;
           display: flex;
-          gap: 12px;
-          margin-bottom: 32px;
-        }
-        .lp-hero-list {
-          display: flex;
-          flex-direction: column;
+          flex-wrap: wrap;
           gap: 12px;
         }
-        .lp-hero-list-item {
-          display: flex;
-          align-items: center;
-          gap: 10px;
+        .lp-hero-meta {
+          margin: 28px 0 0;
           font-size: 14px;
-          color: var(--color-slate);
           font-weight: 500;
+          color: var(--color-steel);
+          letter-spacing: 0.01em;
+        }
+        .lp-hero-meta span {
+          color: var(--color-mist);
+          margin: 0 10px;
+          font-weight: 400;
         }
 
-        /* --- Tracking Widget --- */
-        .lp-widget {
+        /* --- Hero widget --- */
+        .lp-hero-widget {
+          grid-area: widget;
+          justify-self: end;
+          width: 100%;
+          max-width: 420px;
           background: var(--color-paper-white);
           border: 1px solid var(--color-ash);
-          border-radius: 8px;
-          overflow: hidden;
+          border-radius: 16px;
           box-shadow:
-            0 0 0 1px rgba(58, 58, 64, 0.1),
-            0 1px 3px 0 rgba(0, 0, 0, 0.1),
-            0 1px 2px -1px rgba(0, 0, 0, 0.1);
-        }
-        .lp-widget {
-          align-self: center;
+            rgb(239, 239, 239) 0 0 0 1px,
+            rgba(0, 0, 0, 0.02) 0 22px 40px 0,
+            rgba(0, 0, 0, 0.05) 0 12px 20px 0,
+            rgba(0, 0, 0, 0.06) 0 4px 8px 0;
+          overflow: hidden;
         }
         .lp-widget-tabs {
           display: flex;
-          background: var(--color-fog);
+          gap: 4px;
+          padding: 8px;
+          background: var(--color-bone);
           border-bottom: 1px solid var(--color-ash);
         }
         .lp-widget-tab {
           flex: 1;
-          padding: 16px;
-          background: none;
-          border: none;
-          font-family: var(--font-sans);
-          font-size: 14px;
-          font-weight: 500;
-          color: var(--color-steel);
-          cursor: pointer;
-          transition: all 200ms ease;
-          border-bottom: 2px solid transparent;
-          display: flex;
+          display: inline-flex;
           align-items: center;
           justify-content: center;
           gap: 8px;
+          padding: 10px 12px;
+          border: none;
+          border-radius: 9999px;
+          background: transparent;
+          font-family: var(--font-sans);
+          font-size: 13.5px;
+          font-weight: 500;
+          color: var(--color-steel);
+          cursor: pointer;
+          transition: all 180ms ease;
         }
+        .lp-widget-tab:hover { color: var(--color-graphite); }
         .lp-widget-tab.is-active {
           background: var(--color-paper-white);
-          color: var(--color-graphite);
-          border-bottom-color: var(--color-primary);
+          color: var(--color-primary);
+          box-shadow: 0 0 0 1px rgba(37, 68, 176, 0.12), 0 1px 2px rgba(0, 0, 0, 0.06);
         }
-        .lp-widget-content {
+        .lp-widget-body {
           position: relative;
-          min-height: 140px;
+          padding: 22px;
+          min-height: 190px;
         }
         .lp-tab-pane {
           position: absolute;
-          inset: 24px;
+          inset: 22px;
           opacity: 0;
-          filter: blur(8px);
+          transform: translateY(6px);
+          filter: blur(6px);
           pointer-events: none;
-          transition: opacity 0.25s ease, filter 0.25s ease;
+          transition: opacity 260ms ease, transform 260ms ease, filter 260ms ease;
         }
         .lp-tab-pane.is-active {
           opacity: 1;
+          transform: translateY(0);
           filter: blur(0);
           pointer-events: auto;
         }
-        .lp-tab-pane > * {
-          opacity: 0;
-          transform: translateY(8px);
-          transition: opacity 0.3s ease, transform 0.3s ease;
-        }
-        .lp-tab-pane.is-active > * {
-          opacity: 1;
-          transform: translateY(0);
-        }
-        .lp-tab-pane.is-active > *:nth-child(1) { transition-delay: 0ms; }
-        .lp-tab-pane.is-active > *:nth-child(2) { transition-delay: 80ms; }
-        .lp-tab-pane.is-active > *:nth-child(3) { transition-delay: 160ms; }
-        .lp-tab-pane.is-active > *:nth-child(4) { transition-delay: 240ms; }
-        .lp-tab-pane.is-active > *:nth-child(5) { transition-delay: 320ms; }
         .lp-widget-label {
-          font-size: 12px;
+          font-size: 11px;
           text-transform: uppercase;
-          letter-spacing: 0.5px;
-          color: var(--color-smoke);
-          margin-bottom: 8px;
+          letter-spacing: 0.07em;
           font-weight: 600;
+          color: var(--color-smoke);
+          margin-bottom: 10px;
         }
         .lp-widget-input-group { display: flex; gap: 8px; }
         .lp-widget-input {
           flex: 1;
-          padding: 10px 14px;
+          min-width: 0;
+          padding: 11px 14px;
           border: 1px solid var(--color-mist);
-          border-radius: 4px;
+          border-radius: 9999px;
           font-family: var(--font-sans);
           font-size: 14px;
-          font-weight: 400;
           color: var(--color-graphite);
-          transition: all 200ms ease;
-          outline: none;
           background: var(--color-paper-white);
+          outline: none;
+          transition: all 160ms ease;
         }
         .lp-widget-input::placeholder { color: var(--color-smoke); }
         .lp-widget-input:focus {
@@ -368,436 +428,482 @@ export default function LandingPage() {
           box-shadow: 0 0 0 3px var(--color-primary-wash);
         }
         .lp-widget-hint {
-          margin-top: 12px;
+          margin-top: 14px;
           font-size: 13px;
           color: var(--color-steel);
         }
-        .lp-widget-hint a {
-          color: var(--color-primary);
-          text-decoration: none;
-          font-weight: 500;
-        }
+        .lp-widget-hint a { color: var(--color-primary); font-weight: 500; text-decoration: none; }
         .lp-widget-hint a:hover { text-decoration: underline; }
-
-        /* --- Sections --- */
-        .lp-section { padding: var(--section-gap) 0; }
-        .lp-section-header { text-align: center; margin-bottom: 48px; }
-        .lp-section-title {
-          font-family: var(--font-sans);
-          font-size: 40px;
-          font-weight: 300;
-          color: var(--color-graphite);
-          letter-spacing: -1px;
-          line-height: 1.0;
-          margin-bottom: 12px;
-        }
-        .lp-section-subtitle {
-          font-size: 16px;
+        .lp-widget-copy {
+          font-size: 14px;
+          line-height: 1.6;
           color: var(--color-steel);
-          max-width: 600px;
-          margin: 0 auto;
-          line-height: 1.63;
-          font-weight: 400;
+          margin: 0 0 18px;
         }
 
-        /* --- Quick Actions --- */
-        .lp-actions-grid {
+        /* ========================================================= TRUST BAND */
+        .lp-band {
+          border-top: 1px solid var(--color-ash);
+          border-bottom: 1px solid var(--color-ash);
+          background: var(--color-bone);
+        }
+        .lp-band-row {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 24px 36px;
+          padding-top: 52px;
+          padding-bottom: 52px;
+        }
+        .lp-band-item {
+          display: flex;
+          flex-direction: column;
+          gap: 5px;
+          padding: 12px 0;
+        }
+        .lp-band-ico {
+          width: 58px;
+          height: 58px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(37, 68, 176, 0.09);
+          color: var(--color-primary);
+          margin-bottom: 18px;
+          opacity: 0;
+          transform: translateY(10px) scale(0.82);
+          transition:
+            opacity 520ms cubic-bezier(0.22, 1, 0.36, 1),
+            transform 560ms cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .lp-band-item.is-revealed .lp-band-ico {
+          opacity: 1;
+          transform: none;
+        }
+        .lp-band-item:nth-child(1) .lp-band-ico { transition-delay: 100ms; }
+        .lp-band-item:nth-child(2) .lp-band-ico { transition-delay: 190ms; }
+        .lp-band-item:nth-child(3) .lp-band-ico { transition-delay: 280ms; }
+        .lp-band-item:nth-child(4) .lp-band-ico { transition-delay: 370ms; }
+        .lp-band-item h3 {
+          font-size: 17px;
+          font-weight: 600;
+          color: var(--color-graphite);
+          letter-spacing: -0.01em;
+          margin: 0;
+        }
+        .lp-band-item p {
+          font-size: 14px;
+          line-height: 1.5;
+          color: var(--color-steel);
+          margin: 0;
+          max-width: 220px;
+        }
+
+        /* ========================================================= SERVICES */
+        .lp-cards-4 {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
           gap: 20px;
         }
-        .lp-action-card {
-          background: var(--color-paper-white);
-          border: 1px solid var(--color-ash);
-          border-radius: 8px;
-          padding: var(--card-padding);
-          text-decoration: none;
-          transition: all 200ms ease;
+        .lp-card {
           display: flex;
           flex-direction: column;
           height: 100%;
+          padding: 24px;
+          background: var(--color-paper-white);
+          border: 1px solid var(--color-ash);
+          border-radius: 14px;
+          text-decoration: none;
+          transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
         }
-        .lp-action-card:hover {
+        .lp-card:hover {
+          transform: translateY(-3px);
           border-color: var(--color-mist);
-          transform: translateY(-2px);
           box-shadow:
-            rgba(29, 29, 32, 0.08) 0 0 0 1px,
-            rgba(0, 0, 0, 0.1) 0 10px 15px -3px,
-            rgba(0, 0, 0, 0.1) 0 4px 6px -4px;
+            rgba(29, 29, 32, 0.06) 0 0 0 1px,
+            rgba(0, 0, 0, 0.08) 0 16px 28px -12px,
+            rgba(0, 0, 0, 0.05) 0 4px 8px -4px;
         }
-        .lp-action-icon {
-          width: 40px;
-          height: 40px;
-          background: var(--color-fog);
-          border-radius: 8px;
+        .lp-card-icon {
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
-          color: var(--color-graphite);
-          margin-bottom: 16px;
+          color: var(--color-primary);
+          background: var(--color-primary-wash);
+          margin-bottom: 18px;
         }
-        .lp-action-title {
-          font-family: var(--font-sans);
-          font-size: 18px;
-          font-weight: 500;
+        .lp-card h3 {
+          font-size: 17px;
+          font-weight: 600;
           color: var(--color-graphite);
-          margin-bottom: 8px;
+          margin: 0 0 8px;
         }
-        .lp-action-desc {
+        .lp-card p {
           font-size: 14px;
+          line-height: 1.55;
           color: var(--color-steel);
-          margin-bottom: 16px;
-          flex-grow: 1;
-          line-height: 1.5;
-          font-weight: 400;
+          margin: 0 0 18px;
+          flex: 1;
         }
-        .lp-action-link {
+        .lp-card-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
           font-size: 14px;
           font-weight: 600;
           color: var(--color-primary);
-          display: inline-flex;
+        }
+        .lp-card:hover .lp-card-link svg { transform: translateX(3px); }
+        .lp-card-link svg { transition: transform 200ms ease; }
+
+        /* ========================================================= HOW IT WORKS */
+        .lp-how { background: var(--color-bone); border-top: 1px solid var(--color-ash); border-bottom: 1px solid var(--color-ash); }
+        .lp-steps {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 24px;
+          position: relative;
+        }
+        .lp-steps::before {
+          content: '';
+          position: absolute;
+          top: 22px;
+          left: 12%;
+          right: 12%;
+          height: 2px;
+          background: repeating-linear-gradient(90deg, var(--color-mist) 0 6px, transparent 6px 14px);
+          z-index: 0;
+        }
+        .lp-step { position: relative; z-index: 1; }
+        .lp-step-num {
+          width: 46px;
+          height: 46px;
+          border-radius: 50%;
+          background: var(--color-paper-white);
+          border: 1px solid var(--color-ash);
+          box-shadow: var(--shadow-secondary);
+          display: flex;
           align-items: center;
-          gap: 4px;
+          justify-content: center;
+          font-family: var(--font-serif);
+          font-size: 20px;
+          font-weight: 400;
+          color: var(--color-primary);
+          margin-bottom: 18px;
+        }
+        .lp-step h3 {
+          font-size: 18px;
+          font-weight: 600;
+          color: var(--color-graphite);
+          margin: 0 0 8px;
+        }
+        .lp-step p {
+          font-size: 14.5px;
+          line-height: 1.6;
+          color: var(--color-steel);
+          margin: 0;
+          max-width: 300px;
         }
 
-        /* --- Segments --- */
-        .lp-segments {
-          background: var(--color-bone);
-          border-top: 1px solid var(--color-ash);
-          border-bottom: 1px solid var(--color-ash);
-        }
-        .lp-segment-grid {
+        /* ========================================================= SEGMENTS */
+        .lp-seg-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 24px;
         }
-        .lp-segment-card {
-          background: var(--color-paper-white);
+        .lp-seg {
+          border-radius: 18px;
           border: 1px solid var(--color-ash);
-          border-radius: 8px;
           overflow: hidden;
           display: flex;
           flex-direction: column;
-          transition: box-shadow 200ms ease;
+          background: var(--color-paper-white);
+          transition: box-shadow 220ms ease, transform 220ms ease;
         }
-        .lp-segment-card:hover {
+        .lp-seg:hover {
+          transform: translateY(-2px);
           box-shadow:
-            rgb(239, 239, 239) 0 0 0 2px,
-            rgba(0, 0, 0, 0.01) 0 22px 9px 0,
-            rgba(0, 0, 0, 0.04) 0 12px 7px 0,
-            rgba(0, 0, 0, 0.06) 0 5px 5px 0,
-            rgba(0, 0, 0, 0.07) 0 1px 3px 0;
+            rgb(239, 239, 239) 0 0 0 1px,
+            rgba(0, 0, 0, 0.05) 0 18px 34px -14px,
+            rgba(0, 0, 0, 0.04) 0 6px 12px -6px;
         }
-        .lp-segment-visual {
-          height: 200px;
-          background: var(--color-fog);
+        .lp-seg-visual {
+          height: 168px;
           position: relative;
           overflow: hidden;
           border-bottom: 1px solid var(--color-ash);
         }
-        .lp-segment-content { padding: 32px; }
-        .lp-segment-tag {
+        .lp-seg-visual.is-light {
+          background:
+            radial-gradient(circle at 30% 30%, rgba(37, 68, 176, 0.10), transparent 55%),
+            var(--color-bone);
+        }
+        .lp-seg-visual.is-dark {
+          background:
+            radial-gradient(circle at 72% 22%, rgba(74, 198, 76, 0.26), transparent 55%),
+            radial-gradient(circle at 20% 80%, rgba(37, 68, 176, 0.4), transparent 55%),
+            var(--color-graphite);
+        }
+        .lp-seg-visual-dots {
+          position: absolute;
+          inset: 0;
+          background-image: radial-gradient(circle, rgba(37, 68, 176, 0.35) 1px, transparent 1.4px);
+          background-size: 16px 16px;
+          -webkit-mask-image: linear-gradient(180deg, transparent, #000 60%);
+          mask-image: linear-gradient(180deg, transparent, #000 60%);
+        }
+        .lp-seg-visual.is-dark .lp-seg-visual-dots {
+          background-image: radial-gradient(circle, rgba(255, 255, 255, 0.18) 1px, transparent 1.4px);
+        }
+        .lp-seg-visual-icon {
+          position: absolute;
+          top: 50%; left: 50%;
+          transform: translate(-50%, -50%);
+        }
+        .lp-seg-visual.is-light .lp-seg-visual-icon { color: var(--color-primary); opacity: 0.55; }
+        .lp-seg-visual.is-dark .lp-seg-visual-icon { color: #fff; opacity: 0.85; }
+        .lp-seg-body { padding: 28px; display: flex; flex-direction: column; flex: 1; }
+        .lp-seg-tag {
           font-size: 12px;
           font-weight: 600;
-          color: var(--color-primary);
+          letter-spacing: 0.06em;
           text-transform: uppercase;
-          letter-spacing: 0.5px;
+          color: var(--color-primary);
           margin-bottom: 12px;
         }
-        .lp-segment-title {
-          font-family: var(--font-sans);
-          font-size: 24px;
-          font-weight: 300;
+        .lp-seg h3 {
+          font-family: var(--font-serif);
+          font-weight: 360;
+          font-size: 25px;
+          line-height: 1.15;
+          letter-spacing: -0.01em;
           color: var(--color-graphite);
-          margin-bottom: 12px;
-          line-height: 1.2;
-          letter-spacing: -0.048px;
+          margin: 0 0 10px;
         }
-        .lp-segment-desc {
+        .lp-seg p {
           font-size: 15px;
-          color: var(--color-steel);
-          margin-bottom: 20px;
-          line-height: 1.5;
-          font-weight: 400;
-        }
-
-        /* --- Value Prop / Features --- */
-        .lp-features-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 24px;
-        }
-        .lp-feature-item {
-          text-align: left;
-          padding: 24px;
-          border-left: 2px solid var(--color-ash);
-          transition: border-color 200ms ease;
-        }
-        .lp-feature-item:hover { border-left-color: var(--color-primary); }
-        .lp-feature-icon { color: var(--color-graphite); margin-bottom: 16px; }
-        .lp-feature-title {
-          font-family: var(--font-sans);
-          font-size: 18px;
-          font-weight: 500;
-          color: var(--color-graphite);
-          margin-bottom: 8px;
-        }
-        .lp-feature-desc {
-          font-size: 14px;
-          color: var(--color-steel);
-          line-height: 1.5;
-          font-weight: 400;
-        }
-
-        /* --- Capabilities Strip --- */
-        .lp-capabilities {
-          background: var(--color-bone);
-          border-top: 1px solid var(--color-ash);
-          border-bottom: 1px solid var(--color-ash);
-          padding: 60px 0;
-        }
-        .lp-capabilities-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 40px;
-          text-align: left;
-        }
-        .lp-cap-item h4 {
-          font-family: var(--font-sans);
-          font-size: 18px;
-          font-weight: 500;
-          color: var(--color-graphite);
-          margin-bottom: 8px;
-        }
-        .lp-cap-item p {
-          font-size: 14px;
-          color: var(--color-steel);
           line-height: 1.6;
-          font-weight: 400;
+          color: var(--color-steel);
+          margin: 0 0 22px;
+          flex: 1;
         }
 
-        /* --- Final CTA --- */
-        .lp-cta {
+        /* ========================================================= FEATURES */
+        .lp-feat-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 20px;
+        }
+        .lp-feat {
+          padding: 28px 26px;
+          border: 1px solid var(--color-ash);
+          border-radius: 14px;
           background: var(--color-paper-white);
-          border-top: 1px solid var(--color-ash);
-          border-bottom: 1px solid var(--color-ash);
-          padding: 80px 0;
-          text-align: center;
+          transition: border-color 200ms ease, box-shadow 200ms ease;
+        }
+        .lp-feat:hover {
+          border-color: var(--color-mist);
+          box-shadow: rgba(0, 0, 0, 0.04) 0 10px 24px -14px;
+        }
+        .lp-feat-icon {
+          width: 42px;
+          height: 42px;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(74, 198, 76, 0.12);
+          color: var(--color-vivid-green-dark);
+          margin-bottom: 18px;
+        }
+        .lp-feat h3 { font-size: 18px; font-weight: 600; color: var(--color-graphite); margin: 0 0 8px; }
+        .lp-feat p { font-size: 14.5px; line-height: 1.6; color: var(--color-steel); margin: 0; }
+
+        /* ========================================================= CTA */
+        .lp-cta {
           position: relative;
           overflow: hidden;
-        }
-        .lp-cta::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 100%;
-          height: 100%;
-          background: radial-gradient(ellipse 60% 80% at 50% 50%, rgba(238, 241, 251, 0.6) 0%, transparent 70%);
-          pointer-events: none;
+          padding: 96px 0;
+          text-align: center;
+          border-top: 1px solid var(--color-ash);
+          background:
+            radial-gradient(ellipse 55% 120% at 50% 0%, rgba(37, 68, 176, 0.09), transparent 60%),
+            radial-gradient(ellipse 40% 90% at 78% 100%, rgba(74, 198, 76, 0.08), transparent 60%),
+            var(--color-paper-white);
         }
         .lp-cta h2 {
-          font-family: var(--font-sans);
-          font-size: 40px;
-          font-weight: 300;
+          font-family: var(--font-serif);
+          font-weight: 340;
+          font-size: 46px;
+          line-height: 1.05;
+          letter-spacing: -0.02em;
           color: var(--color-graphite);
-          margin-bottom: 16px;
-          letter-spacing: -1px;
-          line-height: 1.0;
-          position: relative;
+          margin: 0 0 16px;
         }
         .lp-cta p {
-          font-size: 16px;
-          color: var(--color-steel);
-          margin-bottom: 32px;
-          position: relative;
-          font-weight: 400;
-        }
-        .lp-cta-actions {
-          display: flex;
-          gap: 12px;
-          justify-content: center;
-          position: relative;
-        }
-
-        /* --- Footer --- */
-        .lp-footer {
-          background: var(--color-paper-white);
-          color: var(--color-iron);
-          padding: 60px 0 30px;
-          border-top: 1px solid var(--color-ash);
-        }
-        .lp-footer-grid {
-          display: grid;
-          grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
-          gap: 40px;
-          margin-bottom: 40px;
-        }
-        .lp-footer-col h5 {
-          color: var(--color-graphite);
-          font-family: var(--font-sans);
-          font-size: 14px;
-          font-weight: 600;
-          margin-bottom: 20px;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-        .lp-footer-col ul {
-          list-style: none;
-          padding: 0;
-          margin: 0;
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-        .lp-footer-col a {
-          color: var(--color-steel);
-          text-decoration: none;
-          font-size: 14px;
-          font-weight: 400;
-          transition: color 200ms ease;
-        }
-        .lp-footer-col a:hover { color: var(--color-graphite); }
-        .lp-footer-brand {
-          font-family: var(--font-sans);
           font-size: 18px;
-          font-weight: 500;
-          color: var(--color-graphite);
-          margin-bottom: 16px;
-          display: block;
-          letter-spacing: -0.002em;
-        }
-        .lp-footer-desc {
-          font-size: 14px;
           line-height: 1.6;
-          margin-bottom: 24px;
-          max-width: 300px;
           color: var(--color-steel);
-          font-weight: 400;
+          margin: 0 auto 30px;
+          max-width: 520px;
         }
-        .lp-footer-bottom {
-          border-top: 1px solid var(--color-ash);
-          padding-top: 30px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          font-size: 13px;
-          color: var(--color-smoke);
-        }
-        .lp-footer-legal { display: flex; gap: 24px; }
-        .lp-footer-legal a {
-          color: var(--color-smoke);
-          text-decoration: none;
-          font-size: 13px;
-        }
-        .lp-footer-legal a:hover { color: var(--color-graphite); }
+        .lp-cta-actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
 
-        /* --- Animations --- */
+        /* ========================================================= REVEAL */
         .lp-root [data-reveal] {
           opacity: 0;
-          transform: translateY(20px);
-          transition: opacity 600ms ease, transform 600ms ease;
+          transform: translateY(22px);
+          transition: opacity 640ms cubic-bezier(0.22, 1, 0.36, 1), transform 640ms cubic-bezier(0.22, 1, 0.36, 1);
         }
         .lp-root [data-reveal].is-revealed { opacity: 1; transform: translateY(0); }
-
-        /* --- Responsive --- */
-        @media (max-width: 960px) {
-          .lp-hero-grid, .lp-actions-grid, .lp-segment-grid, .lp-features-grid, .lp-capabilities-grid {
-            grid-template-columns: 1fr;
-            gap: 32px;
-          }
-          .lp-footer-grid { grid-template-columns: 1fr 1fr; }
-          .lp-nav-links { display: none; }
-          .lp-menu-btn { display: flex; }
-          .lp-hero h1 { font-size: 36px; }
-          .lp-section-title { font-size: 32px; }
-          .lp-cta h2 { font-size: 32px; }
+        .lp-root [data-reveal][data-delay="1"] { transition-delay: 80ms; }
+        .lp-root [data-reveal][data-delay="2"] { transition-delay: 160ms; }
+        .lp-root [data-reveal][data-delay="3"] { transition-delay: 240ms; }
+        @media (prefers-reduced-motion: reduce) {
+          .lp-root [data-reveal] { opacity: 1; transform: none; transition: none; }
+          .lp-band-ico { opacity: 1; transform: none; transition: none; }
+          .lp-map-hub::before { animation: none; }
         }
-        @media (max-width: 600px) {
-          .lp-footer-grid { grid-template-columns: 1fr; }
-          .lp-footer-bottom { flex-direction: column; gap: 16px; }
+
+        /* ========================================================= RESPONSIVE */
+        @media (max-width: 1024px) {
+          .lp-hero h1 { font-size: 50px; }
+          .lp-cards-4 { grid-template-columns: repeat(2, 1fr); }
+          .lp-band-row { grid-template-columns: repeat(2, 1fr); gap: 40px 32px; }
+          .lp-feat-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 880px) {
+          .lp-hero { min-height: 0; display: block; padding: 64px 0 72px; }
+          .lp-hero-map { width: 92%; right: -14%; top: auto; bottom: -6%; height: 70%; opacity: 0.6; }
+          .lp-hero-grid {
+            grid-template-columns: 1fr;
+            grid-template-areas: "head" "widget" "actions";
+            column-gap: 0;
+            row-gap: 26px;
+          }
+          .lp-hero-widget { justify-self: stretch; max-width: none; }
+          .lp-hero h1 { font-size: 44px; }
+          .lp-section { padding: 64px 0; }
+          .lp-section-title { font-size: 34px; }
+          .lp-steps { grid-template-columns: 1fr; gap: 28px; }
+          .lp-steps::before { display: none; }
+          .lp-seg-grid { grid-template-columns: 1fr; }
+          .lp-cta h2 { font-size: 36px; }
+        }
+        @media (max-width: 560px) {
+          .lp-hero h1 { font-size: 39px; letter-spacing: -0.03em; }
+          .lp-hero-lead { font-size: 15px; line-height: 1.55; margin-top: 16px; }
+          .lp-hero-meta { display: none; }
+          .lp-cards-4 { grid-template-columns: 1fr; }
+          .lp-band-row { grid-template-columns: 1fr; }
+          .lp-hero-actions, .lp-cta-actions { flex-direction: column; }
+          .lp-hero-actions .lp-btn, .lp-cta-actions .lp-btn { width: 100%; }
           .lp-widget-input-group { flex-direction: column; }
-          .lp-hero-actions { flex-direction: column; }
-          .lp-cta-actions { flex-direction: column; align-items: center; }
+          .lp-widget-input-group .lp-btn { width: 100%; }
+          .lp-tab-pane { position: relative; inset: auto; opacity: 1; transform: none; filter: none; pointer-events: auto; display: none; }
+          .lp-tab-pane.is-active { display: block; }
+          .lp-widget-body { min-height: 0; }
+          .lp-section-title { font-size: 30px; }
+          .lp-cta h2 { font-size: 32px; }
         }
       `}</style>
 
-      {/* Hero Section */}
+      {/* ============================== HERO ============================== */}
       <section className="lp-hero">
+        <div className="lp-hero-map" aria-hidden="true">
+          <div className="lp-map-layer lp-map-tint" />
+          <div className="lp-map-layer lp-map-dots" />
+          <span className="lp-map-hub" style={{ top: '34%', left: '30%', background: 'var(--color-primary)' }} />
+          <span className="lp-map-hub" style={{ top: '46%', left: '52%', background: 'var(--color-vivid-green)' }} />
+          <span className="lp-map-hub" style={{ top: '58%', left: '68%', background: 'var(--color-primary)' }} />
+          <span className="lp-map-hub" style={{ top: '40%', left: '80%', background: 'var(--color-vivid-green)' }} />
+        </div>
+
         <div className="lp-container lp-hero-grid">
-          <div data-reveal>
-  
-            <h1>Ne Perdez plus votre temps, On a la Solution.</h1>
-            <p>
-              Devis express, expéditions nationales et internationales, facturation et flotte terrain réunis dans une interface claire, rapide et fiable. Conçu pour les entreprises qui veulent avancer.
+          <div className="lp-hero-head" data-reveal>
+            <h1>
+              Vos expéditions, <em>livrées</em> sans friction.
+            </h1>
+            <p className="lp-hero-lead">
+              Devis immédiat, enlèvement à domicile, suivi de bout en bout et facturation
+              intégrée — le tout dans une plateforme claire, pensée pour les entreprises qui
+              veulent avancer.
             </p>
-            <div className="lp-hero-actions">
-              <Link to="/devis-express" className="lp-btn lp-btn-primary">
-                Demander un devis <ArrowRight size={16} />
-              </Link>
-              <Link to="/demande-compte" className="lp-btn lp-btn-secondary">
-                Ouvrir un compte
-              </Link>
-            </div>
-            <div className="lp-hero-list" style={{marginLeft: '20px'}}>
-              <div className="lp-hero-list-item">
-                <CheckCircle2 size={18} color="var(--color-vivid-green)" strokeWidth={2} />
-                Sans engagement, tarifs transparents
-              </div>
-              <div className="lp-hero-list-item">
-                <CheckCircle2 size={18} color="var(--color-vivid-green)" strokeWidth={2} />
-                Couverture nationale et européenne
-              </div>
-            </div>
+            <p className="lp-hero-meta">
+              Express<span>·</span>National<span>·</span>International<span>·</span>Sur mesure
+            </p>
           </div>
 
-          {/* Tracking Widget */}
-          <div className="lp-widget" data-reveal>
-            <div className="lp-widget-tabs">
+          <div className="lp-hero-actions" data-reveal data-delay="2">
+            <Link to="/devis-express" className="lp-btn lp-btn-primary">
+              Demander un devis <ArrowRight size={16} />
+            </Link>
+            <Link to="/demande-compte" className="lp-btn lp-btn-secondary">
+              Ouvrir un compte
+            </Link>
+          </div>
+
+          {/* Track / Quote widget */}
+          <div className="lp-hero-widget" data-reveal data-delay="1">
+            <div className="lp-widget-tabs" role="tablist">
               <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === 'track'}
                 className={`lp-widget-tab ${activeTab === 'track' ? 'is-active' : ''}`}
                 onClick={() => setActiveTab('track')}
               >
-                <Search size={16} /> Suivre
+                <Search size={15} /> Suivre
               </button>
-              {/* <button
-                className={`lp-widget-tab ${activeTab === 'ship' ? 'is-active' : ''}`}
-                onClick={() => setActiveTab('ship')}
-              >
-                <Truck size={16} /> Expedier
-              </button> */}
               <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === 'quote'}
                 className={`lp-widget-tab ${activeTab === 'quote' ? 'is-active' : ''}`}
                 onClick={() => setActiveTab('quote')}
               >
-                <Calculator size={16} /> Devis
+                <Calculator size={15} /> Devis
               </button>
             </div>
-<div className="lp-widget-content">
+
+            <div className="lp-widget-body">
               <div className={`lp-tab-pane ${activeTab === 'track' ? 'is-active' : ''}`}>
                 <form onSubmit={handleTrackSubmit}>
-                  <div className="lp-widget-label">Numero de suivi</div>
+                  <div className="lp-widget-label">Numéro de suivi</div>
                   <div className="lp-widget-input-group">
                     <input
                       type="text"
                       className="lp-widget-input"
-                      placeholder="Ex: 123456789"
+                      placeholder="Ex : 123456789"
                       value={trackingNumber}
                       onChange={(e) => setTrackingNumber(e.target.value)}
+                      aria-label="Numéro de suivi"
                     />
-                    <button type="submit" className="lp-btn lp-btn-primary">Suivre</button>
+                    <button type="submit" className="lp-btn lp-btn-primary">
+                      Suivre
+                    </button>
                   </div>
                 </form>
                 <div className="lp-widget-hint">
-                  Suivez plusieurs colis ? <Link to="/suivi">Suivi multiple</Link>
+                  Plusieurs colis à suivre ? <Link to="/suivi">Suivi multiple</Link>
                 </div>
               </div>
-              <div className={`lp-tab-pane ${activeTab === 'quote' ? 'is-active' : ''}`}>
-                <div className="lp-widget-label">Demander un devis</div>
 
-                <Link to="/devis-express" className="lp-btn lp-btn-primary" style={{ width: '100%', marginTop: '12px', justifyContent: 'center' }}>
-                  Acceder Page demande Devis Express <ArrowUpRight size={16} />
+              <div className={`lp-tab-pane ${activeTab === 'quote' ? 'is-active' : ''}`}>
+                <div className="lp-widget-label">Devis express</div>
+                <p className="lp-widget-copy">
+                  Indiquez l'origine, la destination et les dimensions — vous recevez votre
+                  tarif rapidement, sans créer de compte.
+                </p>
+                <Link
+                  to="/devis-express"
+                  className="lp-btn lp-btn-primary"
+                  style={{ width: '100%' }}
+                >
+                  Obtenir mon devis <ArrowUpRight size={16} />
                 </Link>
               </div>
             </div>
@@ -805,155 +911,215 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Quick Actions */}
+      {/* ============================== TRUST BAND ============================== */}
+      <section className="lp-band">
+        <div className="lp-container lp-band-row">
+          <div className="lp-band-item" data-reveal>
+            <div className="lp-band-ico"><Radar size={26} strokeWidth={1.6} /></div>
+            <h3>Suivi en temps réel</h3>
+            <p>Chaque étape tracée, de l'enlèvement à la livraison.</p>
+          </div>
+          <div className="lp-band-item" data-reveal data-delay="1">
+            <div className="lp-band-ico"><Earth size={26} strokeWidth={1.6} /></div>
+            <h3>National & international</h3>
+            <p>Le Maroc et au-delà, avec un seul interlocuteur.</p>
+          </div>
+          <div className="lp-band-item" data-reveal data-delay="2">
+            <div className="lp-band-ico"><Truck size={26} strokeWidth={1.6} /></div>
+            <h3>Enlèvement à domicile</h3>
+            <p>Nous récupérons vos colis à l'adresse de votre choix.</p>
+          </div>
+          <div className="lp-band-item" data-reveal data-delay="3">
+            <div className="lp-band-ico"><ReceiptText size={26} strokeWidth={1.6} /></div>
+            <h3>Facturation intégrée</h3>
+            <p>Devis, bons et factures réunis au même endroit.</p>
+          </div>
+        </div>
+      </section>
+
+      {/* ============================== SERVICES ============================== */}
       <section className="lp-section">
         <div className="lp-container">
-          <div className="lp-section-header" data-reveal>
-            <h2 className="lp-section-title">Tout ce dont vous avez besoin, a portee de clic</h2>
-            <p className="lp-section-subtitle">Quatre raccourcis pour demarrer en moins de 30 secondes, que vous soyez client ou nouveau prospect.</p>
+          <div className="lp-section-head is-center" data-reveal>
+            <span className="lp-kicker">Nos services</span>
+            <h2 className="lp-section-title">Tout ce qu'il vous faut, en un clic</h2>
+            <p className="lp-section-sub">
+              Quatre raccourcis pour démarrer en moins d'une minute, que vous soyez client
+              établi ou nouveau venu.
+            </p>
           </div>
-          <div className="lp-actions-grid">
-            <Link to="/expedier" className="lp-action-card" data-reveal>
-              <div className="lp-action-icon"><FileText size={20} strokeWidth={1.5} /></div>
-              <h3 className="lp-action-title">Creer une expedition</h3>
-              <p className="lp-action-desc">Imprimez vos etiquettes et planifiez un enlèvement en quelques minutes.</p>
-              <span className="lp-action-link">Commencer <ArrowRight size={14} /></span>
+          <div className="lp-cards-4">
+            <Link to="/devis-express" className="lp-card" data-reveal>
+              <div className="lp-card-icon"><Calculator size={22} strokeWidth={1.7} /></div>
+              <h3>Obtenir un devis</h3>
+              <p>Estimez le coût de votre envoi avant même de créer un compte.</p>
+              <span className="lp-card-link">Calculer <ArrowRight size={14} /></span>
             </Link>
-            <Link to="/suivi" className="lp-action-card" data-reveal>
-              <div className="lp-action-icon"><Search size={20} strokeWidth={1.5} /></div>
-              <h3 className="lp-action-title">Suivre un colis</h3>
-              <p className="lp-action-desc">Obtenez des mises a jour en temps reel sur l'acheminement de vos envois.</p>
-              <span className="lp-action-link">Suivre maintenant <ArrowRight size={14} /></span>
+            <Link to="/suivi" className="lp-card" data-reveal data-delay="1">
+              <div className="lp-card-icon"><Search size={22} strokeWidth={1.7} /></div>
+              <h3>Suivre un colis</h3>
+              <p>Localisez vos expéditions en temps réel, à toute heure du jour.</p>
+              <span className="lp-card-link">Suivre <ArrowRight size={14} /></span>
             </Link>
-            <Link to="/tarifs" className="lp-action-card" data-reveal>
-              <div className="lp-action-icon"><Calculator size={20} strokeWidth={1.5} /></div>
-              <h3 className="lp-action-title">Obtenir un tarif</h3>
-              <p className="lp-action-desc">Estimez le cout de vos expeditions avant meme de creer un compte.</p>
-              <span className="lp-action-link">Calculer <ArrowRight size={14} /></span>
+            <Link to="/demande-compte" className="lp-card" data-reveal data-delay="2">
+              <div className="lp-card-icon"><Building2 size={22} strokeWidth={1.7} /></div>
+              <h3>Ouvrir un compte</h3>
+              <p>Accédez aux tarifs négociés, à la flotte dédiée et au suivi consolidé.</p>
+              <span className="lp-card-link">Commencer <ArrowRight size={14} /></span>
             </Link>
-            <Link to="/agences" className="lp-action-card" data-reveal>
-              <div className="lp-action-icon"><MapPin size={20} strokeWidth={1.5} /></div>
-              <h3 className="lp-action-title">Trouver une agence</h3>
-              <p className="lp-action-desc">Localisez les points relais et centres de service pres de chez vous.</p>
-              <span className="lp-action-link">Localiser <ArrowRight size={14} /></span>
+            <Link to="/login" className="lp-card" data-reveal data-delay="3">
+              <div className="lp-card-icon"><LogIn size={22} strokeWidth={1.7} /></div>
+              <h3>Espace client</h3>
+              <p>Retrouvez vos expéditions, devis et factures au même endroit.</p>
+              <span className="lp-card-link">Se connecter <ArrowRight size={14} /></span>
             </Link>
           </div>
         </div>
       </section>
 
-      {/* Segments (B2C / B2B) */}
-      <section className="lp-section lp-segments">
+      {/* ============================== HOW IT WORKS ============================== */}
+      <section className="lp-section lp-how">
         <div className="lp-container">
-          <div className="lp-section-header" data-reveal>
-            <h2 className="lp-section-title">Une solution adaptee pour tous besoins</h2>
-            <p className="lp-section-subtitle">Que vous expediez un colis unique ou que vous geriez une chaine d'approvisionnement complete.</p>
+          <div className="lp-section-head is-center" data-reveal>
+            <span className="lp-kicker">Comment ça marche</span>
+            <h2 className="lp-section-title">De la demande à la livraison</h2>
+            <p className="lp-section-sub">
+              Un parcours simple, sans jargon ni paperasse superflue.
+            </p>
           </div>
-          <div className="lp-segment-grid">
-            {/* Particuliers */}
-            <div className="lp-segment-card" data-reveal>
-              <div className="lp-segment-visual" style={{ background: 'var(--color-fog)' }}>
-                <svg viewBox="0 0 400 200" style={{ width: '100%', height: '100%' }}>
-                  <rect x="0" y="0" width="400" height="200" fill="#f1f1f1" />
-                  <path d="M0 150 Q100 100 200 120 T400 80" stroke="#e5e7eb" strokeWidth="2" fill="none" />
-                  <circle cx="200" cy="120" r="8" fill="var(--color-primary)" />
-                  <circle cx="200" cy="120" r="16" fill="var(--color-primary)" fillOpacity="0.15" />
-                  <g transform="translate(180, 80)">
-                    <rect width="40" height="30" rx="2" fill="#ffffff" stroke="#d1d9e4" strokeWidth="2" />
-                    <rect x="0" y="10" width="40" height="10" fill="#e5e7eb" />
-                  </g>
-                </svg>
-              </div>
-              <div className="lp-segment-content">
-                <div className="lp-segment-tag">Pour les particuliers</div>
-                <h3 className="lp-segment-title">Expedition ponctuelle simple</h3>
-                <p className="lp-segment-desc">Pas besoin de compte. Saisissez les dimensions, obtenez votre tarif immediat et imprimez votre etiquette.</p>
-                <Link to="/devis-express" className="lp-btn lp-btn-secondary">Expedier un colis</Link>
-              </div>
+          <div className="lp-steps">
+            <div className="lp-step" data-reveal>
+              <div className="lp-step-num">1</div>
+              <h3>Demandez votre devis</h3>
+              <p>
+                Renseignez origine, destination et dimensions. Vous obtenez une estimation
+                immédiate, sans engagement.
+              </p>
             </div>
-
-            {/* Entreprises */}
-            <div className="lp-segment-card" data-reveal>
-              <div className="lp-segment-visual" style={{ background: 'var(--color-graphite)' }}>
-                <svg viewBox="0 0 400 200" style={{ width: '100%', height: '100%' }}>
-                  <rect x="0" y="0" width="400" height="200" fill="#1d1d20" />
-                  <rect x="40" y="140" width="30" height="40" fill="#42424a" />
-                  <rect x="80" y="100" width="30" height="80" fill="#42424a" />
-                  <rect x="120" y="60" width="30" height="120" fill="#42424a" />
-                  <rect x="160" y="120" width="30" height="60" fill="#42424a" />
-                  <path d="M20 160 L380 160" stroke="#757575" strokeWidth="1" strokeDasharray="4 4" />
-                </svg>
-              </div>
-              <div className="lp-segment-content">
-                <div className="lp-segment-tag">Pour les entreprises</div>
-                <h3 className="lp-segment-title">Logistique sur mesure & Gestion Integree Complete</h3>
-                <p className="lp-segment-desc">Volume regulier, flotte dediee, integration API et reporting. Un account manager a votre ecoute.</p>
-                <Link to="/demande-compte" className="lp-btn lp-btn-primary">Solutions B2B <ArrowRight size={16} /></Link>
-              </div>
+            <div className="lp-step" data-reveal data-delay="1">
+              <div className="lp-step-num">2</div>
+              <h3>Planifiez l'enlèvement</h3>
+              <p>
+                Nous récupérons votre colis à l'adresse de votre choix, au créneau qui vous
+                arrange.
+              </p>
+            </div>
+            <div className="lp-step" data-reveal data-delay="2">
+              <div className="lp-step-num">3</div>
+              <h3>Suivez jusqu'à livraison</h3>
+              <p>
+                Chaque étape est tracée en temps réel, avec preuve de livraison numérique à
+                l'arrivée.
+              </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Value Prop / Features */}
+      {/* ============================== SEGMENTS ============================== */}
       <section className="lp-section">
         <div className="lp-container">
-          <div className="lp-section-header" data-reveal>
-            <h2 className="lp-section-title">Concu pour les exigences du transport moderne</h2>
+          <div className="lp-section-head is-center" data-reveal>
+            <span className="lp-kicker">Pour qui</span>
+            <h2 className="lp-section-title">Une solution adaptée à chaque besoin</h2>
+            <p className="lp-section-sub">
+              Que vous expédiez un colis unique ou pilotiez une chaîne logistique complète.
+            </p>
           </div>
-          <div className="lp-features-grid">
-            <div className="lp-feature-item" data-reveal>
-              <div className="lp-feature-icon"><Globe2 size={28} strokeWidth={1.5} /></div>
-              <h3 className="lp-feature-title">Couverture etendue</h3>
-              <p className="lp-feature-desc">National et international avec un suivi de bout en bout, du ramassage jusqu'a la livraison finale.</p>
+          <div className="lp-seg-grid">
+            <div className="lp-seg" data-reveal>
+              <div className="lp-seg-visual is-light">
+                <div className="lp-seg-visual-dots" />
+                <Package size={52} strokeWidth={1.2} className="lp-seg-visual-icon" />
+              </div>
+              <div className="lp-seg-body">
+                <div className="lp-seg-tag">Particuliers</div>
+                <h3>Expédition ponctuelle, sans compte</h3>
+                <p>
+                  Saisissez vos dimensions, obtenez un tarif immédiat et confiez-nous
+                  l'enlèvement. Suivi inclus jusqu'à la livraison.
+                </p>
+                <div>
+                  <Link to="/devis-express" className="lp-btn lp-btn-secondary">
+                    Expédier un colis <ArrowRight size={16} />
+                  </Link>
+                </div>
+              </div>
             </div>
-            <div className="lp-feature-item" data-reveal>
-              <div className="lp-feature-icon"><ShieldCheck size={28} strokeWidth={1.5} /></div>
-              <h3 className="lp-feature-title">Securite des donnees</h3>
-              <p className="lp-feature-desc">Vos expeditions et documents sont proteges par une infrastructure conforme et chiffree.</p>
-            </div>
-            <div className="lp-feature-item" data-reveal>
-              <div className="lp-feature-icon"><Clock size={28} strokeWidth={1.5} /></div>
-              <h3 className="lp-feature-title">Disponibilite 24/7</h3>
-              <p className="lp-feature-desc">Gerez vos logistiques a toute heure, depuis n'importe ou, sans dependre d'un support telefonique.</p>
+
+            <div className="lp-seg" data-reveal data-delay="1">
+              <div className="lp-seg-visual is-dark">
+                <div className="lp-seg-visual-dots" />
+                <Boxes size={52} strokeWidth={1.2} className="lp-seg-visual-icon" />
+              </div>
+              <div className="lp-seg-body">
+                <div className="lp-seg-tag">Entreprises</div>
+                <h3>Logistique dédiée et gestion intégrée</h3>
+                <p>
+                  Volume régulier, flotte dédiée, facturation intégrée et interlocuteur unique.
+                  Une plateforme qui grandit avec votre activité.
+                </p>
+                <div>
+                  <Link to="/demande-compte" className="lp-btn lp-btn-primary">
+                    Solutions entreprises <ArrowRight size={16} />
+                  </Link>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Capabilities Strip
-      <section className="lp-capabilities">
+      {/* ============================== FEATURES ============================== */}
+      <section className="lp-section lp-how">
         <div className="lp-container">
-          <div className="lp-capabilities-grid">
-            <div className="lp-cap-item" data-reveal>
-              <Headphones size={24} color="var(--color-primary)" strokeWidth={1.5} style={{ marginBottom: '16px' }} />
-              <h4>Support Dedi</h4>
-              <p>Une equipe logistique disponible pour resoudre les exceptions et optimiser vos tournees.</p>
+          <div className="lp-section-head is-center" data-reveal>
+            <span className="lp-kicker">Pourquoi nous</span>
+            <h2 className="lp-section-title">Pensé pour le transport moderne</h2>
+          </div>
+          <div className="lp-feat-grid">
+            <div className="lp-feat" data-reveal>
+              <div className="lp-feat-icon"><Globe2 size={22} strokeWidth={1.8} /></div>
+              <h3>Couverture étendue</h3>
+              <p>
+                Du dernier kilomètre au fret international, un seul partenaire pour tous vos
+                envois, du ramassage à la livraison finale.
+              </p>
             </div>
-            <div className="lp-cap-item" data-reveal>
-              <PackageCheck size={24} color="var(--color-primary)" strokeWidth={1.5} style={{ marginBottom: '16px' }} />
-              <h4>Traçabilite Complete</h4>
-              <p>Visibilite en temps reel sur chaque etape de la chaine d'approvisionnement et preuve de livraison numerique.</p>
+            <div className="lp-feat" data-reveal data-delay="1">
+              <div className="lp-feat-icon"><ShieldCheck size={22} strokeWidth={1.8} /></div>
+              <h3>Fiabilité & sécurité</h3>
+              <p>
+                Vos expéditions et documents sont protégés par une infrastructure conforme,
+                avec traçabilité complète à chaque étape.
+              </p>
             </div>
-            <div className="lp-cap-item" data-reveal>
-              <Building2 size={24} color="var(--color-primary)" strokeWidth={1.5} style={{ marginBottom: '16px' }} />
-              <h4>Integration Systeme</h4>
-              <p>Connectez votre CMS ou ERP via notre API pour automatiser la creation d'etiquettes et les mises a jour de statut.</p>
+            <div className="lp-feat" data-reveal data-delay="2">
+              <div className="lp-feat-icon"><Headphones size={22} strokeWidth={1.8} /></div>
+              <h3>Support à taille humaine</h3>
+              <p>
+                Une équipe locale joignable pour gérer les imprévus, optimiser vos tournées et
+                vous accompagner au quotidien.
+              </p>
             </div>
           </div>
         </div>
-      </section> */}
+      </section>
 
-      {/* Final CTA */}
+      {/* ============================== CTA ============================== */}
       <section className="lp-cta">
         <div className="lp-container" data-reveal>
-          <h2>Pret a simplifier votre logistique ?</h2>
-          <p>Ouvrez votre compte aujourd'hui et accedez a l'integralite de la plateforme.</p>
+          <h2>Prêt à simplifier votre logistique ?</h2>
+          <p>
+            Ouvrez votre compte aujourd'hui et accédez à l'intégralité de la plateforme —
+            devis, expéditions, suivi et facturation.
+          </p>
           <div className="lp-cta-actions">
             <Link to="/demande-compte" className="lp-btn lp-btn-primary">
-              Creer un Compte Client
+              Créer un compte client <ArrowRight size={16} />
             </Link>
-            <Link to="/contact" className="lp-btn lp-btn-secondary">
-              Contacter Nous
+            <Link to="/devis-express" className="lp-btn lp-btn-secondary">
+              Demander un devis
             </Link>
           </div>
         </div>
