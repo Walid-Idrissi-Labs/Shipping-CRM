@@ -1,9 +1,9 @@
-import TruckLoader from './TruckLoader';
+import OrbitLoader from './OrbitLoader';
 
 export default function LoadingOverlay() {
   return (
-    <div className="truck-loader-overlay" aria-hidden="true">
-      <TruckLoader />
+    <div className="loader-overlay" aria-hidden="true">
+      <OrbitLoader />
     </div>
   );
 }

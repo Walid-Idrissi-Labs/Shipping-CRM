@@ -1,3 +1,4 @@
+import { useMinLoading } from '../../hooks';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Check, X, SquareArrowOutUpRight } from 'lucide-react';
@@ -6,7 +7,7 @@ import PageHeader from '../../components/ui/PageHeader';
 import { DataCard, DetailRow } from '../../components/ui/DataCard';
 import SwipeButton from '../../components/ui/SwipeButton';
 import ClientLinkButton from '../../components/ui/ClientLinkButton';
-import TruckLoader from '../../components/ui/TruckLoader';
+import PageLoader from '../../components/ui/PageLoader';
 import { useToast } from '../../contexts/ToastContext';
 
 function formatMoney(value) {
@@ -20,6 +21,7 @@ export default function InvoiceDetail() {
   const toast = useToast();
   const [facture, setFacture] = useState(null);
   const [loading, setLoading] = useState(true);
+  const showLoader = useMinLoading(loading);
 
   useEffect(() => {
     fetchInvoice();
@@ -67,7 +69,7 @@ export default function InvoiceDetail() {
     }
   };
 
-  if (loading) return <div style={{ padding: 48, display: 'flex', justifyContent: 'center' }}><TruckLoader /></div>;
+  if (showLoader) return <PageLoader variant="detail" />;
   if (!facture) return null;
 
   const isPaid = facture.statut === 'payee';
@@ -319,32 +321,38 @@ export default function InvoiceDetail() {
       </DataCard>
 
       <div style={{ marginTop: 16, marginBottom: 24 }}>
-        <DataCard title={`Expeditions (${facture.expeditions?.length || 0})`} description="Liste des expeditions liees a cette facture.">
-          <table className="table-clean">
-            <thead>
-              <tr>
-                <th>N° d'envoi</th>
-                <th>Destinataire</th>
-                <th>Service</th>
-                <th>Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(facture.expeditions || []).map((e) => (
-                <tr key={e.id}>
-                  <td className="font-mono-data" style={{ color: 'var(--color-primary)' }}>
-                    <Link to={`/dashboard/expeditions/${e.id}`} style={{ color: 'inherit' }}>{e.shipping_number}</Link>
-                  </td>
-                  <td>
-                    <div>{e.recipient_name}</div>
-                    <div style={{ fontSize: 12, color: 'var(--color-steel)' }}>{e.recipient_city}, {e.recipient_country}</div>
-                  </td>
-                  <td style={{ textTransform: 'capitalize' }}>{(e.type_service || '').replace(/_/g, ' ')}</td>
-                  <td style={{ whiteSpace: 'nowrap' }}>{new Date(e.created_at).toLocaleDateString('fr-FR')}</td>
+        <DataCard title={`Expéditions (${facture.expeditions?.length || 0})`} description="Liste des expéditions liées à cette facture.">
+          {(facture.expeditions || []).length === 0 ? (
+            <p style={{ fontSize: 14, color: 'var(--color-steel)', padding: '8px 0' }}>
+              Aucune expédition liée à cette facture.
+            </p>
+          ) : (
+            <table className="table-clean">
+              <thead>
+                <tr>
+                  <th>N° d'envoi</th>
+                  <th>Destinataire</th>
+                  <th>Service</th>
+                  <th>Date</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {(facture.expeditions || []).map((e) => (
+                  <tr key={e.id}>
+                    <td className="font-mono-data" style={{ color: 'var(--color-primary)' }}>
+                      <Link to={`/dashboard/expeditions/${e.id}`} style={{ color: 'inherit' }}>{e.shipping_number}</Link>
+                    </td>
+                    <td>
+                      <div>{e.recipient_name}</div>
+                      <div style={{ fontSize: 12, color: 'var(--color-steel)' }}>{e.recipient_city}, {e.recipient_country}</div>
+                    </td>
+                    <td style={{ textTransform: 'capitalize' }}>{(e.type_service || '').replace(/_/g, ' ')}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>{new Date(e.created_at).toLocaleDateString('fr-FR')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </DataCard>
       </div>
 

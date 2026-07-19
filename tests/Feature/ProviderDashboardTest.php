@@ -286,6 +286,10 @@ class ProviderDashboardTest extends TestCase
 
     public function test_provider_dashboard_counts_today_missions(): void
     {
+        // Freeze mid-day: near midnight, now()->addHour() would land on the
+        // next day and the mission would no longer count as "today".
+        $this->travelTo(now()->setTime(10, 0));
+
         Affectation::create([
             'provider_id' => $this->provider->id,
             'chauffeur_id' => $this->chauffeur->id,

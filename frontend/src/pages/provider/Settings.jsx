@@ -1,21 +1,40 @@
+import { useMinLoading } from '../../hooks';
 import { useEffect, useState } from 'react';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import { DataCard } from '../../components/ui/DataCard';
 import { FormField, Section } from '../../components/ui/Form';
 import SaveStatusButton from '../../components/ui/SaveStatusButton';
-import TruckLoader from '../../components/ui/TruckLoader';
+import PageLoader from '../../components/ui/PageLoader';
 import { useDirtyForm } from '../../hooks/useDirtyForm';
 
 const emptyForm = {
   company_name: '', address: '', postal_code: '', city: '', country: 'Maroc',
-  phone: '', email: '', website: '', ice: '', rc: '', if_: '', cnss: '', patente: '', login_email: ''
+  phone: '', email: '', website: '', ice: '', rc: '', if_: '', cnss: '', patente: '', login_email: '',
+  bank_name: '', bank_rib: '', bank_swift: '', bank_account_name: '', bank_agence: '',
+  per_page_expeditions: 25, per_page_factures: 25
 };
 
 const emptyPassword = { old_password: '', new_password: '', new_password_confirmation: '' };
 
+const Flash = ({ m }) => m && (
+  <div
+    className="text-sm font-medium animate-fade-in"
+    style={{
+      background: m.type === 'error' ? 'var(--color-danger-container)' : 'var(--color-success-container)',
+      color: m.type === 'error' ? 'var(--color-danger)' : 'var(--color-vivid-green-dark)',
+      padding: '10px 14px',
+      borderRadius: 8,
+      marginBottom: 16,
+    }}
+  >
+    {m.text}
+  </div>
+);
+
 export default function Settings() {
   const [loading, setLoading] = useState(true);
+  const showLoader = useMinLoading(loading);
   const [message, setMessage] = useState(null);
   const [pwdMessage, setPwdMessage] = useState(null);
 
@@ -74,22 +93,7 @@ export default function Settings() {
     }
   };
 
-  if (loading) return <div style={{ padding: 48, display: 'flex', justifyContent: 'center' }}><TruckLoader /></div>;
-
-  const Flash = ({ m }) => m && (
-    <div
-      className="text-sm font-medium animate-fade-in"
-      style={{
-        background: m.type === 'error' ? 'var(--color-danger-container)' : 'var(--color-success-container)',
-        color: m.type === 'error' ? 'var(--color-danger)' : 'var(--color-vivid-green-dark)',
-        padding: '10px 14px',
-        borderRadius: 8,
-        marginBottom: 16,
-      }}
-    >
-      {m.text}
-    </div>
-  );
+  if (showLoader) return <PageLoader variant="detail" />;
 
   return (
     <div className="space-y-6" style={{ maxWidth: 960 }}>
@@ -128,6 +132,47 @@ export default function Settings() {
               <FormField label="IF"><input name="if_" value={settingsForm.data.if_ || ''} onChange={handleFieldChange} className="input" /></FormField>
               <FormField label="CNSS"><input name="cnss" value={settingsForm.data.cnss || ''} onChange={handleFieldChange} className="input" /></FormField>
               <FormField label="Patente"><input name="patente" value={settingsForm.data.patente || ''} onChange={handleFieldChange} className="input" /></FormField>
+            </div>
+          </Section>
+
+          <Section title="Coordonnées bancaires" description="Affichées dans le bloc de règlement de vos factures.">
+            <div className="grid grid-cols-1 md:grid-cols-3" style={{ gap: 12 }}>
+              <FormField label="Banque"><input name="bank_name" value={settingsForm.data.bank_name || ''} onChange={handleFieldChange} className="input" placeholder="Ex : Attijariwafa Bank" /></FormField>
+              <FormField label="Agence"><input name="bank_agence" value={settingsForm.data.bank_agence || ''} onChange={handleFieldChange} className="input" placeholder="Ex : Agence Casablanca Maârif" /></FormField>
+              <FormField label="Intitulé du compte" hint="Ordre des chèques">
+                <input name="bank_account_name" value={settingsForm.data.bank_account_name || ''} onChange={handleFieldChange} className="input" placeholder="Nom du titulaire du compte" />
+              </FormField>
+              <FormField label="RIB / N° de compte"><input name="bank_rib" value={settingsForm.data.bank_rib || ''} onChange={handleFieldChange} className="input" placeholder="24 chiffres" /></FormField>
+              <FormField label="SWIFT / BIC"><input name="bank_swift" value={settingsForm.data.bank_swift || ''} onChange={handleFieldChange} className="input" placeholder="Optionnel" /></FormField>
+            </div>
+          </Section>
+
+          <Section title="Affichage des listes" description="Nombre de lignes par page dans vos tableaux (entre 5 et 100).">
+            <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16, maxWidth: 480 }}>
+              <FormField label="Expéditions par page">
+                <input
+                  name="per_page_expeditions"
+                  type="number"
+                  min={5}
+                  max={100}
+                  step={5}
+                  value={settingsForm.data.per_page_expeditions ?? 25}
+                  onChange={handleFieldChange}
+                  className="input"
+                />
+              </FormField>
+              <FormField label="Factures par page">
+                <input
+                  name="per_page_factures"
+                  type="number"
+                  min={5}
+                  max={100}
+                  step={5}
+                  value={settingsForm.data.per_page_factures ?? 25}
+                  onChange={handleFieldChange}
+                  className="input"
+                />
+              </FormField>
             </div>
           </Section>
 

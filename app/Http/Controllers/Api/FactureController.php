@@ -7,17 +7,13 @@ use App\Models\Avoir;
 use App\Models\Client;
 use App\Models\Facture;
 use App\Models\FactureExpedition;
-use App\Models\Provider;
 use App\Models\Shipment;
-use App\Models\User;
 use App\Services\FiscalCalculator;
 use App\Traits\AppliesSorting;
 use App\Traits\GeneratesNumbers;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 
 class FactureController extends Controller
 {
@@ -76,8 +72,10 @@ class FactureController extends Controller
             'desc'
         );
 
+        $perPage = $user->role === 'prestataire' ? ($user->provider->per_page_factures ?? 25) : 25;
+
         return response()->json(
-            $query->paginate(25)
+            $query->paginate(min(100, max(5, (int) $perPage)))
         );
     }
 
@@ -139,36 +137,45 @@ class FactureController extends Controller
             ], 422);
         }
 
-        $facture = DB::transaction(function () use ($validated, $provider, $shipments, $seq, $numeroN, $year, $tauxTva, $nonTaxable, $taxable, $tva, $ttc) {
-            $facture = Facture::create([
-                'provider_id' => $provider->id,
-                'client_id' => $validated['client_id'] ?? null,
-                'client_divers_nom' => $validated['client_divers_nom'] ?? null,
-                'client_divers_adresse' => $validated['client_divers_adresse'] ?? null,
-                'client_divers_tel' => $validated['client_divers_tel'] ?? null,
-                'client_divers_email' => $validated['client_divers_email'] ?? null,
-                'numero_n' => $numeroN,
-                'annee' => $year,
-                'date_facture' => $validated['date_facture'] ?? now()->toDateString(),
-                'date_echeance' => $validated['date_echeance'],
-                'type_destination' => $validated['type_destination'],
-                'taux_tva' => $tauxTva,
-                'non_taxable' => $nonTaxable,
-                'taxable' => $taxable,
-                'tva' => $tva,
-                'ttc' => $ttc,
-                'statut' => 'impayee',
-            ]);
-
-            foreach ($shipments as $s) {
-                FactureExpedition::create([
-                    'facture_id' => $facture->id,
-                    'expedition_id' => $s->id,
+        try {
+            $facture = DB::transaction(function () use ($validated, $provider, $shipments, $numeroN, $year, $tauxTva, $nonTaxable, $taxable, $tva, $ttc) {
+                $facture = Facture::create([
+                    'provider_id' => $provider->id,
+                    'client_id' => $validated['client_id'] ?? null,
+                    'client_divers_nom' => $validated['client_divers_nom'] ?? null,
+                    'client_divers_adresse' => $validated['client_divers_adresse'] ?? null,
+                    'client_divers_tel' => $validated['client_divers_tel'] ?? null,
+                    'client_divers_email' => $validated['client_divers_email'] ?? null,
+                    'numero_n' => $numeroN,
+                    'annee' => $year,
+                    'date_facture' => $validated['date_facture'] ?? now()->toDateString(),
+                    'date_echeance' => $validated['date_echeance'],
+                    'type_destination' => $validated['type_destination'],
+                    'reference' => $validated['reference'] ?? null,
+                    'taux_tva' => $tauxTva,
+                    'non_taxable' => $nonTaxable,
+                    'taxable' => $taxable,
+                    'tva' => $tva,
+                    'ttc' => $ttc,
+                    'statut' => 'impayee',
                 ]);
-            }
 
-            return $facture;
-        });
+                foreach ($shipments as $s) {
+                    FactureExpedition::create([
+                        'facture_id' => $facture->id,
+                        'expedition_id' => $s->id,
+                    ]);
+                }
+
+                return $facture;
+            });
+        } catch (\Illuminate\Database\UniqueConstraintViolationException) {
+            // Deux creations simultanees ont tire le meme numero : l'index unique
+            // (annee, numero_n) tranche, on renvoie la meme 422 que la pre-verification.
+            return response()->json([
+                'message' => 'Ce numero de facture existe deja pour cette annee.',
+            ], 422);
+        }
 
         return response()->json([
             'message' => 'Facture cree.',
@@ -200,8 +207,8 @@ class FactureController extends Controller
 
     public function destroy(Request $request, Facture $facture)
     {
-        $user = User::with('provider')->find(Auth::id());
-        if (! $user?->provider || $facture->provider_id !== $user->provider->id) {
+        $user = $request->user();
+        if (! $user->provider || $facture->provider_id !== $user->provider->id) {
             return response()->json(['message' => 'Acces refuse.'], 403);
         }
 
@@ -398,6 +405,7 @@ class FactureController extends Controller
             'date_facture' => $validated['date_facture'] ?? now()->toDateString(),
             'date_echeance' => $validated['date_echeance'],
             'type_destination' => $validated['type_destination'],
+            'reference' => $validated['reference'] ?? null,
             'taux_tva' => $tauxTva,
             'non_taxable' => $nonTaxable,
             'taxable' => $taxable,
@@ -451,6 +459,7 @@ class FactureController extends Controller
             'date_facture' => ['nullable', 'date'],
             'date_echeance' => ['required', 'date', 'after_or_equal:today'],
             'type_destination' => ['required', 'in:national,international'],
+            'reference' => ['nullable', 'string', 'max:255'],
             'non_taxable' => ['nullable', 'numeric', 'min:0'],
             'taxable' => ['required', 'numeric', 'min:0'],
         ];

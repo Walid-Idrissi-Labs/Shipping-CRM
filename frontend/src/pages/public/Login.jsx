@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link, Navigate } from 'react-router-dom';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, LogIn } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { FormField } from '../../components/ui/Form';
 import Globe from '../../components/ui/Globe';
@@ -16,6 +16,7 @@ const homeFor = (role) => HOME_BY_ROLE[role] || '/client';
 export default function Login() {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [remember, setRemember] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login, user } = useAuth();
@@ -31,18 +32,18 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      const loggedUser = await login(identifier, password);
+      const loggedUser = await login(identifier, password, remember);
       navigate(homeFor(loggedUser.role));
     } catch (err) {
       const status = err.response?.status;
       if (status === 401) {
-        setError('Identifiants incorrects. Veuillez reessayer.');
+        setError('Identifiants incorrects. Veuillez réessayer.');
       } else if (status === 419) {
-        setError('Votre session a expire. Veuillez recharger la page et reessayer.');
+        setError('Votre session a expiré. Veuillez recharger la page et réessayer.');
       } else if (!err.response) {
-        setError('Serveur injoignable. Verifiez votre connexion et reessayer.');
+        setError('Serveur injoignable. Vérifiez votre connexion et réessayez.');
       } else {
-        setError(err.response?.data?.message || 'Une erreur est survenue. Veuillez reessayer.');
+        setError(err.response?.data?.message || 'Une erreur est survenue. Veuillez réessayer.');
       }
     } finally {
       setLoading(false);
@@ -70,7 +71,8 @@ export default function Login() {
           alignItems: 'center',
           justifyContent: 'center',
           padding: '24px',
-          background: 'var(--color-paper-white)',
+          background:
+            'radial-gradient(ellipse 60% 55% at 82% 4%, rgba(74, 198, 76, 0.09), transparent 62%), radial-gradient(ellipse 70% 60% at 8% 0%, rgba(37, 68, 176, 0.12), transparent 58%), var(--color-paper-white)',
           position: 'relative',
           zIndex: 2,
         }}
@@ -83,18 +85,11 @@ export default function Login() {
               border: '1px solid var(--color-ash)',
               borderRadius: 16,
               padding: 32,
+              boxShadow: '0 24px 60px -24px rgba(37, 68, 176, 0.18)',
             }}
           >
             <div style={{ textAlign: 'center', marginBottom: 28 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0, marginBottom: 22 }}>
-                <div
-                  style={{
-                    fontSize: 12, fontWeight: 500, color: 'var(--color-steel)',
-                    textTransform: 'uppercase', letterSpacing: '0.12em',
-                  }}
-                >
-                   
-                </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 22 }}>
                 <Link to="/" className="lp-logo" style={{ display: 'inline-flex', alignItems: 'center' }}>
                   <img
                     src="/logos/dpex-logo-gif_final.png"
@@ -103,7 +98,7 @@ export default function Login() {
                   />
                 </Link>
               </div>
-              <h1 className="display-headline" style={{ fontSize: 30 }}>Accedez a votre espace</h1>
+              <h1 className="public-serif" style={{ fontSize: 32 }}>Accédez à votre espace</h1>
             </div>
 
             {error && (
@@ -127,7 +122,7 @@ export default function Login() {
                   type="text"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder="Email, telephone ou numero de compte"
+                  placeholder="Email, téléphone ou numéro de compte"
                   className="input"
                   required
                   autoFocus
@@ -145,12 +140,34 @@ export default function Login() {
                 />
               </FormField>
 
+              <label
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  fontSize: 13,
+                  color: 'var(--color-steel)',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                  marginTop: 4,
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(e) => setRemember(e.target.checked)}
+                  style={{ width: 15, height: 15, accentColor: 'var(--color-primary)', cursor: 'pointer' }}
+                />
+                Se souvenir de moi
+              </label>
+
               <button
                 type="submit"
                 disabled={loading}
                 className="btn btn-primary"
                 style={{ width: '100%', marginTop: 8 }}
               >
+                <LogIn size={16} />
                 {loading ? 'Connexion...' : 'Se Connecter'}
               </button>
             </form>
@@ -184,7 +201,7 @@ export default function Login() {
             borderRadius: 8,
             fontSize: 14,
             fontWeight: 500,
-            color: 'var(--color-ink)',
+            color: 'var(--color-graphite)',
             background: 'transparent',
             zIndex: 3,
             textDecoration: 'none',
@@ -209,7 +226,7 @@ export default function Login() {
                 left: 0,
                 width: '100%',
                 height: 1,
-                background: '#1a1a1a',
+                background: 'var(--color-graphite)',
                 transform: 'scaleX(0)',
                 transformOrigin: 'left',
                 transition: 'transform 0.2s ease',

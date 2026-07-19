@@ -27,7 +27,7 @@ class AuthController extends Controller
             return response()->json(['message' => 'Identifiants incorrects. Veuillez reessayer.'], 401);
         }
 
-        Auth::login($user);
+        Auth::login($user, $request->boolean('remember'));
 
         if ($user->role === 'client' && ! $user->first_login_completed) {
             $user->update(['first_login_completed' => true]);

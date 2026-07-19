@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Save, ArrowLeft, FileText, Plus, List, ExternalLink, X } from 'lucide-react';
+import {Save, ArrowLeft, FileText, Plus, List} from 'lucide-react';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import { DataCard, DetailRow } from '../../components/ui/DataCard';
@@ -167,7 +167,6 @@ export default function QuoteCreate() {
         setError('Le montant HT est obligatoire et doit etre superieur a 0.');
         return;
       }
-      const ttc = parseFloat(form.montant_ttc) || ht * (1 + taxRate / 100);
     }
     // Validate at least one colis has poids and type_colis
     const hasValidColis = colis.some(c => c.poids && c.type_colis);
@@ -232,15 +231,6 @@ export default function QuoteCreate() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const buildAddress = (r) => {
-    const parts = [
-      r.recipient_address,
-      [r.recipient_postal_code, r.recipient_city].filter(Boolean).join(' '),
-      r.recipient_country,
-    ].filter(Boolean);
-    return parts.join(', ') || '-';
   };
 
   const buildDimensions = (r) => {
@@ -319,13 +309,13 @@ export default function QuoteCreate() {
 
               {/* Colis */}
               <DataCard title="Colis" description="Caracteristiques provenant de la demande.">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8  , border : '1px solid var(--color-border)' , color: 'var(--color-graphite)'}}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8  , border : '1px solid var(--color-ash)' , color: 'var(--color-graphite)'}}>
                   {prefill?.type_service && (
                     <DetailRow label="Service" value={prefill.type_service.replace(/_/g, ' ')} />
                   )}
                   {prefill?.colis && prefill.colis.length > 0 ? (
                     prefill.colis.map((c, idx) => (
-                      <div key={idx} style={{ padding: '8px', background: 'var(--color-bg)', borderRadius: 6, border: '1px solid var(--color-border)' }}>
+                      <div key={idx} style={{ padding: '8px', background: 'var(--color-bone)', borderRadius: 6, border: '1px solid var(--color-ash)' }}>
                         <div style={{ fontWeight: 600, marginBottom: 4 }}>Colis {idx + 1}</div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, fontSize: 13 }}>
                           {c.type_colis && <span><strong>Type:</strong> {c.type_colis}</span>}

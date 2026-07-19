@@ -10,7 +10,7 @@ const EXPANDED_WIDTH = 240;
 
 const navGroups = [
   { parent: { path: '/client', label: 'Tableau de Bord', short: 'Accueil', icon: LayoutDashboard } },
-  { parent: { path: '/client/mes-expeditions', label: 'Mes Expeditions', short: 'Expéditions', icon: Package } },
+  { parent: { path: '/client/mes-expeditions', label: 'Mes Expéditions', short: 'Expéditions', icon: Package } },
   { parent: { path: '/client/devis', label: 'Devis', short: 'Devis', icon: FileText } },
   { parent: { path: '/client/mes-factures', label: 'Mes Factures', short: 'Factures', icon: Receipt } },
   { parent: { path: '/client/mon-compte', label: 'Mon Compte', short: 'Compte', icon: User } },
@@ -63,11 +63,7 @@ function Sidebar({ user, onLogout, location, onNavigate, width = EXPANDED_WIDTH 
       >
         {navGroups.map((group) => {
           const Icon = group.parent.icon;
-          const isExactMatch = location.pathname === group.parent.path;
-          const isChildRoute = location.pathname.startsWith(group.parent.path + '/');
-          const active = group.parent.path === '/client'
-            ? isExactMatch
-            : (isExactMatch || isChildRoute);
+          const active = isTabActive(group.parent.path, location.pathname);
           return (
             <Link
               key={group.parent.path}
@@ -143,7 +139,7 @@ function Sidebar({ user, onLogout, location, onNavigate, width = EXPANDED_WIDTH 
             onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--color-steel)')}
           >
             <LogOut size={12} />
-            Deconnexion
+            Déconnexion
           </button>
         </div>
       </div>
@@ -216,8 +212,13 @@ export default function ClientLayout() {
         style={{ paddingLeft: EXPANDED_WIDTH }}
       >
         <header
-          className="sticky top-0 z-10 surface-canvas"
-          style={{ borderBottom: '1px solid var(--color-ash)' }}
+          className="sticky top-0 z-10"
+          style={{
+            borderBottom: '1px solid var(--color-ash)',
+            background: 'rgba(255, 255, 255, 0.8)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+          }}
         >
           <div
             className="flex items-center gap-3"
@@ -255,7 +256,7 @@ export default function ClientLayout() {
                 className="btn btn-secondary"
                 style={{ padding: '8px 14px', display: 'inline-flex', alignItems: 'center', gap: 6 }}
               >
-                <LogOut size={14} /> Deconnexion
+                <LogOut size={14} /> Déconnexion
               </button>
             </div>
 

@@ -1,10 +1,14 @@
+import { useMinLoading } from '../../hooks';
 import { useState, useEffect, useCallback } from 'react';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import { DataCard } from '../../components/ui/DataCard';
 import StatusBadge from '../../components/ui/StatusBadge';
+import PageLoader from '../../components/ui/PageLoader';
 import { FormField } from '../../components/ui/Form';
-import { ChevronLeft, ChevronRight, ArrowRight, RotateCcw, Users } from 'lucide-react';
+import Pagination from '../../components/ui/Pagination';
+import { useUrlPage } from '../../hooks/useUrlPage';
+import { ArrowRight, RotateCcw, Users } from 'lucide-react';
 
 const STATUS_LABELS = {
   information_recue: 'Information Reçue',
@@ -70,18 +74,17 @@ function StatusFlow({ item }) {
 export default function EmployeTransactions() {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const showLoader = useMinLoading(loading);
   const [error, setError] = useState('');
-  const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, per_page: 25, total: 0 });
+  const [meta, setMeta] = useState({ lastPage: 1, total: 0, perPage: 25 });
+  const { page, setPage, resetPage } = useUrlPage();
   const [employes, setEmployes] = useState([]);
   const [filters, setFilters] = useState(EMPTY_FILTERS);
 
   const fetchTransactions = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({
-        page: pagination.current_page,
-        limit: pagination.per_page,
-      });
+      const params = new URLSearchParams({ page });
       if (filters.employe_id) params.append('employe_id', filters.employe_id);
       if (filters.shipping_number) params.append('shipping_number', filters.shipping_number);
       if (filters.date_from) params.append('date_from', filters.date_from);
@@ -91,13 +94,8 @@ export default function EmployeTransactions() {
       const { data } = await api.get(`/admin/employes/transactions?${params.toString()}`);
       setTransactions(data.data || []);
       setError('');
-      setPagination((prev) => ({
-        ...prev,
-        current_page: data.current_page,
-        last_page: data.last_page,
-        per_page: data.per_page,
-        total: data.total,
-      }));
+      setMeta({ lastPage: data.last_page || 1, total: data.total ?? 0, perPage: data.per_page || 25 });
+      if (data.last_page && page > data.last_page) resetPage();
     } catch (err) {
       console.error('Failed to fetch transactions:', err);
       setTransactions([]);
@@ -105,7 +103,8 @@ export default function EmployeTransactions() {
     } finally {
       setLoading(false);
     }
-  }, [pagination.current_page, pagination.per_page, filters]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, filters]);
 
   const fetchEmployes = useCallback(async () => {
     try {
@@ -126,18 +125,12 @@ export default function EmployeTransactions() {
 
   const handleFilterChange = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
-    setPagination((prev) => ({ ...prev, current_page: 1 }));
-  };
-
-  const handlePageChange = (page) => {
-    if (page >= 1 && page <= pagination.last_page) {
-      setPagination((prev) => ({ ...prev, current_page: page }));
-    }
+    resetPage();
   };
 
   const handleResetFilters = () => {
     setFilters(EMPTY_FILTERS);
-    setPagination((prev) => ({ ...prev, current_page: 1 }));
+    resetPage();
   };
 
   const filtersActive = Object.keys(EMPTY_FILTERS).some((k) => filters[k] !== EMPTY_FILTERS[k]);
@@ -220,15 +213,12 @@ export default function EmployeTransactions() {
       </DataCard>
 
       <DataCard
-        title={`Transactions (${pagination.total})`}
+        title={`Transactions (${meta.total})`}
         description="Modifications de statut par les employés."
         padding={0}
       >
-        {loading && transactions.length === 0 ? (
-          <div style={{ padding: 48, textAlign: 'center', color: 'var(--color-steel)' }}>
-            <div className="truck-loader" style={{ margin: '0 auto 16px' }} />
-            <p>Chargement des transactions...</p>
-          </div>
+        {showLoader && transactions.length === 0 ? (
+          <PageLoader variant="table" embedded />
         ) : error ? (
           <div style={{ padding: '48px 24px', textAlign: 'center' }}>
             <p style={{ fontSize: 15, color: 'var(--color-graphite)', marginBottom: 12 }}>{error}</p>
@@ -350,40 +340,9 @@ export default function EmployeTransactions() {
               </table>
             </div>
 
-            {pagination.last_page > 1 && (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 12,
-                  padding: 16,
-                  borderTop: '1px solid var(--color-ash)',
-                }}
-              >
-                <button
-                  onClick={() => handlePageChange(pagination.current_page - 1)}
-                  disabled={pagination.current_page === 1}
-                  className="btn btn-secondary"
-                  aria-label="Page précédente"
-                  style={{ padding: '8px 14px' }}
-                >
-                  <ChevronLeft size={16} />
-                </button>
-                <span style={{ fontSize: 14, color: 'var(--color-iron)', minWidth: 90, textAlign: 'center' }}>
-                  Page {pagination.current_page} / {pagination.last_page}
-                </span>
-                <button
-                  onClick={() => handlePageChange(pagination.current_page + 1)}
-                  disabled={pagination.current_page === pagination.last_page}
-                  className="btn btn-secondary"
-                  aria-label="Page suivante"
-                  style={{ padding: '8px 14px' }}
-                >
-                  <ChevronRight size={16} />
-                </button>
-              </div>
-            )}
+            <div style={{ padding: '0 4px' }}>
+              <Pagination page={page} lastPage={meta.lastPage} total={meta.total} perPage={meta.perPage} onChange={setPage} />
+            </div>
           </>
         )}
       </DataCard>

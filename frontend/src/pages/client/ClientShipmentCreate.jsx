@@ -116,7 +116,7 @@ export default function ClientShipmentCreate() {
               setColis(sourceColis);
             })
             .catch(() => {
-              toast.push('Impossible de charger l\'expedition source.', 'error');
+              toast.push('Impossible de charger l\'expédition source.', 'error');
               setSender(baseSender);
             });
         }
@@ -192,36 +192,36 @@ export default function ClientShipmentCreate() {
       };
       const { data } = await api.post('/my/expeditions', payload);
       const createdId = data.shipment.id;
-      toast.push('Expedition creee', 'success');
+      toast.push('Expédition créée', 'success');
       success.show({
-        title: 'Expedition creee avec succes',
-        message: `Votre expedition #${createdId} a ete enregistree. Vous pouvez suivre son traitement en temps reel.`,
+        title: 'Expédition créée avec succès',
+        message: `Votre expédition #${createdId} a été enregistrée. Vous pouvez suivre son traitement en temps réel.`,
         detail: (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: 'var(--color-steel)' }}>Numero</span>
+              <span style={{ color: 'var(--color-steel)' }}>Numéro</span>
               <span className="font-mono-data" style={{ color: 'var(--color-graphite)', fontWeight: 600 }}>
-                {data.shipment.shipping_number || `EXP-${String(createdId).padStart(6, '0')}`}
+                {data.shipment.shipping_number || '—'}
               </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span style={{ color: 'var(--color-steel)' }}>Statut</span>
-              <span style={{ color: 'var(--color-vivid-green-dark)', fontWeight: 600 }}>Information recue</span>
+              <span style={{ color: 'var(--color-vivid-green-dark)', fontWeight: 600 }}>Information reçue</span>
             </div>
           </div>
         ),
         primaryAction: {
-          label: 'Voir mes expeditions',
+          label: 'Voir mes expéditions',
           icon: Package,
           onClick: () => { success.hide(); navigate('/client/mes-expeditions'); },
         },
         secondaryActions: [
-          { label: 'Creer une autre', icon: Plus, onClick: () => { success.hide(); navigate('/client/expeditions/nouveau'); } },
+          { label: 'Créer une autre', icon: Plus, onClick: () => { success.hide(); navigate('/client/expeditions/nouveau'); } },
           { label: 'Voir la liste', icon: List, onClick: () => { success.hide(); navigate('/client/mes-expeditions'); } },
         ],
       });
     } catch (err) {
-      setError(err.response?.data?.message || 'Erreur lors de la creation.');
+      setError(err.response?.data?.message || 'Erreur lors de la création.');
     } finally {
       setLoading(false);
     }
@@ -230,20 +230,20 @@ export default function ClientShipmentCreate() {
   return (
     <div>
       <PageHeader
-        title={copySource ? `Nouvelle Expedition (depuis copie)` : 'Nouvelle Expedition'}
+        title={copySource ? `Nouvelle Expédition (depuis copie)` : 'Nouvelle Expédition'}
         subtitle={copySource
-          ? 'Donnees pre-remplies depuis une expedition existante. Vous pouvez tout modifier.'
-          : 'Pre-remplissage automatique depuis votre fiche client.'}
+          ? 'Données préremplies depuis une expédition existante. Vous pouvez tout modifier.'
+          : 'Préremplissage automatique depuis votre fiche client.'}
         breadcrumbs={copySource
-          ? [{ label: 'Mes Expeditions', to: '/client/mes-expeditions' }, { label: copySource.shipping_number, to: `/client/mes-expeditions/${copySource.id}` }, { label: 'Copier' }]
-          : [{ label: 'Mes Expeditions', to: '/client/mes-expeditions' }, { label: 'Nouvelle' }]}
+          ? [{ label: 'Mes Expéditions', to: '/client/mes-expeditions' }, { label: copySource.shipping_number, to: `/client/mes-expeditions/${copySource.id}` }, { label: 'Copier' }]
+          : [{ label: 'Mes Expéditions', to: '/client/mes-expeditions' }, { label: 'Nouvelle' }]}
         actions={
           <>
             <button type="button" onClick={() => navigate('/client/mes-expeditions')} className="btn btn-ghost">
               <ArrowLeft size={14} /> Annuler
             </button>
             <button type="submit" form="exp-form" disabled={loading} className="btn btn-primary">
-              <Send size={14} /> {loading ? 'Creation...' : "Creer l'Expedition"}
+              <Send size={14} /> {loading ? 'Création...' : "Créer l'Expédition"}
             </button>
           </>
         }
@@ -273,8 +273,8 @@ export default function ClientShipmentCreate() {
           >
             <ClipboardPaste size={16} color="var(--color-primary)" />
             <span>
-              Les champs ont ete pre-remplis depuis l'expedition{' '}
-              <strong className="font-mono-data">{copySource.shipping_number}</strong>. Un nouveau numero d'expedition et un nouveau statut vous seront attribues. Vous pouvez tout modifier.
+              Les champs ont été préremplis depuis l'expédition{' '}
+              <strong className="font-mono-data">{copySource.shipping_number}</strong>. Un nouveau numéro d'expédition et un nouveau statut vous seront attribués. Vous pouvez tout modifier.
             </span>
           </div>
         )}
@@ -282,7 +282,7 @@ export default function ClientShipmentCreate() {
         <div className="split-expedition">
           <div className="split-side">
             <DataCard
-              title="Expediteur"
+              title="Expéditeur"
               description="Vos informations de contact, pre-remplies depuis votre profil. Modifiez-les si necessaire."
               style={{ marginTop : 55 , paddingTop : 20 }}
             >
@@ -344,7 +344,7 @@ export default function ClientShipmentCreate() {
             onChange={setColis}
             showTotals={true}
           />
-          <FormField label="Valeur Declaree">
+          <FormField label="Valeur déclarée">
             <div style={{ display: 'flex', alignItems: 'stretch', border: '1px solid var(--color-ash)', borderRadius: 8, background: 'var(--color-paper-white)', overflow: 'hidden' }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <input name="valeur_declaree" value={pkg.valeur_declaree} onChange={handlePackage} type="number" step="0.01" min="0" className="input" style={{ borderRadius: 0, borderRight: 'none', border: 'none', boxShadow: 'none' }} />
@@ -362,7 +362,7 @@ export default function ClientShipmentCreate() {
             <select name="type_service" value={pkg.type_service} onChange={handlePackage} className="select">
               <option value="national">National</option>
               <option value="international_express_dap">International Express DAP</option>
-              <option value="fret_aerien">Fret Aerien</option>
+              <option value="fret_aerien">Fret aérien</option>
               <option value="routier_groupage">Routier (Groupage)</option>
               <option value="maritime_groupage">Maritime (Groupage)</option>
             </select>
@@ -372,7 +372,7 @@ export default function ClientShipmentCreate() {
         <div className="flex" style={{ gap: 10 }}>
           <button type="submit" disabled={loading} className="btn btn-primary">
             <Send size={14} />
-            {loading ? 'Creation...' : "Creer l'Expedition"}
+            {loading ? 'Création...' : "Créer l'Expédition"}
           </button>
           <button type="button" onClick={() => navigate('/client/mes-expeditions')} className="btn btn-ghost">
             <ArrowLeft size={14} />

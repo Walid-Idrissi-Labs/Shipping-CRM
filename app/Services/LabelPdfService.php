@@ -51,7 +51,7 @@ class LabelPdfService
         return 'data:image/png;base64,' . base64_encode($barcodePng);
     }
 
-    private function qrCodeDataUri(Shipment $shipment): string
+    public function qrCodeDataUri(Shipment $shipment): string
     {
         if (! $shipment->relationLoaded('client')) {
             $shipment->load('client');

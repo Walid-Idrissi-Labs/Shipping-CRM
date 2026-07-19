@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Send, Check, ChevronLeft, ChevronRight, Mail, Phone, Package, MapPin, Globe } from 'lucide-react';
-import { FormField, Section, Row, Column } from '../../components/ui/Form';
+import { Send, Check, ChevronLeft, ChevronRight } from 'lucide-react';
+import { FormField, Section } from '../../components/ui/Form';
 import { MultiColisForm } from '../../components/MultiColisForm';
 import CountrySelect from '../../components/ui/CountrySelect';
 import api, { csrf } from '../../api/axios';
@@ -49,11 +49,21 @@ export default function QuoteRequest() {
     setStep2((f) => ({ ...f, [name]: value }));
   };
 
+  const fieldLabels = {
+    origin_city: "la ville d'origine",
+    origin_country: "le pays d'origine",
+    recipient_address: 'l’adresse du destinataire',
+    recipient_city: 'la ville du destinataire',
+    recipient_postal_code: 'le code postal du destinataire',
+    recipient_country: 'le pays du destinataire',
+    type_service: 'le type de service',
+  };
+
   const validateStep1 = () => {
     const required = ['origin_city', 'origin_country', 'recipient_address', 'recipient_city', 'recipient_postal_code', 'recipient_country', 'type_service'];
     for (const field of required) {
       if (!step1[field]) {
-        setError(`Le champ ${field.replace(/_/g, ' ')} est requis.`);
+        setError(`Veuillez renseigner ${fieldLabels[field] || field.replace(/_/g, ' ')}.`);
         return false;
       }
     }
@@ -73,7 +83,7 @@ export default function QuoteRequest() {
       return false;
     }
     if (!step2.client_email && !step2.client_phone) {
-      setError('Veuillez renseigner au moins un email ou numero de telephone.');
+      setError('Veuillez renseigner au moins un email ou numéro de téléphone.');
       return false;
     }
     if (step2.client_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(step2.client_email)) {
@@ -167,12 +177,12 @@ export default function QuoteRequest() {
             >
               <Check size={28} />
             </div>
-            <h1 className="display-headline" style={{ fontSize: 32 }}>Demande envoyee</h1>
+            <h1 className="public-serif" style={{ fontSize: 32 }}>Demande envoyée</h1>
             <p style={{ fontSize: 14, color: 'var(--color-iron)', maxWidth: 420, margin: '16px auto 0' }}>
-              Notre equipe vous contactera bientot avec une proposition commerciale detaillee.
+              Notre équipe vous contactera bientôt avec une proposition commerciale détaillée.
             </p>
             <div className="flex flex-wrap gap-3 justify-center" style={{ marginTop: 28 }}>
-              <button onClick={() => navigate('/')} className="btn btn-secondary">Retour a l'accueil</button>
+              <button onClick={() => navigate('/')} className="btn btn-secondary">Retour à l'accueil</button>
               <button onClick={() => { setSuccess(false); setStep(1); setStep1(step1Initial); setStep2(step2Initial); setColis([{ nb_pieces: 1, poids: '', longueur: '', largeur: '', hauteur: '', type_colis: 'paquet', description_colis: '' }]); }} className="btn btn-primary">Nouvelle demande</button>
             </div>
           </div>
@@ -211,6 +221,8 @@ export default function QuoteRequest() {
         .step-dot:hover::after { opacity: 1; }
         .step-dot.active::after { opacity: 1; color: var(--color-primary); font-weight: 500; }
         @media (max-width: 768px) { .step-dots { display: none; } }
+        .step-indicator-mobile { display: none; }
+        @media (max-width: 768px) { .step-indicator-mobile { display: block; } }
       `}</style>
 
       <div className="step-dots" aria-hidden="true">
@@ -220,10 +232,16 @@ export default function QuoteRequest() {
 
       <div className="mx-auto" style={{ maxWidth: 1080, padding: '48px 24px 64px' }}>
         <div style={{ marginBottom: 36, textAlign: 'center' }}>
-          <h1 className="display-headline" style={{ fontSize: 38 }}>Demande de Devis Express</h1>
+          <h1 className="public-serif" style={{ fontSize: 40 }}>Demande de devis express</h1>
           <p style={{ fontSize: 14, color: 'var(--color-steel)', maxWidth: 540, margin: '12px auto 0' }}>
-            Decrivez votre expedition en deux etapes simples.
+            Décrivez votre expédition en deux étapes simples.
           </p>
+          <div
+            className="step-indicator-mobile"
+            style={{ marginTop: 14, fontSize: 12, fontWeight: 500, color: 'var(--color-primary)', letterSpacing: '0.04em' }}
+          >
+            Étape {step} sur 2 — {step === 1 ? 'Origine & destination' : 'Informations de contact'}
+          </div>
         </div>
 
         <div ref={containerRef} style={{ position: 'relative', minHeight: 500 }}>
@@ -325,7 +343,7 @@ export default function QuoteRequest() {
                     onChange={setColis}
                     showTotals={true}
                   />
-                  <FormField label="Valeur Totale Declaree" style={{ marginTop: 12 }} hint="Valeur totale declaree pour l'ensemble des colis.">
+                  <FormField label="Valeur totale déclarée" style={{ marginTop: 12 }} hint="Valeur totale déclarée pour l'ensemble des colis.">
                     <div style={{ display: 'flex', alignItems: 'stretch', border: '1px solid var(--color-ash)', borderRadius: 8, background: 'var(--color-paper-white)', overflow: 'hidden' }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <input name="valeur_declaree" value={step1.valeur_declaree} onChange={handleChange1} type="number" step="0.01" min="0" className="input" style={{ borderRadius: 0, borderRight: 'none', border: 'none', boxShadow: 'none' }} />
@@ -343,7 +361,7 @@ export default function QuoteRequest() {
                     <select name="type_service" value={step1.type_service} onChange={handleChange1} className="select">
                       <option value="national">National</option>
                       <option value="international_express_dap">International Express DAP</option>
-                      <option value="fret_aerien">Fret Aerien</option>
+                      <option value="fret_aerien">Fret aérien</option>
                       <option value="routier_groupage">Routier (Groupage)</option>
                       <option value="maritime_groupage">Maritime (Groupage)</option>
                     </select>

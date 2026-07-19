@@ -26,10 +26,18 @@ class ProviderSettingController extends Controller
             'ice' => $provider->ice,
             'rc' => $provider->rc,
             'if' => $provider->if_,
+            'if_' => $provider->if_,
             'cnss' => $provider->cnss,
             'patente' => $provider->patente,
+            'bank_name' => $provider->bank_name,
+            'bank_rib' => $provider->bank_rib,
+            'bank_swift' => $provider->bank_swift,
+            'bank_account_name' => $provider->bank_account_name,
+            'bank_agence' => $provider->bank_agence,
             'logo_invoice_url' => $provider->logo_invoice_url ? asset('storage/'.$provider->logo_invoice_url) : null,
             'login_email' => $provider->user->email,
+            'per_page_expeditions' => $provider->per_page_expeditions ?? 25,
+            'per_page_factures' => $provider->per_page_factures ?? 25,
         ]);
     }
 
@@ -49,9 +57,17 @@ class ProviderSettingController extends Controller
             'ice' => ['nullable', 'string', 'max:50'],
             'rc' => ['nullable', 'string', 'max:50'],
             'if' => ['nullable', 'string', 'max:50'],
+            'if_' => ['nullable', 'string', 'max:50'],
             'cnss' => ['nullable', 'string', 'max:50'],
             'patente' => ['nullable', 'string', 'max:50'],
+            'bank_name' => ['nullable', 'string', 'max:100'],
+            'bank_rib' => ['nullable', 'string', 'max:50'],
+            'bank_swift' => ['nullable', 'string', 'max:20'],
+            'bank_account_name' => ['nullable', 'string', 'max:150'],
+            'bank_agence' => ['nullable', 'string', 'max:150'],
             'login_email' => ['required', 'email', 'max:255', 'unique:users,email,'.$request->user()->id],
+            'per_page_expeditions' => ['nullable', 'integer', 'min:5', 'max:100'],
+            'per_page_factures' => ['nullable', 'integer', 'min:5', 'max:100'],
         ]);
 
         $provider->update([
@@ -65,9 +81,16 @@ class ProviderSettingController extends Controller
             'website' => $validated['website'] ?? null,
             'ice' => $validated['ice'] ?? null,
             'rc' => $validated['rc'] ?? null,
-            'if_' => $validated['if'] ?? null,
+            'if_' => $validated['if_'] ?? $validated['if'] ?? null,
             'cnss' => $validated['cnss'] ?? null,
             'patente' => $validated['patente'] ?? null,
+            'bank_name' => $validated['bank_name'] ?? null,
+            'bank_rib' => $validated['bank_rib'] ?? null,
+            'bank_swift' => $validated['bank_swift'] ?? null,
+            'bank_account_name' => $validated['bank_account_name'] ?? null,
+            'bank_agence' => $validated['bank_agence'] ?? null,
+            'per_page_expeditions' => $validated['per_page_expeditions'] ?? $provider->per_page_expeditions ?? 25,
+            'per_page_factures' => $validated['per_page_factures'] ?? $provider->per_page_factures ?? 25,
         ]);
 
         $request->user()->update(['email' => $validated['login_email']]);

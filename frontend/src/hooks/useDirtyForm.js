@@ -17,6 +17,11 @@ export function useDirtyForm(initialData) {
   const [saved, setSavedData] = useState(initialData);
   const [status, setStatus] = useState('initial');
   const revertTimerRef = useRef(null);
+  const dataRef = useRef(initialData);
+
+  useEffect(() => {
+    dataRef.current = data;
+  }, [data]);
 
   const isDirty = !shallowEqual(data, saved);
 
@@ -47,10 +52,9 @@ export function useDirtyForm(initialData) {
       setSavedData(dataToSave);
       setData(dataToSave);
     } else {
-      setSavedData((s) => {
-        setData(s);
-        return s;
-      });
+      // No payload: what the user typed was saved — keep it visible and
+      // make it the new clean baseline.
+      setSavedData(dataRef.current);
     }
     setStatus('saved');
     revertTimerRef.current = setTimeout(() => {

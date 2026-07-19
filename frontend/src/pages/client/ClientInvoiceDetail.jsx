@@ -1,3 +1,4 @@
+import { useMinLoading } from '../../hooks';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Check, FileDown, X, CalendarDays } from 'lucide-react';
@@ -5,18 +6,9 @@ import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import { DataCard, DetailRow } from '../../components/ui/DataCard';
 import Card from '../../components/ui/Card';
-import TruckLoader from '../../components/ui/TruckLoader';
+import PageLoader from '../../components/ui/PageLoader';
 import { useToast } from '../../contexts/ToastContext';
-
-function formatMoney(value) {
-  const n = Number(value || 0);
-  return n.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-}
-
-function formatDate(d) {
-  if (!d) return '-';
-  return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-}
+import { formatMoney, formatDate, getInvoiceNumber } from '../../lib/format';
 
 function getDaysLeft(dateEcheance) {
   if (!dateEcheance) return null;
@@ -31,7 +23,7 @@ function getDaysLeft(dateEcheance) {
 function getDaysLeftInfo(daysLeft) {
   if (daysLeft === null) return { label: '-', variant: 'neutral' };
   if (daysLeft < 0) return { label: `Retard de ${Math.abs(daysLeft)} jour${Math.abs(daysLeft) > 1 ? 's' : ''}`, variant: 'overdue' };
-  if (daysLeft === 0) return { label: 'Echéance aujourd\'hui', variant: 'urgent' };
+  if (daysLeft === 0) return { label: 'Échéance aujourd\'hui', variant: 'urgent' };
   if (daysLeft <= 3) return { label: `Expire dans ${daysLeft} jour${daysLeft > 1 ? 's' : ''}`, variant: 'urgent' };
   if (daysLeft <= 7) return { label: `Reste ${daysLeft} jours`, variant: 'warning' };
   return { label: `Reste ${daysLeft} jours`, variant: 'ok' };
@@ -43,6 +35,7 @@ export default function ClientInvoiceDetail() {
   const toast = useToast();
   const [facture, setFacture] = useState(null);
   const [loading, setLoading] = useState(true);
+  const showLoader = useMinLoading(loading);
 
   useEffect(() => {
     fetchInvoice();
@@ -68,20 +61,16 @@ export default function ClientInvoiceDetail() {
       const url = URL.createObjectURL(new Blob([data]));
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${facture.numero || `FA ${facture.numero_n}/${facture.annee}`}.pdf`;
+      a.download = `${getInvoiceNumber(facture)}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
-    } catch (err) {
-      toast.push('Erreur lors du telechargement du PDF.', 'error');
+    } catch {
+      toast.push('Erreur lors du téléchargement du PDF.', 'error');
     }
   };
 
-  if (loading) {
-    return (
-      <div style={{ maxWidth: 1080, display: 'flex', justifyContent: 'center', padding: 32 }}>
-        <TruckLoader />
-      </div>
-    );
+  if (showLoader) {
+    return <PageLoader variant="detail" />;
   }
 
   if (!facture) return null;
@@ -101,12 +90,12 @@ export default function ClientInvoiceDetail() {
       </button>
 
       <PageHeader
-        title={`Facture ${facture.numero || `FA ${facture.numero_n}/${facture.annee}`}`}
+        title={`Facture ${getInvoiceNumber(facture)}`}
         breadcrumbs={[
           { label: 'Mes Factures', to: '/client/mes-factures' },
-          { label: facture.numero || `FA ${facture.numero_n}/${facture.annee}` },
+          { label: getInvoiceNumber(facture) },
         ]}
-        actionLabel="Telecharger PDF"
+        actionLabel="Télécharger PDF"
         onAction={downloadPdf}
         actionIcon={FileDown}
       />
@@ -119,11 +108,11 @@ export default function ClientInvoiceDetail() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3" style={{ gap: 16, marginBottom: 24 }}>
         <div className="lg:col-span-2">
-          <DataCard title="Details de la facture">
+          <DataCard title="Détails de la facture">
             <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 16 }}>
-              <DetailRow label="Numero" value={facture.numero || `FA ${facture.numero_n}/${facture.annee}`} monospace />
+              <DetailRow label="Numéro" value={getInvoiceNumber(facture)} monospace />
               <DetailRow label="Type" value={facture.type_destination === 'national' ? 'National' : 'International'} />
-              <DetailRow label="Statut" value={isPaid ? 'Payee' : 'Impayee'} />
+              <DetailRow label="Statut" value={isPaid ? 'Payée' : 'Impayée'} />
             </div>
           </DataCard>
         </div>
@@ -140,9 +129,6 @@ export default function ClientInvoiceDetail() {
                 flexDirection: 'row',
                 alignItems: 'center',
                 gap: 14,
-                backgroundImage: isPaid
-                  ? 'radial-gradient(at 0% 0%, rgba(74, 198, 76, 0.05) 0%, transparent 55%)'
-                  : 'radial-gradient(at 0% 0%, rgba(186, 26, 26, 0.04) 0%, transparent 55%)',
               }}
             >
               {isPaid ? (
@@ -169,11 +155,11 @@ export default function ClientInvoiceDetail() {
                         lineHeight: 1.2,
                       }}
                     >
-                      Payee
+                      Payée
                     </div>
                     {facture.date_paiement && (
                       <div style={{ fontSize: 12, color: 'var(--color-iron)', marginTop: 2 }}>
-                        Reglee le {new Date(facture.date_paiement).toLocaleDateString('fr-FR')}
+                        Réglée le {formatDate(facture.date_paiement)}
                       </div>
                     )}
                   </div>
@@ -202,10 +188,10 @@ export default function ClientInvoiceDetail() {
                         lineHeight: 1.2,
                       }}
                     >
-                      Impayee
+                      Impayée
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--color-iron)', marginTop: 2 }}>
-                      En attente de reglement
+                      En attente de règlement
                     </div>
                   </div>
                 </>
@@ -217,9 +203,9 @@ export default function ClientInvoiceDetail() {
 
       <Card style={{ padding: 24, marginTop: 24 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <RowSet label="Montant Non Taxable" value={`${formatMoney(facture.non_taxable || 0)} MAD`} />
-          <RowSet label="Montant HT" value={`${formatMoney(facture.taxable)} MAD`} />
-          <RowSet label="Montant TVA" value={`${formatMoney(facture.tva)} MAD`} />
+          <RowSet label="Montant Non Taxable" value={formatMoney(facture.non_taxable || 0)} />
+          <RowSet label="Montant HT" value={formatMoney(facture.taxable)} />
+          <RowSet label="Montant TVA" value={formatMoney(facture.tva)} />
           <div
             style={{
               display: 'flex',
@@ -239,43 +225,49 @@ export default function ClientInvoiceDetail() {
                 letterSpacing: '-0.01em',
               }}
             >
-              {totalTtc > 0 ? `${formatMoney(totalTtc)} MAD` : '-'}
+              {totalTtc > 0 ? formatMoney(totalTtc) : '-'}
             </div>
           </div>
         </div>
       </Card>
 
       <div style={{ marginTop: 24 }}>
-        <DataCard title={`Expeditions (${facture.expeditions?.length || 0})`} description="Liste des expeditions liees a cette facture.">
-          <table className="table-clean">
-            <thead>
-              <tr>
-                <th>N° d'envoi</th>
-                <th>Destinataire</th>
-                <th>Service</th>
-                <th>Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(facture.expeditions || []).map((e) => (
-                <tr
-                  key={e.id}
-                  onClick={() => navigate(`/client/mes-expeditions/${e.id}`)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <td className="font-mono-data" style={{ color: 'var(--color-primary)' }}>
-                    {e.shipping_number}
-                  </td>
-                  <td>
-                    <div>{e.recipient_name}</div>
-                    <div style={{ fontSize: 12, color: 'var(--color-steel)' }}>{e.recipient_city}, {e.recipient_country}</div>
-                  </td>
-                  <td style={{ textTransform: 'capitalize' }}>{(e.type_service || '').replace(/_/g, ' ')}</td>
-                  <td style={{ whiteSpace: 'nowrap' }}>{new Date(e.created_at).toLocaleDateString('fr-FR')}</td>
+        <DataCard title={`Expéditions (${facture.expeditions?.length || 0})`} description="Liste des expéditions liées à cette facture.">
+          {(facture.expeditions || []).length === 0 ? (
+            <p style={{ fontSize: 14, color: 'var(--color-steel)', padding: '8px 0' }}>
+              Aucune expédition liée à cette facture.
+            </p>
+          ) : (
+            <table className="table-clean">
+              <thead>
+                <tr>
+                  <th>N° d'envoi</th>
+                  <th>Destinataire</th>
+                  <th>Service</th>
+                  <th>Date</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {(facture.expeditions || []).map((e) => (
+                  <tr
+                    key={e.id}
+                    onClick={() => navigate(`/client/mes-expeditions/${e.id}`)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <td className="font-mono-data" style={{ color: 'var(--color-primary)' }}>
+                      {e.shipping_number}
+                    </td>
+                    <td>
+                      <div>{e.recipient_name}</div>
+                      <div style={{ fontSize: 12, color: 'var(--color-steel)' }}>{e.recipient_city}, {e.recipient_country}</div>
+                    </td>
+                    <td style={{ textTransform: 'capitalize' }}>{(e.type_service || '').replace(/_/g, ' ')}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>{formatDate(e.created_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </DataCard>
       </div>
     </div>

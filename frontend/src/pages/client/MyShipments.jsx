@@ -10,15 +10,15 @@ import Skeleton from '../../components/ui/Skeleton';
 import SortHeader from '../../components/ui/SortHeader';
 import CopyButton from '../../components/ui/CopyButton';
 import SearchInput from '../../components/ui/SearchInput';
+import Pagination from '../../components/ui/Pagination';
 import { useColumnSort } from '../../hooks/useColumnSort';
+import { useUrlPage } from '../../hooks/useUrlPage';
+import { formatDate } from '../../lib/format';
+import { SHIPMENT_STATUSES } from '../../lib/statuses';
 
 const statusOptions = [
   { value: '', label: 'Tous les statuts' },
-  { value: 'information_recue', label: 'Information Recue' },
-  { value: 'ramasse', label: 'Ramasse' },
-  { value: 'en_transit', label: 'En Transit' },
-  { value: 'en_cours', label: 'En Cours' },
-  { value: 'livre', label: 'Livre' },
+  ...SHIPMENT_STATUSES,
 ];
 
 export default function MyShipments() {
@@ -28,29 +28,34 @@ export default function MyShipments() {
   const statut = searchParams.get('statut') || '';
   const [shipments, setShipments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [meta, setMeta] = useState({ lastPage: 1, total: 0, perPage: 25 });
+  const { page, setPage, resetPage } = useUrlPage();
   const { column, direction, toggle, params: sortParams } = useColumnSort('created_at', 'desc');
 
   useEffect(() => {
     fetchShipments();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, statut, column, direction]);
+  }, [q, statut, column, direction, page]);
 
   const fetchShipments = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get('/my/shipments', { params: { search: q, statut, ...sortParams } });
+      const { data } = await api.get('/my/shipments', { params: { search: q, statut, page, ...sortParams } });
       setShipments(data.data || []);
+      setMeta({ lastPage: data.last_page || 1, total: data.total ?? 0, perPage: data.per_page || 25 });
+      if (data.last_page && page > data.last_page) resetPage();
     } finally {
       setLoading(false);
     }
   };
 
-  const total = shipments.length;
+  const total = meta.total;
 
   const updateParam = (key, value) => {
     const next = new URLSearchParams(searchParams);
     if (value) next.set(key, value);
     else next.delete(key);
+    next.delete('page');
     setSearchParams(next, { replace: true });
   };
 
@@ -60,6 +65,7 @@ export default function MyShipments() {
     const next = new URLSearchParams(searchParams);
     next.delete('q');
     next.delete('statut');
+    next.delete('page');
     setSearchParams(next, { replace: true });
   };
 
@@ -68,9 +74,9 @@ export default function MyShipments() {
   return (
     <div>
       <PageHeader
-        title="Mes Expeditions"
-        subtitle="Suivi detaille de tous vos envois."
-        actionLabel="Nouvelle Expedition"
+        title="Mes Expéditions"
+        subtitle="Suivi détaillé de tous vos envois."
+        actionLabel="Nouvelle Expédition"
         actionTo="/client/expeditions/nouveau"
         actionIcon={PackagePlus}
       />
@@ -82,7 +88,7 @@ export default function MyShipments() {
             onSearch={handleSearch}
             onClear={handleClearAll}
             loading={loading}
-            placeholder="Rechercher par numero, destinataire..."
+            placeholder="Rechercher par numéro, destinataire..."
           />
           <select
             value={statut}
@@ -109,20 +115,20 @@ export default function MyShipments() {
         ) : shipments.length === 0 ? (
           <EmptyState
             icon={Plus}
-            title="Aucune expedition"
+            title="Aucune expédition"
             description={
               q || statut
-                ? 'Aucun resultat ne correspond a vos filtres.'
-                : "Vous n'avez pas encore d'expedition dans votre espace."
+                ? 'Aucun résultat ne correspond à vos filtres.'
+                : "Vous n'avez pas encore d'expédition dans votre espace."
             }
-            actionLabel={!q && !statut ? 'Nouvelle Expedition' : undefined}
+            actionLabel={!q && !statut ? 'Nouvelle Expédition' : undefined}
             actionTo={!q && !statut ? '/client/expeditions/nouveau' : undefined}
           />
         ) : (
           <table className="table-clean">
             <thead>
               <tr>
-                <SortHeader label="Numero" col="shipping_number" currentCol={column} direction={direction} onClick={toggle} />
+                <SortHeader label="Numéro" col="shipping_number" currentCol={column} direction={direction} onClick={toggle} />
                 <SortHeader label="Destinataire" col="recipient_name" currentCol={column} direction={direction} onClick={toggle} />
                 <th style={{ width: 60, textAlign: 'center' }}>Direction</th>
                 <SortHeader label="Service" col="type_service" currentCol={column} direction={direction} onClick={toggle} />
@@ -157,7 +163,7 @@ export default function MyShipments() {
                     </td>
                     <td style={{ textTransform: 'capitalize' }}>{(s.type_service || '').replace(/_/g, ' ')}</td>
                     <td><StatusBadge status={s.statut_actuel} /></td>
-                    <td style={{ whiteSpace: 'nowrap' }}>{new Date(s.created_at).toLocaleDateString('fr-FR')}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>{formatDate(s.created_at)}</td>
                   </tr>
                 );
               })}
@@ -167,12 +173,17 @@ export default function MyShipments() {
       </Card>
 
       {!loading && shipments.length > 0 && (
-        <p
-          className="mt-3 text-center"
-          style={{ fontSize: 12, color: 'var(--color-steel)' }}
-        >
-          {total} expedition{total > 1 ? 's' : ''}
-        </p>
+        <>
+          <Pagination page={page} lastPage={meta.lastPage} total={meta.total} perPage={meta.perPage} onChange={setPage} />
+          {meta.lastPage <= 1 && (
+            <p
+              className="mt-3 text-center"
+              style={{ fontSize: 12, color: 'var(--color-steel)' }}
+            >
+              {total} expédition{total > 1 ? 's' : ''}
+            </p>
+          )}
+        </>
       )}
     </div>
   );

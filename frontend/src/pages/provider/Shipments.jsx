@@ -10,7 +10,9 @@ import Skeleton from '../../components/ui/Skeleton';
 import SortHeader from '../../components/ui/SortHeader';
 import CopyButton from '../../components/ui/CopyButton';
 import SearchInput from '../../components/ui/SearchInput';
+import Pagination from '../../components/ui/Pagination';
 import { useColumnSort } from '../../hooks/useColumnSort';
+import { useUrlPage } from '../../hooks/useUrlPage';
 
 const statusOptions = [
   { value: '', label: 'Tous les statuts' },
@@ -35,20 +37,24 @@ export default function Shipments() {
   const source = searchParams.get('source') || '';
   const [shipments, setShipments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [meta, setMeta] = useState({ lastPage: 1, total: 0, perPage: 25 });
+  const { page, setPage, resetPage } = useUrlPage();
   const { column, direction, toggle, params: sortParams } = useColumnSort('created_at', 'desc');
 
   useEffect(() => {
     fetchShipments();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, statut, source, column, direction]);
+  }, [q, statut, source, column, direction, page]);
 
   const fetchShipments = async () => {
     setLoading(true);
     try {
       const { data } = await api.get('/shipments', {
-        params: { search: q, statut, created_by_role: source, ...sortParams },
+        params: { search: q, statut, created_by_role: source, page, ...sortParams },
       });
       setShipments(data.data || []);
+      setMeta({ lastPage: data.last_page || 1, total: data.total ?? 0, perPage: data.per_page || 25 });
+      if (data.last_page && page > data.last_page) resetPage();
     } finally {
       setLoading(false);
     }
@@ -58,6 +64,7 @@ export default function Shipments() {
     const next = new URLSearchParams(searchParams);
     if (value) next.set(key, value);
     else next.delete(key);
+    next.delete('page');
     setSearchParams(next, { replace: true });
   };
 
@@ -68,6 +75,7 @@ export default function Shipments() {
     next.delete('q');
     next.delete('statut');
     next.delete('source');
+    next.delete('page');
     setSearchParams(next, { replace: true });
   };
 
@@ -196,6 +204,11 @@ export default function Shipments() {
               })}
             </tbody>
           </table>
+        )}
+        {!loading && shipments.length > 0 && (
+          <div style={{ padding: '0 16px 12px' }}>
+            <Pagination page={page} lastPage={meta.lastPage} total={meta.total} perPage={meta.perPage} onChange={setPage} />
+          </div>
         )}
       </Card>
     </div>

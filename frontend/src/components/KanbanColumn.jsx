@@ -1,9 +1,19 @@
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import KanbanCard from './KanbanCard';
+import { statusVariant } from '../lib/statuses';
+
+const VARIANT_ACCENT = {
+  success: 'var(--color-vivid-green-dark)',
+  warning: 'var(--color-warning)',
+  danger: 'var(--color-danger)',
+  info: 'var(--color-primary)',
+  neutral: 'var(--color-smoke)',
+};
 
 export default function KanbanColumn({ column, renderCard, onCardClick, isDraggable }) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
+  const accent = VARIANT_ACCENT[statusVariant(column.id)] || VARIANT_ACCENT.neutral;
 
   return (
     <div
@@ -13,7 +23,10 @@ export default function KanbanColumn({ column, renderCard, onCardClick, isDragga
         flexShrink: 0,
         background: 'var(--color-bone)',
         borderRadius: 12,
-        border: isOver ? '2px dashed var(--color-primary)' : '1px solid var(--color-ash)',
+        borderTop: `3px solid ${accent}`,
+        borderRight: isOver ? '2px dashed var(--color-primary)' : '1px solid var(--color-ash)',
+        borderBottom: isOver ? '2px dashed var(--color-primary)' : '1px solid var(--color-ash)',
+        borderLeft: isOver ? '2px dashed var(--color-primary)' : '1px solid var(--color-ash)',
         display: 'flex',
         flexDirection: 'column',
         transition: 'border 160ms ease',
@@ -43,7 +56,7 @@ export default function KanbanColumn({ column, renderCard, onCardClick, isDragga
           style={{
             fontSize: 12,
             fontWeight: 500,
-            color: 'var(--color-steel)',
+            color: accent,
             background: 'var(--color-paper-white)',
             borderRadius: 9999,
             padding: '2px 8px',

@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -5,58 +6,66 @@ import { DialogProvider } from './contexts/DialogContext';
 import { SuccessModalProvider } from './contexts/SuccessModalContext';
 import { LoadingProvider } from './contexts/LoadingContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import LoadingOverlay from './components/ui/LoadingOverlay';
 import PublicLayout from './layouts/PublicLayout';
-import ProviderLayout from './layouts/ProviderLayout';
-import ClientLayout from './layouts/ClientLayout';
-import EmployeLayout from './layouts/EmployeLayout';
+
+// Public pages stay eager so the landing surface paints instantly.
 import Home from './pages/public/Home';
 import Login from './pages/public/Login';
 import Tracking from './pages/public/Tracking';
 import QuoteRequest from './pages/public/QuoteRequest';
 import AccountRequest from './pages/public/AccountRequest';
 import CompleteExpedition from './pages/public/CompleteExpedition';
-import ProviderDashboard from './pages/provider/Dashboard';
-import Quotes from './pages/provider/Quotes';
-import QuoteCreate from './pages/provider/QuoteCreate';
-import QuoteDetail from './pages/provider/QuoteDetail';
-import Shipments from './pages/provider/Shipments';
-import ShipmentCreate from './pages/provider/ShipmentCreate';
-import ShipmentDetail from './pages/provider/ShipmentDetail';
-import Clients from './pages/provider/Clients';
-import ClientCreate from './pages/provider/ClientCreate';
-import ClientDetail from './pages/provider/ClientDetail';
-import Settings from './pages/provider/Settings';
-import AccountRequests from './pages/provider/AccountRequests';
-import QuoteRequests from './pages/provider/QuoteRequests';
-import Invoices from './pages/provider/Invoices';
-import InvoiceCreate from './pages/provider/InvoiceCreate';
-import InvoiceDetail from './pages/provider/InvoiceDetail';
-import AvoirCreate from './pages/provider/AvoirCreate';
-import AvoirDetail from './pages/provider/AvoirDetail';
-import Fleet from './pages/provider/Fleet';
-import Vehicles from './pages/provider/Vehicles';
-import VehicleForm from './pages/provider/VehicleForm';
-import Drivers from './pages/provider/Drivers';
-import DriverForm from './pages/provider/DriverForm';
-import Assignments from './pages/provider/Assignments';
-import AssignmentCreate from './pages/provider/AssignmentCreate';
-import AssignmentDetail from './pages/provider/AssignmentDetail';
-import ExpeditionRequests from './pages/provider/ExpeditionRequests';
-import ExpeditionRequestDetail from './pages/provider/ExpeditionRequestDetail';
-import ClientDashboard from './pages/client/ClientDashboard';
-import MyShipments from './pages/client/MyShipments';
-import MyInvoices from './pages/client/MyInvoices';
-import MyAccount from './pages/client/MyAccount';
-import ClientQuotes from './pages/client/ClientQuotes';
-import ClientQuoteDetail from './pages/client/ClientQuoteDetail';
-import ClientShipmentCreate from './pages/client/ClientShipmentCreate';
-import ClientQuoteRequestCreate from './pages/client/ClientQuoteRequestCreate';
-import ClientShipmentDetail from './pages/client/ClientShipmentDetail';
-import ClientInvoiceDetail from './pages/client/ClientInvoiceDetail';
-import ChangerStatut from './pages/employe/ChangerStatut';
-import MonHistorique from './pages/employe/MonHistorique';
-import Employes from './pages/provider/Employes';
-import EmployeTransactions from './pages/provider/EmployeTransactions';
+import QuiSommesNous from './pages/public/QuiSommesNous';
+import Contact from './pages/public/Contact';
+
+// Authenticated surfaces are code-split: a public visitor never downloads the
+// provider/client/employe dashboards.
+const ProviderLayout = lazy(() => import('./layouts/ProviderLayout'));
+const ClientLayout = lazy(() => import('./layouts/ClientLayout'));
+const EmployeLayout = lazy(() => import('./layouts/EmployeLayout'));
+const ProviderDashboard = lazy(() => import('./pages/provider/Dashboard'));
+const Quotes = lazy(() => import('./pages/provider/Quotes'));
+const QuoteCreate = lazy(() => import('./pages/provider/QuoteCreate'));
+const QuoteDetail = lazy(() => import('./pages/provider/QuoteDetail'));
+const Shipments = lazy(() => import('./pages/provider/Shipments'));
+const ShipmentCreate = lazy(() => import('./pages/provider/ShipmentCreate'));
+const ShipmentDetail = lazy(() => import('./pages/provider/ShipmentDetail'));
+const Clients = lazy(() => import('./pages/provider/Clients'));
+const ClientCreate = lazy(() => import('./pages/provider/ClientCreate'));
+const ClientDetail = lazy(() => import('./pages/provider/ClientDetail'));
+const Settings = lazy(() => import('./pages/provider/Settings'));
+const AccountRequests = lazy(() => import('./pages/provider/AccountRequests'));
+const QuoteRequests = lazy(() => import('./pages/provider/QuoteRequests'));
+const Invoices = lazy(() => import('./pages/provider/Invoices'));
+const InvoiceCreate = lazy(() => import('./pages/provider/InvoiceCreate'));
+const InvoiceDetail = lazy(() => import('./pages/provider/InvoiceDetail'));
+const AvoirCreate = lazy(() => import('./pages/provider/AvoirCreate'));
+const AvoirDetail = lazy(() => import('./pages/provider/AvoirDetail'));
+const Fleet = lazy(() => import('./pages/provider/Fleet'));
+const Vehicles = lazy(() => import('./pages/provider/Vehicles'));
+const VehicleForm = lazy(() => import('./pages/provider/VehicleForm'));
+const Drivers = lazy(() => import('./pages/provider/Drivers'));
+const DriverForm = lazy(() => import('./pages/provider/DriverForm'));
+const Assignments = lazy(() => import('./pages/provider/Assignments'));
+const AssignmentCreate = lazy(() => import('./pages/provider/AssignmentCreate'));
+const AssignmentDetail = lazy(() => import('./pages/provider/AssignmentDetail'));
+const ExpeditionRequests = lazy(() => import('./pages/provider/ExpeditionRequests'));
+const ExpeditionRequestDetail = lazy(() => import('./pages/provider/ExpeditionRequestDetail'));
+const ClientDashboard = lazy(() => import('./pages/client/ClientDashboard'));
+const MyShipments = lazy(() => import('./pages/client/MyShipments'));
+const MyInvoices = lazy(() => import('./pages/client/MyInvoices'));
+const MyAccount = lazy(() => import('./pages/client/MyAccount'));
+const ClientQuotes = lazy(() => import('./pages/client/ClientQuotes'));
+const ClientQuoteDetail = lazy(() => import('./pages/client/ClientQuoteDetail'));
+const ClientShipmentCreate = lazy(() => import('./pages/client/ClientShipmentCreate'));
+const ClientQuoteRequestCreate = lazy(() => import('./pages/client/ClientQuoteRequestCreate'));
+const ClientShipmentDetail = lazy(() => import('./pages/client/ClientShipmentDetail'));
+const ClientInvoiceDetail = lazy(() => import('./pages/client/ClientInvoiceDetail'));
+const ChangerStatut = lazy(() => import('./pages/employe/ChangerStatut'));
+const MonHistorique = lazy(() => import('./pages/employe/MonHistorique'));
+const Employes = lazy(() => import('./pages/provider/Employes'));
+const EmployeTransactions = lazy(() => import('./pages/provider/EmployeTransactions'));
 
 function App() {
   return (
@@ -66,9 +75,12 @@ function App() {
           <LoadingProvider>
           <AuthProvider>
             <BrowserRouter>
+              <Suspense fallback={<LoadingOverlay />}>
               <Routes>
                 <Route element={<PublicLayout />}>
                   <Route path="/" element={<Home />} />
+                  <Route path="/qui-sommes-nous" element={<QuiSommesNous />} />
+                  <Route path="/contact" element={<Contact />} />
                   <Route path="/suivi" element={<Tracking />} />
                   <Route path="/devis-express" element={<QuoteRequest />} />
                   <Route path="/demande-compte" element={<AccountRequest />} />
@@ -139,6 +151,7 @@ function App() {
 
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
+              </Suspense>
             </BrowserRouter>
           </AuthProvider>
           </LoadingProvider>

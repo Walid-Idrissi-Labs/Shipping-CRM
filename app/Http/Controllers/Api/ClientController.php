@@ -41,7 +41,10 @@ class ClientController extends Controller
             'desc'
         );
 
-        return response()->json($query->paginate(25));
+        // Les selecteurs (facturation, devis) chargent la liste complete via ?limit=1000.
+        $limit = min(1000, max(5, (int) $request->input('limit', 25) ?: 25));
+
+        return response()->json($query->paginate($limit));
     }
 
     public function store(Request $request)
@@ -132,6 +135,10 @@ class ClientController extends Controller
 
     public function update(Request $request, Client $client)
     {
+        if ($client->provider_id !== $request->user()->provider->id) {
+            return response()->json(['message' => 'Acces refuse.'], 403);
+        }
+
         $validated = $request->validate([
             'full_name' => ['required', 'string', 'max:255'],
             'company_name' => ['nullable', 'string', 'max:255'],
@@ -161,8 +168,12 @@ class ClientController extends Controller
         return response()->json(['message' => 'Client mis a jour.', 'client' => $client->fresh()]);
     }
 
-    public function destroy(Client $client)
+    public function destroy(Request $request, Client $client)
     {
+        if ($client->provider_id !== $request->user()->provider->id) {
+            return response()->json(['message' => 'Acces refuse.'], 403);
+        }
+
         $client->user->delete();
         $client->delete();
 

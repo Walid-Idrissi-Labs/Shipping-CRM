@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react';
-import { useApiFetch } from '../../hooks/useApiFetch';
+import { useApiFetch, useMinLoading } from '../../hooks';
 import { Link } from 'react-router-dom';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
 import { Truck, User, AlertTriangle, Calendar, ArrowUpRight } from 'lucide-react';
-import Skeleton from '../../components/ui/Skeleton';
-import TruckLoader from '../../components/ui/TruckLoader';
+import PageLoader from '../../components/ui/PageLoader';
 import StatusBadge from '../../components/ui/StatusBadge';
 import { VehicleKanban, DriverKanban } from '../../components/FleetKanban';
 import { useToast } from '../../contexts/ToastContext';
@@ -25,6 +24,7 @@ const fetchFleet = () => api.get('/dashboard/fleet').then((r) => r.data);
 
 export default function FleetDashboard() {
   const { data, loading, error } = useApiFetch(fetchFleet, []);
+  const showLoader = useMinLoading(loading);
   const toast = useToast();
   const [vehicles, setVehicles] = useState([]);
   const [drivers, setDrivers] = useState([]);
@@ -39,13 +39,11 @@ export default function FleetDashboard() {
     }
   }, [data]);
 
-  if (loading) {
+  if (showLoader) {
     return (
       <div>
         <PageHeader title="Flotte" subtitle="Tableau de bord de la flotte" />
-        <Card style={{ padding: 24, display: 'flex', justifyContent: 'center' }}>
-          <TruckLoader />
-        </Card>
+        <PageLoader variant="dashboard" embedded />
       </div>
     );
   }

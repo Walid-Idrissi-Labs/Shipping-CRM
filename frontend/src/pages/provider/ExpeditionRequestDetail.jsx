@@ -1,13 +1,13 @@
+import { useMinLoading } from '../../hooks';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Check, X, Package, ExternalLink, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
+import {ArrowLeft, ExternalLink, CheckCircle, XCircle} from 'lucide-react';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import { DataCard, DetailRow } from '../../components/ui/DataCard';
 import Card from '../../components/ui/Card';
 import StatusBadge from '../../components/ui/StatusBadge';
-import Skeleton from '../../components/ui/Skeleton';
-import TruckLoader from '../../components/ui/TruckLoader';
+import PageLoader from '../../components/ui/PageLoader';
 import { useToast } from '../../contexts/ToastContext';
 import { useDialog } from '../../contexts/DialogContext';
 
@@ -44,6 +44,7 @@ export default function ExpeditionRequestDetail() {
   const dialog = useDialog();
   const [request, setRequest] = useState(null);
   const [loading, setLoading] = useState(true);
+  const showLoader = useMinLoading(loading);
   const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
@@ -110,12 +111,8 @@ export default function ExpeditionRequestDetail() {
     }
   };
 
-  if (loading) {
-    return (
-      <div style={{ maxWidth: 1080, display: 'flex', justifyContent: 'center', padding: 32 }}>
-        <TruckLoader />
-      </div>
-    );
+  if (showLoader) {
+    return <PageLoader variant="detail" />;
   }
 
   if (!request) return null;
@@ -258,7 +255,7 @@ export default function ExpeditionRequestDetail() {
           {request.colis && request.colis.length > 0 ? (
             <>
               {request.colis.map((c, idx) => (
-                <div key={idx} style={{ padding: '8px', background: 'var(--color-bg)', borderRadius: 6, border: '1px solid var(--color-border)', marginBottom: 8 }}>
+                <div key={idx} style={{ padding: '8px', background: 'var(--color-bone)', borderRadius: 6, border: '1px solid var(--color-ash)', marginBottom: 8 }}>
                   <div style={{ fontWeight: 600, marginBottom: 4 }}>Colis {idx + 1}</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, fontSize: 13 }}>
                     {c.type_colis && <span><strong>Type:</strong> {c.type_colis}</span>}
@@ -275,7 +272,7 @@ export default function ExpeditionRequestDetail() {
                   </div>
                 </div>
               ))}
-              <div style={{ marginTop: 16, padding: 16, background: 'var(--color-bg)', borderRadius: 8, border: '1px solid var(--color-border)' }}>
+              <div style={{ marginTop: 16, padding: 16, background: 'var(--color-bone)', borderRadius: 8, border: '1px solid var(--color-ash)' }}>
                 <h4 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600 }}>Totaux</h4>
                 <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>

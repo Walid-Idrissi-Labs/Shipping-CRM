@@ -1,3 +1,4 @@
+import { useMinLoading } from '../../hooks';
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../../api/axios';
@@ -6,10 +7,15 @@ import Card from '../../components/ui/Card';
 import StatusBadge from '../../components/ui/StatusBadge';
 import SortHeader from '../../components/ui/SortHeader';
 import SearchInput from '../../components/ui/SearchInput';
+import Tabs from '../../components/ui/Tabs';
+import Pagination from '../../components/ui/Pagination';
+import EmptyState from '../../components/ui/EmptyState';
 import { useColumnSort } from '../../hooks/useColumnSort';
+import { useUrlPage } from '../../hooks/useUrlPage';
+import { formatMoney } from '../../lib/format';
 import { useDialog } from '../../contexts/DialogContext';
 import { useToast } from '../../contexts/ToastContext';
-import TruckLoader from '../../components/ui/TruckLoader';
+import PageLoader from '../../components/ui/PageLoader';
 import { Check, X, FileDown, Trash2, Receipt } from 'lucide-react';
 
 const factureStatusOptions = [
@@ -23,18 +29,6 @@ const destFilters = [
   { value: 'national', label: 'National' },
   { value: 'international', label: 'International' },
 ];
-
-function formatMoney(value, negative = false) {
-  const n = Number(value || 0);
-  const formatted = n.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-  return negative ? `- ${formatted} MAD` : `${formatted} MAD`;
-}
-
-function displayMoney(value, negative) {
-  return negative
-    ? <span style={{ color: 'var(--color-vivid-green-dark)' }}>- {formatMoney(Math.abs(value))}</span>
-    : formatMoney(value);
-}
 
 function clientLabel(f) {
   if (f.client) return f.client.full_name;
@@ -50,7 +44,9 @@ export default function Invoices() {
   const [factures, setFactures] = useState([]);
   const [avoirs, setAvoirs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [feedback, setFeedback] = useState('');
+  const showLoader = useMinLoading(loading);
+  const [meta, setMeta] = useState({ lastPage: 1, total: 0, perPage: 25 });
+  const { page, setPage, resetPage } = useUrlPage();
 
   const tab = searchParams.get('tab') === 'avoirs' ? 'avoirs' : 'factures';
   const q = tab === 'factures' ? (searchParams.get('q') || '') : '';
@@ -63,6 +59,7 @@ export default function Invoices() {
     const next = new URLSearchParams(searchParams);
     if (value) next.set(key, value);
     else next.delete(key);
+    next.delete('page');
     setSearchParams(next, { replace: true });
   };
 
@@ -80,6 +77,7 @@ export default function Invoices() {
     next.delete('q');
     next.delete('statut');
     next.delete('type_dest');
+    next.delete('page');
     setSearchParams(next, { replace: true });
   };
 
@@ -87,42 +85,48 @@ export default function Invoices() {
     if (tab === 'factures') fetchFactures();
     else fetchAvoirs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, q, statut, typeDest, column, direction]);
+  }, [tab, q, statut, typeDest, column, direction, page]);
 
   const fetchFactures = useCallback(async () => {
     setLoading(true);
     try {
       const { data } = await api.get('/invoices', {
-        params: { search: q, statut, type_destination: typeDest, page: 1, ...sortParams },
+        params: { search: q, statut, type_destination: typeDest, page, ...sortParams },
       });
       setFactures(data.data || []);
+      setMeta({ lastPage: data.last_page || 1, total: data.total ?? 0, perPage: data.per_page || 25 });
+      if (data.last_page && page > data.last_page) resetPage();
     } finally {
       setLoading(false);
     }
-  }, [q, statut, typeDest, sortParams]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q, statut, typeDest, page, sortParams]);
 
   const fetchAvoirs = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await api.get('/credit-notes', { params: { page: 1, ...sortParams } });
+      const { data } = await api.get('/credit-notes', { params: { page, ...sortParams } });
       setAvoirs(data.data || []);
+      setMeta({ lastPage: data.last_page || 1, total: data.total ?? 0, perPage: data.per_page || 25 });
+      if (data.last_page && page > data.last_page) resetPage();
     } finally {
       setLoading(false);
     }
-  }, [sortParams]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, sortParams]);
 
   const markAsPaid = async (id) => {
     const ok = await dialog.confirm({
-      title: 'Marquer comme payee ?',
-      description: 'Cette action met a jour le statut de paiement. La facture sera marquee comme reglee.',
-      confirmText: 'Marquer comme payee',
+      title: 'Marquer comme payée ?',
+      description: 'Cette action met à jour le statut de paiement. La facture sera marquée comme réglée.',
+      confirmText: 'Marquer comme payée',
       cancelText: 'Annuler',
       variant: 'success',
     });
     if (!ok) return;
     try {
       await api.patch(`/invoices/${id}/status`, { statut: 'payee' });
-      toast.push('Facture marquee comme payee', 'success');
+      toast.push('Facture marquée comme payée', 'success');
       fetchFactures();
     } catch (err) {
       toast.push(err.response?.data?.message || 'Erreur lors du changement de statut.', 'error');
@@ -130,9 +134,17 @@ export default function Invoices() {
   };
 
   const markAsUnpaid = async (id) => {
+    const ok = await dialog.confirm({
+      title: 'Marquer comme impayée ?',
+      description: 'La facture repassera au statut impayée et sera de nouveau en attente de règlement.',
+      confirmText: 'Marquer comme impayée',
+      cancelText: 'Annuler',
+      variant: 'warning',
+    });
+    if (!ok) return;
     try {
       await api.patch(`/invoices/${id}/status`, { statut: 'impayee' });
-      toast.push('Facture marquee comme impayee', 'success');
+      toast.push('Facture marquée comme impayée', 'success');
       fetchFactures();
     } catch (err) {
       toast.push(err.response?.data?.message || 'Erreur lors du changement de statut.', 'error');
@@ -150,7 +162,7 @@ export default function Invoices() {
   const deleteFacture = async (id) => {
     const ok = await dialog.confirm({
       title: 'Supprimer cette facture ?',
-      description: 'La facture et toutes les lignes associees seront definitivement retirees.',
+      description: 'La facture et toutes les lignes associées seront définitivement retirées.',
       confirmText: 'Supprimer',
       cancelText: 'Annuler',
       variant: 'danger',
@@ -193,7 +205,7 @@ export default function Invoices() {
   const deleteAvoir = async (id) => {
     const ok = await dialog.confirm({
       title: 'Supprimer cet avoir ?',
-      description: "L'avoir sera definitivement retire.",
+      description: "L'avoir sera définitivement retiré.",
       confirmText: 'Supprimer',
       cancelText: 'Annuler',
       variant: 'danger',
@@ -211,69 +223,26 @@ export default function Invoices() {
     }
   };
 
-  useEffect(() => {
-    if (feedback) {
-      const t = setTimeout(() => setFeedback(''), 3000);
-      return () => clearTimeout(t);
-    }
-  }, [feedback]);
-
   return (
     <div>
       <PageHeader
         title="Factures & Avoirs"
-        subtitle="Gerer les factures et les avoirs"
-        actionLabel={tab === 'factures' ? 'Creer une Facture' : 'Creer un Avoir'}
+        subtitle="Gérer les factures et les avoirs"
+        actionLabel={tab === 'factures' ? 'Créer une facture' : 'Créer un avoir'}
         actionTo={tab === 'factures' ? '/dashboard/factures/nouveau' : '/dashboard/avoirs/nouveau'}
         actionIcon={Receipt}
       />
 
-      {feedback && (
-        <div className="pill-success mb-4" style={{ padding: '10px 14px', display: 'block' }}>
-          {feedback}
-        </div>
-      )}
-
-      <div className="mb-4 flex gap-2" style={{ borderBottom: '2px solid var(--color-ash)' }}>
-        <button
-          onClick={() => switchTab('factures')}
-          style={{
-            padding: '12px 24px',
-            fontSize: '15px',
-            fontWeight: tab === 'factures' ? '600' : '400',
-            color: tab === 'factures' ? 'var(--color-primary)' : 'var(--color-steel)',
-            borderBottom: tab === 'factures' ? '2px solid var(--color-primary)' : '2px solid transparent',
-            background: 'transparent',
-            cursor: 'pointer',
-            border: 'none',
-            outline: 'none'
-          }}
-        >
-          Factures
-        </button>
-        <button
-          onClick={() => switchTab('avoirs')}
-          style={{
-            padding: '12px 24px',
-            fontSize: '15px',
-            fontWeight: tab === 'avoirs' ? '600' : '400',
-            color: tab === 'avoirs' ? 'var(--color-primary)' : 'var(--color-steel)',
-            borderBottom: tab === 'avoirs' ? '2px solid var(--color-primary)' : '2px solid transparent',
-            background: 'transparent',
-            cursor: 'pointer',
-            border: 'none',
-            outline: 'none'
-          }}
-        >
-          Avoirs
-        </button>
+      <div style={{ marginBottom: 20 }}>
+        <Tabs
+          value={tab}
+          onChange={switchTab}
+          tabs={[
+            { value: 'factures', label: 'Factures' },
+            { value: 'avoirs', label: 'Avoirs' },
+          ]}
+        />
       </div>
-
-      {feedback && tab === 'factures' && (
-        <div className="pill-success mb-4" style={{ padding: '10px 14px', display: 'block' }}>
-          {feedback}
-        </div>
-      )}
 
       {tab === 'factures' ? (
         <>
@@ -290,21 +259,21 @@ export default function Invoices() {
           </Card>
 
           <Card style={{ padding: 0, overflow: 'hidden' }}>
-            {loading ? (
-              <div style={{ padding: 32, display: 'flex', justifyContent: 'center' }}><TruckLoader /></div>
+            {showLoader ? (
+              <PageLoader variant="table" embedded />
             ) : factures.length === 0 ? (
-              <div style={{ padding: 32, textAlign: 'center', color: 'var(--color-steel)' }}>Aucune facture</div>
+              <EmptyState icon={Receipt} title="Aucune facture" description="Aucune facture ne correspond à votre recherche." />
             ) : (
               <table className="table-clean">
                 <thead>
                   <tr>
-                    <SortHeader label="Numero" col="numero_n" currentCol={column} direction={direction} onClick={toggle} />
+                    <SortHeader label="Numéro" col="numero_n" currentCol={column} direction={direction} onClick={toggle} />
                     <SortHeader label="Date" col="created_at" currentCol={column} direction={direction} onClick={toggle} />
                     <SortHeader label="Client" col="full_name" currentCol={column} direction={direction} onClick={toggle} />
                     <SortHeader label="Type" col="type_destination" currentCol={column} direction={direction} onClick={toggle} />
                     <SortHeader label="HT" col="taxable" currentCol={column} direction={direction} onClick={toggle} align="right" />
                     <SortHeader label="TTC" col="ttc" currentCol={column} direction={direction} onClick={toggle} align="right" />
-                    <SortHeader label="Echeance" col="date_echeance" currentCol={column} direction={direction} onClick={toggle} />
+                    <SortHeader label="Échéance" col="date_echeance" currentCol={column} direction={direction} onClick={toggle} />
                     <SortHeader label="Statut" col="statut" currentCol={column} direction={direction} onClick={toggle} />
                     <th style={{ textAlign: 'right' }}>Actions</th>
                   </tr>
@@ -326,13 +295,13 @@ export default function Invoices() {
                       <td><StatusBadge status={f.statut} /></td>
                       <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end" style={{ gap: 4 }}>
-                          <button onClick={() => downloadPdf(f.id)} className="btn-icon" title="Telecharger PDF">
+                          <button onClick={() => downloadPdf(f.id)} className="btn-icon" title="Télécharger PDF">
                             <FileDown size={20} />
                           </button>
                           <button
                             onClick={() => toggleStatus(f.id, f.statut)}
                             className="btn-icon"
-                            title={f.statut === 'payee' ? 'Marquer impayee' : 'Marquer payee'}
+                            title={f.statut === 'payee' ? 'Marquer impayée' : 'Marquer payée'}
                           >
                             {f.statut === 'payee' ? <X size={16} color="var(--color-warning)" /> : <Check size={16} color="var(--color-vivid-green-dark)" />}
                           </button>
@@ -346,19 +315,22 @@ export default function Invoices() {
                 </tbody>
               </table>
             )}
+            {!loading && factures.length > 0 && (
+              <Pagination page={page} lastPage={meta.lastPage} total={meta.total} perPage={meta.perPage} onChange={setPage} />
+            )}
           </Card>
         </>
       ) : (
         <Card style={{ padding: 0, overflow: 'hidden' }}>
-          {loading ? (
-            <div style={{ padding: 32, display: 'flex', justifyContent: 'center' }}><TruckLoader /></div>
+          {showLoader ? (
+            <PageLoader variant="table" embedded />
           ) : avoirs.length === 0 ? (
-            <div style={{ padding: 32, textAlign: 'center', color: 'var(--color-steel)' }}>Aucun avoir</div>
+            <EmptyState icon={Receipt} title="Aucun avoir" description="Aucun avoir n'a encore été émis." />
           ) : (
             <table className="table-clean">
               <thead>
                 <tr>
-                  <SortHeader label="Numero" col="numero_n" currentCol={column} direction={direction} onClick={toggle} />
+                  <SortHeader label="Numéro" col="numero_n" currentCol={column} direction={direction} onClick={toggle} />
                   <SortHeader label="Facture" col="facture_numero" currentCol={column} direction={direction} onClick={toggle} />
                   <SortHeader label="Client" col="full_name" currentCol={column} direction={direction} onClick={toggle} />
                   <SortHeader label="HT" col="taxable" currentCol={column} direction={direction} onClick={toggle} align="right" />
@@ -380,7 +352,7 @@ export default function Invoices() {
                     <td style={{ whiteSpace: 'nowrap' }}>{new Date(a.created_at).toLocaleDateString('fr-FR')}</td>
                     <td style={{ textAlign: 'right' }}>
                       <div className="flex items-center justify-end" style={{ gap: 4 }}>
-                        <button onClick={() => downloadAvoirPdf(a.id)} className="btn-icon" title="Telecharger PDF">
+                        <button onClick={() => downloadAvoirPdf(a.id)} className="btn-icon" title="Télécharger PDF">
                           <FileDown size={20} color="var(--color-danger)" />
                         </button>
                         <button onClick={() => deleteAvoir(a.id)} className="btn-icon" title="Supprimer">
@@ -392,6 +364,9 @@ export default function Invoices() {
                 ))}
               </tbody>
             </table>
+          )}
+          {!loading && avoirs.length > 0 && (
+            <Pagination page={page} lastPage={meta.lastPage} total={meta.total} perPage={meta.perPage} onChange={setPage} />
           )}
         </Card>
       )}

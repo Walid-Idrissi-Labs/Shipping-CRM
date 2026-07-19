@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Check, X, Plus, FileText, Search, Send, Clock, FileCheck2 } from 'lucide-react';
+import { Check, X, Plus, FileText, Send, FileCheck2 } from 'lucide-react';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
@@ -8,31 +8,25 @@ import EmptyState from '../../components/ui/EmptyState';
 import Skeleton from '../../components/ui/Skeleton';
 import StatusBadge from '../../components/ui/StatusBadge';
 import SearchInput from '../../components/ui/SearchInput';
+import Tabs from '../../components/ui/Tabs';
+import Pagination from '../../components/ui/Pagination';
+import { useUrlPage } from '../../hooks/useUrlPage';
 import { useDialog } from '../../contexts/DialogContext';
 import { useToast } from '../../contexts/ToastContext';
+import { formatMoney, formatDate } from '../../lib/format';
 
 const quoteStatusOptions = [
   { value: '', label: 'Tous les statuts' },
   { value: 'envoye', label: 'En attente' },
-  { value: 'accepte', label: 'Accepte' },
-  { value: 'refuse', label: 'Refuse' },
+  { value: 'accepte', label: 'Accepté' },
+  { value: 'refuse', label: 'Refusé' },
 ];
 
 const requestStatusOptions = [
   { value: '', label: 'Tous les statuts' },
   { value: 'en_attente', label: 'En attente' },
-  { value: 'traitee', label: 'Traitee' },
+  { value: 'traitee', label: 'Traitée' },
 ];
-
-function formatMoney(v) {
-  const n = Number(v || 0);
-  return n.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-}
-
-function formatDate(d) {
-  if (!d) return '-';
-  return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-}
 
 export default function ClientQuotes() {
   const navigate = useNavigate();
@@ -44,6 +38,8 @@ export default function ClientQuotes() {
   const [quotes, setQuotes] = useState([]);
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [meta, setMeta] = useState({ lastPage: 1, total: 0, perPage: 25 });
+  const { page, setPage, resetPage } = useUrlPage();
   const dialog = useDialog();
   const toast = useToast();
 
@@ -51,6 +47,7 @@ export default function ClientQuotes() {
     const next = new URLSearchParams(searchParams);
     if (value) next.set(key, value);
     else next.delete(key);
+    next.delete('page');
     setSearchParams(next, { replace: true });
   };
 
@@ -60,6 +57,7 @@ export default function ClientQuotes() {
     else nextParams.delete('tab');
     nextParams.delete('q');
     nextParams.delete('statut');
+    nextParams.delete('page');
     setSearchParams(nextParams, { replace: true });
   };
 
@@ -67,6 +65,7 @@ export default function ClientQuotes() {
     const next = new URLSearchParams(searchParams);
     next.delete('q');
     next.delete('statut');
+    next.delete('page');
     setSearchParams(next, { replace: true });
   };
 
@@ -74,13 +73,15 @@ export default function ClientQuotes() {
     if (tab === 'devis') fetchQuotes();
     else fetchRequests();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, q, statut]);
+  }, [tab, q, statut, page]);
 
   const fetchQuotes = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get('/my/quotes', { params: { search: q, statut } });
+      const { data } = await api.get('/my/quotes', { params: { search: q, statut, page } });
       setQuotes(data.data || []);
+      setMeta({ lastPage: data.last_page || 1, total: data.total ?? 0, perPage: data.per_page || 25 });
+      if (data.last_page && page > data.last_page) resetPage();
     } finally {
       setLoading(false);
     }
@@ -89,8 +90,10 @@ export default function ClientQuotes() {
   const fetchRequests = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get('/my/quote-requests', { params: { search: q, statut } });
+      const { data } = await api.get('/my/quote-requests', { params: { search: q, statut, page } });
       setRequests(data.data || []);
+      setMeta({ lastPage: data.last_page || 1, total: data.total ?? 0, perPage: data.per_page || 25 });
+      if (data.last_page && page > data.last_page) resetPage();
     } finally {
       setLoading(false);
     }
@@ -100,7 +103,7 @@ export default function ClientQuotes() {
     const labels = { accepte: 'Accepter', refuse: 'Refuser' };
     const descriptions = {
       accepte: 'Vous confirmez ce devis. Votre demande sera prise en compte.',
-      refuse: 'Vous refusez ce devis. Action irreversible.',
+      refuse: 'Vous refusez ce devis. Action irréversible.',
     };
     const ok = await dialog.confirm({
       title: `${labels[newStatus]} ce devis ?`,
@@ -112,7 +115,7 @@ export default function ClientQuotes() {
     if (!ok) return;
     try {
       await api.patch(`/my/quotes/${id}/status`, { statut: newStatus });
-      toast.push(`Devis ${newStatus === 'accepte' ? 'accepte' : 'refuse'}.`, 'success');
+      toast.push(`Devis ${newStatus === 'accepte' ? 'accepté' : 'refusé'}.`, 'success');
       fetchQuotes();
     } catch (err) {
       toast.push(err.response?.data?.message || 'Erreur lors du changement de statut.', 'error');
@@ -139,89 +142,15 @@ export default function ClientQuotes() {
       />
 
       {/* Tabs */}
-      <div
-        role="tablist"
-        className="flex items-center"
-        style={{
-          gap: 4,
-          padding: 4,
-          background: 'var(--color-bone)',
-          borderRadius: 10,
-          border: '1px solid var(--color-ash)',
-          width: 'fit-content',
-          marginBottom: 20,
-        }}
-      >
-        <button
-          role="tab"
-          aria-selected={tab === 'devis'}
-          type="button"
-          onClick={() => switchTab('devis')}
-          className="flex items-center"
-          style={{
-            gap: 8,
-            padding: '8px 16px',
-            borderRadius: 8,
-            border: 'none',
-            fontSize: 13,
-            fontWeight: 500,
-            cursor: 'pointer',
-            background: tab === 'devis' ? 'var(--color-paper-white)' : 'transparent',
-            color: tab === 'devis' ? 'var(--color-graphite)' : 'var(--color-iron)',
-            boxShadow: tab === 'devis' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
-            transition: 'background 150ms ease, color 150ms ease',
-          }}
-        >
-          <FileCheck2 size={14} />
-          Devis
-          <span
-            style={{
-              fontSize: 11,
-              fontWeight: 600,
-              padding: '2px 8px',
-              borderRadius: 9999,
-              background: tab === 'devis' ? 'var(--color-primary-wash)' : 'var(--color-fog)',
-              color: tab === 'devis' ? 'var(--color-primary)' : 'var(--color-steel)',
-            }}
-          >
-            {quotes.length || (loading ? '…' : 0)}
-          </span>
-        </button>
-        <button
-          role="tab"
-          aria-selected={tab === 'demandes'}
-          type="button"
-          onClick={() => switchTab('demandes')}
-          className="flex items-center"
-          style={{
-            gap: 8,
-            padding: '8px 16px',
-            borderRadius: 8,
-            border: 'none',
-            fontSize: 13,
-            fontWeight: 500,
-            cursor: 'pointer',
-            background: tab === 'demandes' ? 'var(--color-paper-white)' : 'transparent',
-            color: tab === 'demandes' ? 'var(--color-graphite)' : 'var(--color-iron)',
-            boxShadow: tab === 'demandes' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
-            transition: 'background 150ms ease, color 150ms ease',
-          }}
-        >
-          <Send size={14} />
-          Demandes de Devis
-          <span
-            style={{
-              fontSize: 11,
-              fontWeight: 600,
-              padding: '2px 8px',
-              borderRadius: 9999,
-              background: tab === 'demandes' ? 'var(--color-primary-wash)' : 'var(--color-fog)',
-              color: tab === 'demandes' ? 'var(--color-primary)' : 'var(--color-steel)',
-            }}
-          >
-            {requests.length || (loading ? '…' : 0)}
-          </span>
-        </button>
+      <div style={{ marginBottom: 20 }}>
+        <Tabs
+          value={tab}
+          onChange={switchTab}
+          tabs={[
+            { value: 'devis', label: 'Devis', icon: <FileCheck2 size={14} />, count: loading ? '…' : quotes.length },
+            { value: 'demandes', label: 'Demandes de devis', icon: <Send size={14} />, count: loading ? '…' : requests.length },
+          ]}
+        />
       </div>
 
       {/* Filter Bar */}
@@ -232,7 +161,7 @@ export default function ClientQuotes() {
             onSearch={(v) => updateParam('q', v)}
             onClear={handleClearAll}
             loading={loading}
-            placeholder={tab === 'devis' ? 'Rechercher par numero, destinataire...' : 'Rechercher par destinataire, ville...'}
+            placeholder={tab === 'devis' ? 'Rechercher par numéro, destinataire...' : 'Rechercher par destinataire, ville...'}
           />
           <select
             value={statut}
@@ -264,15 +193,15 @@ export default function ClientQuotes() {
               title="Aucun devis"
               description={
                 q || statut
-                  ? 'Aucun devis ne correspond a vos filtres.'
-                  : 'Vous recevrez vos devis ici des qu\'ils seront emis.'
+                  ? 'Aucun devis ne correspond à vos filtres.'
+                  : 'Vous recevrez vos devis ici dès qu\'ils seront émis.'
               }
             />
           ) : (
             <table className="table-clean">
               <thead>
                 <tr>
-                  <th>Numero</th>
+                  <th>Numéro</th>
                   <th>Destinataire</th>
                   <th>Service</th>
                   <th style={{ textAlign: 'right' }}>Montant TTC</th>
@@ -293,7 +222,7 @@ export default function ClientQuotes() {
                     <td>{qt.recipient_name || '-'}</td>
                     <td style={{ textTransform: 'capitalize' }}>{(qt.type_service || '').replace(/_/g, ' ')}</td>
                     <td className="font-mono-data" style={{ textAlign: 'right', fontWeight: 600 }}>
-                      {qt.montant_ttc ? `${formatMoney(qt.montant_ttc)} MAD` : '-'}
+                      {qt.montant_ttc ? formatMoney(qt.montant_ttc) : "-"}
                     </td>
                     <td><StatusBadge status={qt.statut} /></td>
                     <td onClick={(e) => e.stopPropagation()} style={{ textAlign: 'right' }}>
@@ -323,6 +252,11 @@ export default function ClientQuotes() {
               </tbody>
             </table>
           )}
+          {!loading && quotes.length > 0 && (
+            <div style={{ padding: '0 16px 12px' }}>
+              <Pagination page={page} lastPage={meta.lastPage} total={meta.total} perPage={meta.perPage} onChange={setPage} />
+            </div>
+          )}
         </Card>
       )}
 
@@ -343,7 +277,7 @@ export default function ClientQuotes() {
               title="Aucune demande"
               description={
                 q || statut
-                  ? 'Aucune demande ne correspond a vos filtres.'
+                  ? 'Aucune demande ne correspond à vos filtres.'
                   : 'Vous pouvez creer une demande de devis pour recevoir une proposition tarifaire.'
               }
               actionLabel={!q && !statut ? 'Nouvelle Demande' : undefined}
@@ -377,11 +311,7 @@ export default function ClientQuotes() {
                     <td style={{ textTransform: 'capitalize' }}>{(r.type_service || '').replace(/_/g, ' ')}</td>
                     <td>{formatDate(r.created_at)}</td>
                     <td>
-                      {r.statut === 'traitee' ? (
-                        <span className="pill pill-success">Traitee</span>
-                      ) : (
-                        <span className="pill pill-warning"><Clock size={11} /> En attente</span>
-                      )}
+                      <StatusBadge status={r.statut} variant="left" />
                     </td>
                     <td>
                       {r.quote_id ? (
@@ -401,6 +331,11 @@ export default function ClientQuotes() {
                 ))}
               </tbody>
             </table>
+          )}
+          {!loading && requests.length > 0 && (
+            <div style={{ padding: '0 16px 12px' }}>
+              <Pagination page={page} lastPage={meta.lastPage} total={meta.total} perPage={meta.perPage} onChange={setPage} />
+            </div>
           )}
         </Card>
       )}

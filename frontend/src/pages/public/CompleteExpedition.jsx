@@ -1,8 +1,10 @@
+import { useMinLoading } from '../../hooks';
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Send, Check, ChevronLeft, ChevronRight, Mail, Phone, Package, MapPin, Globe, AlertCircle } from 'lucide-react';
-import { FormField, Section, Row, Column } from '../../components/ui/Form';
+import {Send, Check, ChevronLeft, ChevronRight, AlertCircle} from 'lucide-react';
+import {FormField, Section} from '../../components/ui/Form';
 import CountrySelect from '../../components/ui/CountrySelect';
+import OrbitLoader from '../../components/ui/OrbitLoader';
 import api, { csrf } from '../../api/axios';
 
 const step1Initial = {
@@ -30,6 +32,7 @@ export default function CompleteExpedition() {
   const [direction, setDirection] = useState(1);
   const [quote, setQuote] = useState(null);
   const [quoteLoading, setQuoteLoading] = useState(true);
+  const showLoader = useMinLoading(quoteLoading);
   const containerRef = useRef(null);
 
   // Load quote data on mount
@@ -197,11 +200,11 @@ export default function CompleteExpedition() {
     }
   };
 
-  if (quoteLoading) {
+  if (showLoader) {
     return (
       <div style={{ maxWidth: 560, padding: '80px 24px', margin: '0 auto' }}>
         <div className="surface-canvas text-center" style={{ padding: 40, borderRadius: 16 }}>
-          <div className="truck-loader" style={{ margin: '0 auto 20px' }} />
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}><OrbitLoader /></div>
           <p style={{ color: 'var(--color-iron)' }}>Verification du lien...</p>
         </div>
       </div>
@@ -598,7 +601,7 @@ export default function CompleteExpedition() {
 {quote?.colis && quote.colis.length > 0 ? (
                 <>
                   {quote.colis.map((c, idx) => (
-                    <div key={idx} style={{ padding: '8px', background: 'var(--color-bg)', borderRadius: 6, border: '1px solid var(--color-border)', marginBottom: 8 }}>
+                    <div key={idx} style={{ padding: '8px', background: 'var(--color-bone)', borderRadius: 6, border: '1px solid var(--color-ash)', marginBottom: 8 }}>
                       <div style={{ fontWeight: 600, marginBottom: 4 }}>Colis {idx + 1}</div>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, fontSize: 13 }}>
                         {c.type_colis && <span><strong>Type:</strong> {c.type_colis}</span>}

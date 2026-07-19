@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
     'provider_id', 'client_id', 'client_divers_nom', 'client_divers_adresse',
     'client_divers_tel', 'client_divers_email',
     'numero_n', 'annee', 'date_facture', 'date_echeance',
-    'type_destination', 'taux_tva', 'non_taxable', 'taxable', 'tva', 'ttc', 'statut'
+    'type_destination', 'reference', 'taux_tva', 'non_taxable', 'taxable', 'tva', 'ttc', 'statut'
 ])]
 class Facture extends Model
 {

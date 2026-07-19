@@ -26,8 +26,8 @@ function TrackingCard({ item }) {
           </div>
           <AlertCircle size={20} style={{ color: 'var(--color-danger)' }} />
         </div>
-        <p style={{ fontSize: 16, color: 'var(--color-graphite)', marginBottom: 8 }}>Aucun envoi trouve avec ce numero.</p>
-        <p style={{ fontSize: 13, color: 'var(--color-steel)' }}>Verifiez le numero et reessayez.</p>
+        <p style={{ fontSize: 16, color: 'var(--color-graphite)', marginBottom: 8 }}>Aucun envoi trouvé avec ce numéro.</p>
+        <p style={{ fontSize: 13, color: 'var(--color-steel)' }}>Vérifiez le numéro et réessayez.</p>
       </div>
     );
   }
@@ -78,7 +78,7 @@ function TrackingCard({ item }) {
           }}
         >
           <span>{data.sender_city || '—'}</span>
-          <span style={{ color: 'var(--color-smoke)' }}>{'->'}</span>
+          <span style={{ color: 'var(--color-smoke)' }}>{'→'}</span>
           <span>{data.recipient_city || '—'}</span>
         </div>
       </div>
@@ -222,9 +222,9 @@ useLayoutEffect(() => {
             >
               Suivi de colis
             </div>
-            <h1 className="display-headline" style={{ fontSize: 36 }}>Où sont mes colis ?</h1>
+            <h1 className="public-serif" style={{ fontSize: 40 }}>Où sont mes colis ?</h1>
             <p style={{ fontSize: 14, color: 'var(--color-steel)', maxWidth: 480, margin: '16px auto 0' }}>
-              Entrez votre numero d'expedition (9 chiffres) pour consulter le statut de votre envoi.
+              Entrez votre numéro d'expédition (9 chiffres) pour consulter le statut de votre envoi.
             </p>
           </div>
 
@@ -277,7 +277,7 @@ useLayoutEffect(() => {
           <div style={{ marginTop: 16, textAlign: 'center' }}>
             <Tooltip
               placement="bottom"
-              content="Saisissez plusieurs numeros (9 chiffres chacun) separes par :  (,) , (;) , (.) ou  (-)"
+              content="Saisissez plusieurs numéros (9 chiffres chacun) séparés par :  (,) , (;) , (.) ou  (-)"
             >
               {({ onMouseEnter, onMouseLeave }) => (
                 <button
@@ -298,7 +298,7 @@ useLayoutEffect(() => {
                   }}
                 >
                   <Info size={14} />
-                  Suivi Multiple
+                  Suivi multiple
                 </button>
               )}
             </Tooltip>
@@ -325,7 +325,7 @@ useLayoutEffect(() => {
               <AlertCircle size={20} style={{ color: 'var(--color-danger)' }} />
             </div>
             <p style={{ fontSize: 16, color: 'var(--color-graphite)', marginBottom: 8 }}>{error}</p>
-            <p style={{ fontSize: 13, color: 'var(--color-steel)' }}>Verifiez le numero et reessayez.</p>
+            <p style={{ fontSize: 13, color: 'var(--color-steel)' }}>Vérifiez le numéro et réessayez.</p>
           </div>
         )}
 

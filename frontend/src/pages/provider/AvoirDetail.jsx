@@ -1,10 +1,11 @@
+import { useMinLoading } from '../../hooks';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, FileDown, SquareArrowOutUpRight } from 'lucide-react';
+import {ArrowLeft, SquareArrowOutUpRight} from 'lucide-react';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import { DataCard, DetailRow } from '../../components/ui/DataCard';
-import TruckLoader from '../../components/ui/TruckLoader';
+import PageLoader from '../../components/ui/PageLoader';
 import ClientLinkButton from '../../components/ui/ClientLinkButton';
 
 function formatMoney(value) {
@@ -17,6 +18,7 @@ export default function AvoirDetail() {
   const navigate = useNavigate();
   const [avoir, setAvoir] = useState(null);
   const [loading, setLoading] = useState(true);
+  const showLoader = useMinLoading(loading);
 
   useEffect(() => {
     fetchAvoir();
@@ -48,7 +50,7 @@ export default function AvoirDetail() {
     }
   };
 
-  if (loading) return <div style={{ padding: 48, display: 'flex', justifyContent: 'center' }}><TruckLoader /></div>;
+  if (showLoader) return <PageLoader variant="detail" />;
   if (!avoir) return null;
 
   const avoirType = avoir.type_destination === 'national' ? 'National' : 'International';

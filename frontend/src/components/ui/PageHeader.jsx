@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import Breadcrumbs from './Breadcrumbs';
 
 function ActionBtn({ Icon, className, children, actionTo, onAction }) {
@@ -16,9 +17,9 @@ function ActionBtn({ Icon, className, children, actionTo, onAction }) {
   }
   if (actionTo) {
     return (
-      <a href={actionTo} className={className}>
+      <Link to={actionTo} className={className}>
         {content}
-      </a>
+      </Link>
     );
   }
   return null;
@@ -36,8 +37,6 @@ export default function PageHeader({
   actions,
   display = false,
 }) {
-  const useElegante = Boolean(ActionIcon);
-
   return (
     <div style={{ marginBottom: 28 }}>
       {breadcrumbs && (
@@ -71,7 +70,7 @@ export default function PageHeader({
             {actionLabel && (
               <ActionBtn
                 Icon={ActionIcon}
-                className={useElegante ? 'boton-elegante' : 'btn btn-primary'}
+                className="btn btn-primary"
                 actionTo={actionTo}
                 onAction={onAction}
               >

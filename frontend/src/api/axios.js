@@ -14,18 +14,24 @@ const api = axios.create({
   },
 });
 
+// GET loading states are rendered by the pages themselves (PageLoader
+// skeletons); the global overlay only covers mutations, which have no
+// page-level loader.
 api.interceptors.request.use((config) => {
-  showLoading();
+  if ((config.method || 'get').toLowerCase() !== 'get') {
+    config._overlay = true;
+    showLoading();
+  }
   return config;
 });
 
 api.interceptors.response.use(
   (response) => {
-    hideLoading();
+    if (response.config._overlay) hideLoading();
     return response;
   },
   (error) => {
-    hideLoading();
+    if (error.config?._overlay) hideLoading();
     return Promise.reject(error);
   },
 );

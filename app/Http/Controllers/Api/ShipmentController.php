@@ -61,7 +61,9 @@ class ShipmentController extends Controller
             'desc'
         );
 
-        $limit = $request->input('limit', 25);
+        $user = $request->user();
+        $default = $user->role === 'prestataire' ? ($user->provider->per_page_expeditions ?? 25) : 25;
+        $limit = min(100, max(5, (int) $request->input('limit', $default) ?: $default));
 
         $page = $query->paginate($limit);
         $page->getCollection()->each(function (Shipment $shipment) {
@@ -157,8 +159,10 @@ class ShipmentController extends Controller
         ], 201);
     }
 
-    public function show(Shipment $shipment)
+    public function show(Request $request, Shipment $shipment)
     {
+        $this->authorizeAccess($request, $shipment);
+
         $shipment->load('client', 'quote', 'suiviStatuts.changedBy', 'colis', 'sousEtapes', 'employeeShipments.changedBy');
 
         $sousEtapesByStatut = $shipment->sousEtapes
@@ -204,13 +208,15 @@ class ShipmentController extends Controller
 
     public function update(Request $request, Shipment $shipment)
     {
+        $this->authorizeAccess($request, $shipment);
+
         $validated = $request->validate($this->rules());
 
         $this->validateColis($request);
 
         // Sync colis
         $colisData = $validated['colis'] ?? [];
-        
+
         if (! empty($colisData)) {
             // Delete existing colis and recreate
             $shipment->colis()->delete();
@@ -246,8 +252,10 @@ class ShipmentController extends Controller
         return response()->json(['message' => 'Expedition mise a jour.', 'shipment' => $shipment->fresh()->load('colis')]);
     }
 
-    public function destroy(Shipment $shipment)
+    public function destroy(Request $request, Shipment $shipment)
     {
+        $this->authorizeAccess($request, $shipment);
+
         $shipment->delete();
 
         return response()->json(['message' => 'Expedition supprimee.']);
@@ -271,43 +279,12 @@ class ShipmentController extends Controller
 
     public function label(Request $request, Shipment $shipment)
     {
-        $user = $request->user();
-        if ($user->role === 'client' && (int) $shipment->client_id !== (int) $user->client->id) {
-            abort(403, 'Acces refuse.');
-        }
-        if ($user->role === 'prestataire' && $shipment->provider_id !== $user->provider->id) {
-            abort(403, 'Acces refuse.');
-        }
+        $this->authorizeAccess($request, $shipment);
 
-        $shipment->load('client', 'provider');
-
-        $barcode = new \Picqer\Barcode\BarcodeGeneratorPNG;
-        $barcodePng = $barcode->getBarcode($shipment->shipping_number, \Picqer\Barcode\BarcodeGeneratorPNG::TYPE_CODE_128, 2, 60);
-        $barcodeDataUri = 'data:image/png;base64,' . base64_encode($barcodePng);
-
-        $qrPayload = json_encode([
-            'shipping_number' => $shipment->shipping_number,
-            'sender_name' => $shipment->sender_name,
-            'recipient_name' => $shipment->recipient_name,
-            'destination' => trim(($shipment->recipient_city ?? '') . ', ' . ($shipment->recipient_country ?? ''), ', '),
-            'service' => $shipment->type_service,
-            'weight' => $shipment->poids,
-        ]);
-
-        try {
-            $labelService = new LabelPdfService;
-            $reflection = new \ReflectionClass($labelService);
-            $qrMethod = $reflection->getMethod('qrCodeDataUri');
-            $qrMethod->setAccessible(true);
-            $qrCodeDataUri = $qrMethod->invoke($labelService, $shipment);
-            $logoDataUri = LabelPdfService::staticLogoDataUri();
-        } catch (\Throwable $e) {
-            $qr = new \Endroid\QrCode\QrCode($qrPayload, encoding: new \Endroid\QrCode\Encoding\Encoding('UTF-8'), size: 150, margin: 0);
-            $qrCodeDataUri = (new \Endroid\QrCode\Writer\PngWriter)->write($qr)->getDataUri();
-        }
+        $data = $this->labelViewData($shipment);
 
         $cachedPath = $shipment->label_url ? public_path('storage/' . str_replace('/storage/', '', $shipment->label_url)) : null;
-        if (! $shipment->label_url || ! $cachedPath || ! file_exists($cachedPath)) {
+        if (! $cachedPath || ! file_exists($cachedPath)) {
             try {
                 $newPath = (new LabelPdfService)->generate($shipment);
                 $shipment->update(['label_url' => $newPath]);
@@ -316,62 +293,67 @@ class ShipmentController extends Controller
             }
         }
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdfs.label-print', [
-            'shipment' => $shipment,
-            'barcodeDataUri' => $barcodeDataUri,
-            'qrCodeDataUri' => $qrCodeDataUri,
-            'logoDataUri' => $logoDataUri ?? LabelPdfService::staticLogoDataUri(),
-        ])->setPaper('a4', 'landscape');
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdfs.label-print', $data)
+            ->setPaper('a4', 'landscape');
 
         return $pdf->download("etiquette-{$shipment->shipping_number}.pdf");
     }
 
     public function labelPreview(Request $request, Shipment $shipment)
     {
-        $user = $request->user();
-        if ($user->role === 'client' && (int) $shipment->client_id !== (int) $user->client->id) {
-            abort(403, 'Acces refuse.');
-        }
-        if ($user->role === 'prestataire' && $shipment->provider_id !== $user->provider->id) {
-            abort(403, 'Acces refuse.');
-        }
+        $this->authorizeAccess($request, $shipment);
 
-        $shipment->load('client', 'provider');
-
-        $barcode = new \Picqer\Barcode\BarcodeGeneratorPNG;
-        $barcodePng = $barcode->getBarcode($shipment->shipping_number, \Picqer\Barcode\BarcodeGeneratorPNG::TYPE_CODE_128, 2, 60);
-        $barcodeDataUri = 'data:image/png;base64,' . base64_encode($barcodePng);
-
-        $qrPayload = json_encode([
-            'shipping_number' => $shipment->shipping_number,
-            'sender_name' => $shipment->sender_name,
-            'recipient_name' => $shipment->recipient_name,
-            'destination' => trim(($shipment->recipient_city ?? '') . ', ' . ($shipment->recipient_country ?? ''), ', '),
-            'service' => $shipment->type_service,
-            'weight' => $shipment->poids,
-        ]);
-
-        try {
-            $labelService = new LabelPdfService;
-            $reflection = new \ReflectionClass($labelService);
-            $qrMethod = $reflection->getMethod('qrCodeDataUri');
-            $qrMethod->setAccessible(true);
-            $qrCodeDataUri = $qrMethod->invoke($labelService, $shipment);
-            $logoDataUri = LabelPdfService::staticLogoDataUri();
-        } catch (\Throwable $e) {
-            $qr = new \Endroid\QrCode\QrCode($qrPayload, encoding: new \Endroid\QrCode\Encoding\Encoding('UTF-8'), size: 150, margin: 0);
-            $qrCodeDataUri = (new \Endroid\QrCode\Writer\PngWriter)->write($qr)->getDataUri();
-        }
-
-        return response()->view('pdfs.label', [
-            'shipment' => $shipment,
-            'barcodeDataUri' => $barcodeDataUri,
-            'qrCodeDataUri' => $qrCodeDataUri,
-            'logoDataUri' => $logoDataUri ?? LabelPdfService::staticLogoDataUri(),
-        ])->header('Content-Type', 'text/html');
+        return response()
+            ->view('pdfs.label', $this->labelViewData($shipment))
+            ->header('Content-Type', 'text/html');
     }
 
     public function labelInline(Request $request, Shipment $shipment)
+    {
+        $this->authorizeAccess($request, $shipment);
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdfs.label-print', $this->labelViewData($shipment))
+            ->setPaper('a4', 'landscape');
+
+        return $pdf->stream("etiquette-{$shipment->shipping_number}.pdf");
+    }
+
+    /**
+     * Barcode, QR code and logo data URIs shared by every label rendering endpoint.
+     */
+    private function labelViewData(Shipment $shipment): array
+    {
+        $shipment->load('client', 'provider', 'colis');
+
+        $barcode = new \Picqer\Barcode\BarcodeGeneratorPNG;
+        $barcodePng = $barcode->getBarcode($shipment->shipping_number, \Picqer\Barcode\BarcodeGeneratorPNG::TYPE_CODE_128, 2, 60);
+
+        try {
+            $qrCodeDataUri = (new LabelPdfService)->qrCodeDataUri($shipment);
+        } catch (\Throwable $e) {
+            // Le payload complet peut depasser la capacite d'un QR code (adresses
+            // tres longues) : on retombe sur un payload minimal plutot que d'echouer.
+            report($e);
+            $qrPayload = json_encode([
+                'shipping_number' => $shipment->shipping_number,
+                'sender_name' => $shipment->sender_name,
+                'recipient_name' => $shipment->recipient_name,
+                'destination' => trim(($shipment->recipient_city ?? '') . ', ' . ($shipment->recipient_country ?? ''), ', '),
+                'service' => $shipment->type_service,
+            ]);
+            $qr = new \Endroid\QrCode\QrCode($qrPayload, encoding: new \Endroid\QrCode\Encoding\Encoding('UTF-8'), size: 250, margin: 0);
+            $qrCodeDataUri = (new \Endroid\QrCode\Writer\PngWriter)->write($qr)->getDataUri();
+        }
+
+        return [
+            'shipment' => $shipment,
+            'barcodeDataUri' => 'data:image/png;base64,' . base64_encode($barcodePng),
+            'qrCodeDataUri' => $qrCodeDataUri,
+            'logoDataUri' => LabelPdfService::staticLogoDataUri(),
+        ];
+    }
+
+    private function authorizeAccess(Request $request, Shipment $shipment): void
     {
         $user = $request->user();
         if ($user->role === 'client' && (int) $shipment->client_id !== (int) $user->client->id) {
@@ -380,42 +362,6 @@ class ShipmentController extends Controller
         if ($user->role === 'prestataire' && $shipment->provider_id !== $user->provider->id) {
             abort(403, 'Acces refuse.');
         }
-
-        $shipment->load('client', 'provider');
-
-        $barcode = new \Picqer\Barcode\BarcodeGeneratorPNG;
-        $barcodePng = $barcode->getBarcode($shipment->shipping_number, \Picqer\Barcode\BarcodeGeneratorPNG::TYPE_CODE_128, 2, 60);
-        $barcodeDataUri = 'data:image/png;base64,' . base64_encode($barcodePng);
-
-        $qrPayload = json_encode([
-            'shipping_number' => $shipment->shipping_number,
-            'sender_name' => $shipment->sender_name,
-            'recipient_name' => $shipment->recipient_name,
-            'destination' => trim(($shipment->recipient_city ?? '') . ', ' . ($shipment->recipient_country ?? ''), ', '),
-            'service' => $shipment->type_service,
-            'weight' => $shipment->poids,
-        ]);
-
-        try {
-            $labelService = new LabelPdfService;
-            $reflection = new \ReflectionClass($labelService);
-            $qrMethod = $reflection->getMethod('qrCodeDataUri');
-            $qrMethod->setAccessible(true);
-            $qrCodeDataUri = $qrMethod->invoke($labelService, $shipment);
-            $logoDataUri = LabelPdfService::staticLogoDataUri();
-        } catch (\Throwable $e) {
-            $qr = new \Endroid\QrCode\QrCode($qrPayload, encoding: new \Endroid\QrCode\Encoding\Encoding('UTF-8'), size: 150, margin: 0);
-            $qrCodeDataUri = (new \Endroid\QrCode\Writer\PngWriter)->write($qr)->getDataUri();
-        }
-
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdfs.label-print', [
-            'shipment' => $shipment,
-            'barcodeDataUri' => $barcodeDataUri,
-            'qrCodeDataUri' => $qrCodeDataUri,
-            'logoDataUri' => $logoDataUri ?? LabelPdfService::staticLogoDataUri(),
-        ])->setPaper('a4', 'landscape');
-
-        return $pdf->stream("etiquette-{$shipment->shipping_number}.pdf");
     }
 
     private function rules(): array
@@ -464,7 +410,7 @@ class ShipmentController extends Controller
     {
         $hasColisArray = ! empty($request->input('colis'));
         $hasFlatFields = $request->filled(['poids', 'longueur', 'largeur', 'hauteur']);
-        
+
         if (! $hasColisArray && ! $hasFlatFields) {
             throw \Illuminate\Validation\ValidationException::withMessages([
                 'colis' => ['Veuillez fournir au moins un colis (via la liste colis ou les champs poids/longueur/largeur/hauteur).'],

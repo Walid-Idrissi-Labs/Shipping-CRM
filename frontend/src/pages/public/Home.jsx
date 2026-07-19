@@ -18,6 +18,43 @@ import {
   Building2,
 } from 'lucide-react';
 
+// Hero background map — cities (x/y in % of the map box) and flight routes.
+const HERO_CITIES = [
+  { x: 16, y: 30, c: 'primary' },
+  { x: 28, y: 38, c: 'green', lg: true },
+  { x: 22, y: 55, c: 'primary' },
+  { x: 38, y: 29, c: 'green' },
+  { x: 44, y: 46, c: 'primary', lg: true },
+  { x: 35, y: 63, c: 'green' },
+  { x: 53, y: 39, c: 'primary' },
+  { x: 60, y: 52, c: 'green', lg: true },
+  { x: 68, y: 33, c: 'primary' },
+  { x: 74, y: 59, c: 'green' },
+  { x: 81, y: 42, c: 'primary', lg: true },
+  { x: 89, y: 51, c: 'green' },
+  { x: 64, y: 69, c: 'primary' },
+];
+
+const HERO_FLIGHTS = [
+  { a: 1, b: 4, c: 'green', dur: 5.4, delay: 0 },
+  { a: 4, b: 7, c: 'primary', dur: 6.2, delay: 1.1 },
+  { a: 7, b: 10, c: 'green', dur: 5.8, delay: 2.4 },
+  { a: 0, b: 4, c: 'primary', dur: 7.1, delay: 0.6 },
+  { a: 4, b: 8, c: 'green', dur: 6.5, delay: 3.0 },
+  { a: 7, b: 12, c: 'primary', dur: 5.0, delay: 1.8 },
+  { a: 10, b: 11, c: 'green', dur: 4.6, delay: 3.6 },
+];
+
+// Quadratic-bezier arc between two cities, bowed upward like a flight path.
+const heroArc = (a, b) => {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const lift = Math.hypot(dx, dy) * 0.42 + 5;
+  const cx = (a.x + b.x) / 2;
+  const cy = Math.min(a.y, b.y) - lift;
+  return `M ${a.x} ${a.y} Q ${cx} ${cy} ${b.x} ${b.y}`;
+};
+
 export default function LandingPage() {
   const revealRef = useRef(null);
   const navigate = useNavigate();
@@ -173,8 +210,6 @@ export default function LandingPage() {
           border: 1px solid transparent;
           transition: transform 200ms ease, background 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
         }
-        .lp-root .lp-btn svg { transition: transform 200ms ease; }
-        .lp-root .lp-btn:hover svg { transform: translateX(2px); }
         .lp-root .lp-btn-primary {
           background: var(--color-primary);
           color: #fff;
@@ -273,10 +308,42 @@ export default function LandingPage() {
           opacity: 0.35;
           animation: lpPulse 2.8s ease-out infinite;
         }
+        .lp-map-hub--lg { width: 12px; height: 12px; }
         @keyframes lpPulse {
           0% { transform: scale(1); opacity: 0.5; }
           70% { transform: scale(3.4); opacity: 0; }
           100% { transform: scale(3.4); opacity: 0; }
+        }
+
+        /* --- Flight routes --- */
+        .lp-map-flights {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          overflow: visible;
+        }
+        .lp-flight-line {
+          fill: none;
+          stroke: rgba(37, 68, 176, 0.2);
+          stroke-width: 1;
+          stroke-linecap: round;
+          vector-effect: non-scaling-stroke;
+        }
+        .lp-flight-comet {
+          fill: none;
+          stroke-width: 2;
+          stroke-linecap: round;
+          vector-effect: non-scaling-stroke;
+          stroke-dasharray: 2.6 97.4;
+          stroke-dashoffset: 100;
+          animation: lpFlight linear infinite;
+        }
+        @keyframes lpFlight {
+          0%   { stroke-dashoffset: 100; opacity: 0; }
+          8%   { opacity: 1; }
+          92%  { opacity: 1; }
+          100% { stroke-dashoffset: 0; opacity: 0; }
         }
 
         .lp-hero-grid {
@@ -766,6 +833,7 @@ export default function LandingPage() {
           .lp-root [data-reveal] { opacity: 1; transform: none; transition: none; }
           .lp-band-ico { opacity: 1; transform: none; transition: none; }
           .lp-map-hub::before { animation: none; }
+          .lp-flight-comet { animation: none; opacity: 0; }
         }
 
         /* ========================================================= RESPONSIVE */
@@ -816,10 +884,48 @@ export default function LandingPage() {
         <div className="lp-hero-map" aria-hidden="true">
           <div className="lp-map-layer lp-map-tint" />
           <div className="lp-map-layer lp-map-dots" />
-          <span className="lp-map-hub" style={{ top: '34%', left: '30%', background: 'var(--color-primary)' }} />
-          <span className="lp-map-hub" style={{ top: '46%', left: '52%', background: 'var(--color-vivid-green)' }} />
-          <span className="lp-map-hub" style={{ top: '58%', left: '68%', background: 'var(--color-primary)' }} />
-          <span className="lp-map-hub" style={{ top: '40%', left: '80%', background: 'var(--color-vivid-green)' }} />
+
+          <svg
+            className="lp-map-flights"
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            {HERO_FLIGHTS.map((f, i) => {
+              const d = heroArc(HERO_CITIES[f.a], HERO_CITIES[f.b]);
+              const stroke =
+                f.c === 'green' ? 'var(--color-vivid-green)' : 'var(--color-primary)';
+              return (
+                <g key={i}>
+                  <path className="lp-flight-line" d={d} pathLength="100" />
+                  <path
+                    className="lp-flight-comet"
+                    d={d}
+                    pathLength="100"
+                    style={{
+                      stroke,
+                      animationDuration: `${f.dur}s`,
+                      animationDelay: `${f.delay}s`,
+                      filter: `drop-shadow(0 0 4px ${stroke})`,
+                    }}
+                  />
+                </g>
+              );
+            })}
+          </svg>
+
+          {HERO_CITIES.map((city, i) => (
+            <span
+              key={i}
+              className={`lp-map-hub${city.lg ? ' lp-map-hub--lg' : ''}`}
+              style={{
+                top: `${city.y}%`,
+                left: `${city.x}%`,
+                background:
+                  city.c === 'green' ? 'var(--color-vivid-green)' : 'var(--color-primary)',
+              }}
+            />
+          ))}
         </div>
 
         <div className="lp-container lp-hero-grid">

@@ -6,7 +6,9 @@ import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
 import StatusBadge from '../../components/ui/StatusBadge';
 import SortHeader from '../../components/ui/SortHeader';
+import Pagination from '../../components/ui/Pagination';
 import { useColumnSort } from '../../hooks/useColumnSort';
+import { useUrlPage } from '../../hooks/useUrlPage';
 import { useToast } from '../../contexts/ToastContext';
 import Skeleton from '../../components/ui/Skeleton';
 import EmptyState from '../../components/ui/EmptyState';
@@ -22,16 +24,20 @@ export default function Assignments() {
     const statut = searchParams.get('statut') || '';
     const [assignments, setAssignments] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [meta, setMeta] = useState({ lastPage: 1, total: 0, perPage: 25 });
+    const { page, setPage, resetPage } = useUrlPage();
     const { column, direction, toggle, params: sortParams } = useColumnSort('date_heure_depart', 'desc');
     const toast = useToast();
 
   const fetchAssignments = async () => {
     setLoading(true);
     try {
-      const params = { ...sortParams };
+      const params = { page, ...sortParams };
       if (statut) params.statut = statut;
       const { data } = await api.get('/assignments', { params });
       setAssignments(data.data || []);
+      setMeta({ lastPage: data.last_page || 1, total: data.total ?? 0, perPage: data.per_page || 25 });
+      if (data.last_page && page > data.last_page) resetPage();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Erreur');
     } finally {
@@ -42,12 +48,13 @@ export default function Assignments() {
   useEffect(() => {
     fetchAssignments();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statut, column, direction]);
+  }, [statut, column, direction, page]);
 
   const updateParam = (key, value) => {
     const next = new URLSearchParams(searchParams);
     if (value) next.set(key, value);
     else next.delete(key);
+    next.delete('page');
     setSearchParams(next, { replace: true });
   };
 
@@ -189,6 +196,11 @@ export default function Assignments() {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+        {!loading && assignments.length > 0 && (
+          <div style={{ padding: '0 16px 12px' }}>
+            <Pagination page={page} lastPage={meta.lastPage} total={meta.total} perPage={meta.perPage} onChange={setPage} />
           </div>
         )}
       </Card>

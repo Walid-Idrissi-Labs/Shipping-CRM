@@ -8,7 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 #[Fillable([
     'user_id', 'company_name', 'address', 'postal_code', 'city', 'country',
     'phone', 'website', 'email', 'ice', 'rc', 'if_', 'cnss', 'patente',
-    'logo_invoice_url'
+    'bank_name', 'bank_rib', 'bank_swift', 'bank_account_name', 'bank_agence',
+    'logo_invoice_url', 'per_page_expeditions', 'per_page_factures'
 ])]
 class Provider extends Model
 {

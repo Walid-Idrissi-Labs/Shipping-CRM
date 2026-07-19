@@ -4,10 +4,11 @@ import { LogIn, Menu, X, ChevronRight } from 'lucide-react';
 
 // Only routes that actually exist in App.jsx
 const LINKS = [
+  { to: '/qui-sommes-nous', label: 'Qui sommes-nous' },
   { to: '/suivi', label: 'Suivi' },
-  { to: '/devis-express', label: 'Devis' },
+  { to: '/devis-express', label: 'Devis express' },
+  { to: '/demande-compte', label: 'Ouvrir un compte' },
   { to: '/contact', label: 'Contact' },
-  { to: '/faq', label: 'Qui Sommes Nous?' },
 ];
 
 export default function NavBar({ onMenuClick, menuOpen = false }) {

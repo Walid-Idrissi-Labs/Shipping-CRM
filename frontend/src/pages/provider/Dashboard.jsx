@@ -25,20 +25,19 @@ const monthDelta = (current, previous) => {
   return Math.round(delta);
 };
 
-function MetricCard({ label, value, icon: Icon, accent, href, trend }) {
+const METRIC_TONES = ['primary', 'success', 'warning', 'danger'];
+
+function MetricCard({ label, value, icon: Icon, tone, href, trend }) {
+  const toneClass = `icon-tile-${METRIC_TONES.includes(tone) ? tone : 'primary'}`;
   const body = (
     <Card style={{ padding: 20, height: '100%' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
         <span
+          className={`icon-tile ${toneClass}`}
           style={{
             width: 36,
             height: 36,
             borderRadius: 8,
-            background: 'var(--color-bone)',
-            color: accent,
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
           }}
         >
           <Icon size={18} />
@@ -193,28 +192,28 @@ export default function ProviderDashboard() {
       label: 'Total Expeditions',
       value: stats?.total_shipments ?? '—',
       icon: Package,
-      accent: 'var(--color-primary)',
+      tone: 'primary',
       href: '/dashboard/expeditions',
     },
     {
       label: 'Total Clients',
       value: stats?.total_clients ?? '—',
       icon: Users,
-      accent: 'var(--color-vivid-green)',
+      tone: 'success',
       href: '/dashboard/clients',
     },
     {
       label: 'Devis en Attente',
       value: stats?.pending_quotes ?? '—',
       icon: FileText,
-      accent: 'var(--color-warning)',
+      tone: 'warning',
       href: '/dashboard/demandes-devis?statut=en_attente',
     },
     {
       label: 'Factures Impayees',
       value: stats?.unpaid_invoices ?? '—',
       icon: Receipt,
-      accent: 'var(--color-danger)',
+      tone: 'danger',
       href: '/dashboard/factures?tab=factures&statut=impayee',
     },
   ];
@@ -245,7 +244,7 @@ export default function ProviderDashboard() {
             label={m.label}
             value={m.value}
             icon={m.icon}
-            accent={m.accent}
+            tone={m.tone}
             href={m.href}
           />
         ))}

@@ -1,0 +1,13 @@
+{
+    "inter": {
+        "normal": "\/Users\/walididrissi\/Desktop\/Walid\/Projects\/Shipping-CRM\/ShippingCRM\/storage\/fonts\/inter_normal_9c4b071911f4f9732d26e3fa3e6bac18",
+        "500": "\/Users\/walididrissi\/Desktop\/Walid\/Projects\/Shipping-CRM\/ShippingCRM\/storage\/fonts\/inter_500_6061309b7ee6637414078debf442f82b",
+        "600": "\/Users\/walididrissi\/Desktop\/Walid\/Projects\/Shipping-CRM\/ShippingCRM\/storage\/fonts\/inter_600_5d37ccff6fe91753bcc31b881f3dc2ba",
+        "bold": "inter_bold_85b0bd261f60f44364b6f4aa4ffbd825"
+    },
+    "fraunces": {
+        "normal": "\/Users\/walididrissi\/Desktop\/Walid\/Projects\/Shipping-CRM\/ShippingCRM\/storage\/fonts\/fraunces_normal_c6b0bde4b91fffc35c435c3b1c6d7564",
+        "600": "\/Users\/walididrissi\/Desktop\/Walid\/Projects\/Shipping-CRM\/ShippingCRM\/storage\/fonts\/fraunces_600_df15d871d229a683cae29274ca40f83f",
+        "italic": "fraunces_italic_a72087d555062c6d7bc77300f425c5ab"
+    }
+}

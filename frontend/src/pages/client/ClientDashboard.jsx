@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Package, Receipt, Wallet,
-  ArrowUpRight, CircleCheck, Clock,
+  ArrowUpRight, Clock,
   ChevronRight, FileText, FileCheck2, Truck, Plus, UserRoundCog, Box,
 } from 'lucide-react';
 import api from '../../api/axios';
@@ -11,23 +11,10 @@ import StatusBadge from '../../components/ui/StatusBadge';
 import PageHeader from '../../components/ui/PageHeader';
 import EmptyState from '../../components/ui/EmptyState';
 import Skeleton from '../../components/ui/Skeleton';
-
-function formatDate(d) {
-  if (!d) return '-';
-  return new Date(d).toLocaleDateString('fr-FR', {
-    day: '2-digit', month: 'short', year: 'numeric',
-  });
-}
-
-function formatCurrency(value) {
-  const num = Number(value || 0);
-  return new Intl.NumberFormat('fr-FR', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(num) + ' DH';
-}
+import { formatDate, formatMoney, getInvoiceNumber } from '../../lib/format';
 
 export default function ClientDashboard() {
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -60,7 +47,7 @@ export default function ClientDashboard() {
         <StatCard
           loading={loading}
           icon={Package}
-          label="Expeditions en Cours"
+          label="Expéditions en cours"
           value={loading ? null : (stats?.total_shipments ?? 0)}
           accentColor="primary"
           href="/client/mes-expeditions"
@@ -70,14 +57,14 @@ export default function ClientDashboard() {
           icon={Receipt}
           label="Factures en attente"
           value={loading ? null : (stats?.total_invoices ?? 0)}
-          accentColor="iron"
+          accentColor="warning"
           href="/client/mes-factures?statut=impayee"
         />
         <StatCard
           loading={loading}
           icon={Wallet}
-          label="Solde Impaye"
-          value={loading ? null : formatCurrency(stats?.unpaid_total ?? 0)}
+          label="Solde impayé"
+          value={loading ? null : formatMoney(stats?.unpaid_total ?? 0)}
           accentColor="danger"
           href="/client/mes-factures?statut=impayee"
           isCurrency
@@ -85,9 +72,9 @@ export default function ClientDashboard() {
         <StatCard
           loading={loading}
           icon={Clock}
-          label="Derniere Activite"
+          label="Dernière activité"
           value={loading ? null : formatDate(lastShipmentDate)}
-          accentColor="success"
+          accentColor="iron"
           isDate
         />
       </div>
@@ -102,10 +89,10 @@ export default function ClientDashboard() {
             <div>
               <h3 className="section-heading flex items-center gap-2">
                 <Truck size={18} style={{ color: 'var(--color-primary)' }} />
-                Expeditions en Cours
+                Expéditions en cours
               </h3>
               <p style={{ fontSize: 12, color: 'var(--color-steel)', marginTop: 4 }}>
-                Les expeditions actuellement en cours.
+                Les expéditions actuellement en cours.
               </p>
             </div>
             <Link
@@ -128,15 +115,15 @@ export default function ClientDashboard() {
           ) : ongoingShipments.length === 0 ? (
             <EmptyState
               icon={Package}
-              title="Aucune expedition en cours"
-              description="Vous pouvez creer une nouvelle expedition ou suivre l'etat de vos colis depuis ce tableau de bord."
+              title="Aucune expédition en cours"
+              description="Vous pouvez créer une nouvelle expédition ou suivre l'état de vos colis depuis ce tableau de bord."
             />
           ) : (
             <div className="overflow-x-auto">
               <table className="table-clean">
                 <thead>
                   <tr>
-                    <th>Numero</th>
+                    <th>Numéro</th>
                     <th>Destinataire</th>
                     <th>Statut</th>
                     <th>Date</th>
@@ -176,19 +163,19 @@ export default function ClientDashboard() {
 
         {/* Quick Actions */}
         <div className="flex flex-col gap-3">
-          <h3 className="section-heading">Acces rapide</h3>
+          <h3 className="section-heading">Accès rapide</h3>
           <QuickActionCard
             to="/client/mes-expeditions"
             icon={Box}
-            title="Toutes mes expeditions"
-            description="Liste complete avec filtres et recherche."
+            title="Toutes mes expéditions"
+            description="Liste complète avec filtres et recherche."
             accent="primary"
           />
           <QuickActionCard
             to="/client/expeditions/nouveau"
             icon={Plus}
-            title="Nouvelle expedition"
-            description="Creer un nouvel envoi."
+            title="Nouvelle expédition"
+            description="Créer un nouvel envoi."
             accent="primary"
           />
           <QuickActionCard
@@ -202,7 +189,7 @@ export default function ClientDashboard() {
             to="/client/mes-factures"
             icon={FileText}
             title="Mes factures"
-            description="Telechargez vos factures PDF."
+            description="Téléchargez vos factures PDF."
             accent="info"
           />
           <QuickActionCard
@@ -210,15 +197,8 @@ export default function ClientDashboard() {
             icon={UserRoundCog}
             title="Mon compte"
             description="Modifier mes informations."
-            accent="neutral"
+            accent="success"
           />
-          {/* <QuickActionCard
-            to="/suivi"
-            icon={Plus}
-            title="Suivi public"
-            description="Suivre un colis sans se connecter."
-            accent="neutral"
-          /> */}
         </div>
       </div>
 
@@ -231,10 +211,10 @@ export default function ClientDashboard() {
           <div>
             <h3 className="section-heading flex items-center gap-2">
               <Receipt size={18} style={{ color: 'var(--color-primary)' }} />
-              Factures en Attente
+              Factures en attente
             </h3>
             <p style={{ fontSize: 12, color: 'var(--color-steel)', marginTop: 4 }}>
-              Les factures en attente de reglement.
+              Les factures en attente de règlement.
             </p>
           </div>
           <Link
@@ -257,15 +237,16 @@ export default function ClientDashboard() {
         ) : unpaidInvoices.length === 0 ? (
           <EmptyState
             icon={Receipt}
+            tone="success"
             title="Aucune facture en attente"
-            description="Aucune facture n'est en attente de reglement pour le moment."
+            description="Aucune facture n'est en attente de règlement pour le moment."
           />
         ) : (
           <div className="overflow-x-auto">
             <table className="table-clean">
               <thead>
                 <tr>
-                  <th>Numero</th>
+                  <th>Numéro</th>
                   <th>Date</th>
                   <th>Montant TTC</th>
                   <th>Statut</th>
@@ -285,13 +266,13 @@ export default function ClientDashboard() {
                         onClick={(e) => e.stopPropagation()}
                         style={{ color: 'var(--color-primary)', fontWeight: 500 }}
                       >
-                        {inv.numero || `FA ${inv.numero_n}/${inv.annee}`}
+                        {getInvoiceNumber(inv)}
                       </Link>
                     </td>
                     <td>{formatDate(inv.date_facture)}</td>
-                    <td style={{ fontWeight: 600 }}>{formatCurrency(inv.ttc)}</td>
+                    <td style={{ fontWeight: 600 }}>{formatMoney(inv.ttc)}</td>
                     <td>
-                      <InvoiceStatusPill status={inv.statut} />
+                      <StatusBadge status={inv.statut} variant="left" />
                     </td>
                     <td>
                       <a
@@ -317,13 +298,7 @@ export default function ClientDashboard() {
 }
 
 function StatCard({ icon: Icon, label, value, accentColor, href, loading, isCurrency, isDate }) {
-  const colorMap = {
-    primary: { bg: 'var(--color-primary-wash)', fg: 'var(--color-primary)' },
-    success: { bg: '#dcfce7', fg: '#15803d' },
-    danger: { bg: 'var(--color-danger-container)', fg: 'var(--color-danger)' },
-    iron: { bg: 'var(--color-bone)', fg: 'var(--color-graphite)' },
-  };
-  const colors = colorMap[accentColor] || colorMap.primary;
+  const toneClass = `icon-tile-${['primary', 'success', 'warning', 'danger'].includes(accentColor) ? accentColor : 'neutral'}`;
 
   return (
     <Card className="p-5 transition-all" style={{ height: '100%' }}>
@@ -360,11 +335,8 @@ function StatCard({ icon: Icon, label, value, accentColor, href, loading, isCurr
           )}
         </div>
         <div
-          className="flex items-center justify-center shrink-0"
-          style={{
-            width: 40, height: 40, borderRadius: 9999,
-            background: colors.bg, color: colors.fg,
-          }}
+          className={`icon-tile ${toneClass}`}
+          style={{ width: 40, height: 40, borderRadius: 9999 }}
         >
           <Icon size={20} />
         </div>
@@ -386,22 +358,14 @@ function StatCard({ icon: Icon, label, value, accentColor, href, loading, isCurr
 }
 
 function QuickActionCard({ to, icon: Icon, title, description, accent }) {
-  const accents = {
-    primary: { bg: 'var(--color-primary-wash)', fg: 'var(--color-primary)' },
-    info: { bg: '#e0f2fe', fg: '#0369a1' },
-    neutral: { bg: 'var(--color-bone)', fg: 'var(--color-graphite)' },
-  };
-  const a = accents[accent] || accents.primary;
+  const toneClass = `icon-tile-${['primary', 'success', 'warning', 'danger'].includes(accent) ? accent : accent === 'info' ? 'primary' : 'neutral'}`;
   return (
     <Link to={to} className="block" style={{ textDecoration: 'none' }}>
       <Card className="p-4 transition-all hover:shadow-md hover:scale-[1.02]" style={{ cursor: 'pointer' }}>
         <div className="flex items-start gap-3">
           <div
-            className="flex items-center justify-center shrink-0"
-            style={{
-              width: 36, height: 36, borderRadius: 8,
-              background: a.bg, color: a.fg,
-            }}
+            className={`icon-tile ${toneClass}`}
+            style={{ width: 36, height: 36, borderRadius: 8 }}
           >
             <Icon size={18} />
           </div>
@@ -416,27 +380,9 @@ function QuickActionCard({ to, icon: Icon, title, description, accent }) {
   );
 }
 
-function InvoiceStatusPill({ status }) {
-  if (status === 'payee') {
-    return (
-      <span className="pill pill-success">
-        <CircleCheck size={11} /> Payee
-      </span>
-    );
-  }
-  if (status === 'impayee') {
-    return (
-      <span className="pill pill-warning">
-        <Clock size={11} /> Impayee
-      </span>
-    );
-  }
-  return <span className="pill pill-neutral">{status || '-'}</span>;
-}
-
 function hourGreeting() {
   const h = new Date().getHours();
   if (h < 12) return 'Bonjour';
-  if (h < 18) return 'Bon apres-midi';
+  if (h < 18) return 'Bon après-midi';
   return 'Bonsoir';
 }

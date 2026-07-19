@@ -109,7 +109,7 @@ export default function ClientCreate() {
       if (demandeId && demande?.statut === 'en_attente') {
         try {
           await api.patch(`/account-requests/${demandeId}/approve`, { client_id: data.client.id });
-        } catch (err) {
+        } catch {
           toast.warning('Client cree, mais la demande n\'a pas pu etre marquee comme approuvee.');
         }
       }

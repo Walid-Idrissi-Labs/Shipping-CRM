@@ -9,10 +9,12 @@ import EmptyState from '../../components/ui/EmptyState';
 import Skeleton from '../../components/ui/Skeleton';
 import SortHeader from '../../components/ui/SortHeader';
 import SearchInput from '../../components/ui/SearchInput';
+import Pagination from '../../components/ui/Pagination';
 import { useColumnSort } from '../../hooks/useColumnSort';
+import { useUrlPage } from '../../hooks/useUrlPage';
 import { useDialog } from '../../contexts/DialogContext';
 import { useToast } from '../../contexts/ToastContext';
-import { COUNTRIES_FR, getCountryName } from '../../components/ui/CountrySelect';
+import {getCountryName} from '../../components/ui/CountrySelect';
 
 function calculateTotals(colis) {
   if (!colis?.length) return { totalWeight: 0, totalVolume: 0, totalPieces: 0 };
@@ -50,18 +52,22 @@ export default function QuoteRequests() {
   const [detailLoading, setDetailLoading] = useState(false);
   const dialog = useDialog();
   const toast = useToast();
+  const [meta, setMeta] = useState({ lastPage: 1, total: 0, perPage: 25 });
+  const { page, setPage, resetPage } = useUrlPage();
   const { column, direction, toggle, params: sortParams } = useColumnSort('created_at', 'desc');
 
   useEffect(() => {
     fetchRequests();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, statut, column, direction]);
+  }, [q, statut, column, direction, page]);
 
   const fetchRequests = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get('/quote-requests', { params: { search: q, statut, ...sortParams } });
+      const { data } = await api.get('/quote-requests', { params: { search: q, statut, page, ...sortParams } });
       setRequests(data.data || []);
+      setMeta({ lastPage: data.last_page || 1, total: data.total ?? 0, perPage: data.per_page || 25 });
+      if (data.last_page && page > data.last_page) resetPage();
     } finally {
       setLoading(false);
     }
@@ -71,6 +77,7 @@ export default function QuoteRequests() {
     const next = new URLSearchParams(searchParams);
     if (value) next.set(key, value);
     else next.delete(key);
+    next.delete('page');
     setSearchParams(next, { replace: true });
   };
 
@@ -80,6 +87,7 @@ export default function QuoteRequests() {
     const next = new URLSearchParams(searchParams);
     next.delete('q');
     next.delete('statut');
+    next.delete('page');
     setSearchParams(next, { replace: true });
   };
 
@@ -105,7 +113,7 @@ export default function QuoteRequests() {
     try {
       const { data } = await api.get(`/quote-requests/${id}`);
       setDetailRequest(data);
-    } catch (err) {
+    } catch {
       toast.push('Impossible de charger les details.', 'error');
     } finally {
       setDetailLoading(false);
@@ -124,15 +132,6 @@ export default function QuoteRequests() {
   const formatDateTime = (dateStr) => {
     if (!dateStr) return '-';
     return new Date(dateStr).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-  };
-
-  const buildAddress = (addr) => {
-    const parts = [
-      addr.recipient_address,
-      [addr.recipient_postal_code, addr.recipient_city].filter(Boolean).join(' '),
-      addr.recipient_country,
-    ].filter(Boolean);
-    return parts.join(', ') || '-';
   };
 
   const buildDimensions = (r) => {
@@ -273,6 +272,11 @@ export default function QuoteRequests() {
             </tbody>
           </table>
         )}
+        {!loading && requests.length > 0 && (
+          <div style={{ padding: '0 16px 12px' }}>
+            <Pagination page={page} lastPage={meta.lastPage} total={meta.total} perPage={meta.perPage} onChange={setPage} />
+          </div>
+        )}
       </Card>
 
       {/* Detail Panel Modal */}
@@ -386,7 +390,7 @@ export default function QuoteRequests() {
                                 alignItems: 'center',
                                 gap: '6px 12px',
                                 padding: '8px 12px',
-                                background: 'var(--color-bg, #f8f9fb)',
+                                background: 'var(--color-bone)',
                                 borderRadius: 6,
                                 border: '1px solid var(--color-ash)',
                                 marginBottom: 6,
@@ -426,7 +430,7 @@ export default function QuoteRequests() {
                               <div style={{
                                 marginTop: 12,
                                 padding: '12px 14px',
-                                background: 'var(--color-bg, #f8f9fb)',
+                                background: 'var(--color-bone)',
                                 borderRadius: 8,
                                 border: '1px solid var(--color-ash)',
                                 display: 'flex',

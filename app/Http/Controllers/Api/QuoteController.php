@@ -208,13 +208,17 @@ class QuoteController extends Controller
         return response()->json(['message' => 'Devis cree.', 'quote' => $quote->load('client', 'colis')], 201);
     }
 
-    public function show(Quote $quote)
+    public function show(Request $request, Quote $quote)
     {
+        $this->authorizeAccess($request, $quote);
+
         return response()->json($quote->load('client', 'shipment', 'request', 'colis'));
     }
 
     public function update(Request $request, Quote $quote)
     {
+        $this->authorizeAccess($request, $quote);
+
         if ($quote->statut !== 'envoye') {
             return response()->json(['message' => 'Seuls les devis en statut envoye peuvent etre modifies.'], 422);
         }
@@ -263,6 +267,8 @@ class QuoteController extends Controller
 
     public function updateStatus(Request $request, Quote $quote)
     {
+        $this->authorizeAccess($request, $quote);
+
         $validated = $request->validate([
             'statut' => ['required', 'in:envoye,accepte,refuse'],
         ]);
@@ -272,8 +278,10 @@ class QuoteController extends Controller
         return response()->json(['message' => 'Statut mis a jour.', 'quote' => $quote->fresh()->load('colis')]);
     }
 
-    public function destroy(Quote $quote)
+    public function destroy(Request $request, Quote $quote)
     {
+        $this->authorizeAccess($request, $quote);
+
         $quote->delete();
 
         return response()->json(['message' => 'Devis supprime.']);
@@ -281,6 +289,8 @@ class QuoteController extends Controller
 
     public function generateLink(Request $request, Quote $quote)
     {
+        $this->authorizeAccess($request, $quote);
+
         if ($quote->statut !== 'accepte') {
             return response()->json(['message' => 'Seuls les devis acceptes peuvent generer un lien.'], 422);
         }
@@ -309,6 +319,8 @@ class QuoteController extends Controller
 
     public function cancelLink(Request $request, Quote $quote)
     {
+        $this->authorizeAccess($request, $quote);
+
         if ($quote->client_id) {
             return response()->json(['message' => 'Ce devis appartient a un client connecte.'], 422);
         }
@@ -319,6 +331,13 @@ class QuoteController extends Controller
         ]);
 
         return response()->json(['message' => 'Lien annule.']);
+    }
+
+    private function authorizeAccess(Request $request, Quote $quote): void
+    {
+        if ($quote->provider_id !== $request->user()->provider->id) {
+            abort(403, 'Acces refuse.');
+        }
     }
 
     private function rules(): array

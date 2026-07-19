@@ -81,8 +81,13 @@ function isGroupActive(group, pathname, search) {
 function isChildActive(child, pathname, search) {
   // For child paths that match the parent path exactly (e.g., /dashboard/employes)
   // Only match exactly, not with startsWith
-  if (child.path === '/dashboard/employes' || child.path === '/dashboard/factures') {
+  if (child.path === '/dashboard/employes') {
     return pathname === child.path;
+  }
+  // The Factures tab shares its pathname with the Avoirs tab (which adds ?tab=avoirs),
+  // so it is only active on the default view — i.e. when no ?tab param is present.
+  if (child.path === '/dashboard/factures') {
+    return pathname === child.path && !new URLSearchParams(search).has('tab');
   }
   if (pathname.startsWith(child.path + '/')) return true;
   const [basePath, queryString] = child.path.split('?');

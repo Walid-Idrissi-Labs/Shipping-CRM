@@ -1,36 +1,20 @@
+import { useMinLoading } from '../../hooks';
 import { useState, useEffect, useCallback } from 'react';
 import api from '../../api/axios';
 import StatusBadge from '../../components/ui/StatusBadge';
 import { FormField } from '../../components/ui/Form';
-import { ChevronLeft, ChevronRight, ArrowRight, SlidersHorizontal, Search, X } from 'lucide-react';
-
-const STATUS_LABELS = {
-  information_recue: 'Information Reçue',
-  ramasse: 'Ramassé',
-  en_transit: 'En Transit',
-  en_cours: 'En Cours',
-  livre: 'Livré',
-  en_cours_de_livraison: 'En cours de livraison',
-  tentative_de_livraison: 'Tentative de livraison',
-  on_hold: 'On Hold',
-  retour: 'Retour',
-};
+import Pagination from '../../components/ui/Pagination';
+import { useUrlPage } from '../../hooks/useUrlPage';
+import { ArrowRight, SlidersHorizontal, Search, X } from 'lucide-react';
+import { statusLabel } from '../../lib/statuses';
+import { formatDateTime } from '../../lib/format';
+import PageLoader from '../../components/ui/PageLoader';
 
 function labelFor(status) {
-  if (!status) return null;
-  return STATUS_LABELS[status] || status.replace(/_/g, ' ');
+  return status ? statusLabel(status) : null;
 }
 
-function formatDate(iso) {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleString('fr-FR', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
+const formatDate = formatDateTime;
 
 /** old → new status, with the sub-status shown underneath when it changed. */
 function StatusFlow({ item }) {
@@ -55,8 +39,11 @@ function StatusFlow({ item }) {
 export default function MonHistorique() {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
+  const showLoader = useMinLoading(loading);
+  const [error, setError] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, per_page: 25, total: 0 });
+  const [meta, setMeta] = useState({ lastPage: 1, total: 0, perPage: 25 });
+  const { page, setPage, resetPage } = useUrlPage();
   const [filters, setFilters] = useState({
     search: '',
     date_from: '',
@@ -65,30 +52,25 @@ export default function MonHistorique() {
 
   const fetchHistory = useCallback(async () => {
     setLoading(true);
+    setError(false);
     try {
-      const params = new URLSearchParams({
-        page: pagination.current_page,
-        limit: pagination.per_page,
-      });
+      const params = new URLSearchParams({ page });
       if (filters.search) params.append('search', filters.search);
       if (filters.date_from) params.append('date_from', filters.date_from);
       if (filters.date_to) params.append('date_to', filters.date_to);
 
       const { data } = await api.get(`/employe/history?${params.toString()}`);
       setHistory(data.data || []);
-      setPagination((prev) => ({
-        ...prev,
-        current_page: data.current_page,
-        last_page: data.last_page,
-        per_page: data.per_page,
-        total: data.total,
-      }));
-    } catch (err) {
-      console.error('Failed to fetch history:', err);
+      setMeta({ lastPage: data.last_page || 1, total: data.total ?? 0, perPage: data.per_page || 25 });
+      if (data.last_page && page > data.last_page) resetPage();
+    } catch {
+      setError(true);
+      setHistory([]);
     } finally {
       setLoading(false);
     }
-  }, [pagination.current_page, pagination.per_page, filters]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, filters]);
 
   useEffect(() => {
     fetchHistory();
@@ -96,14 +78,7 @@ export default function MonHistorique() {
 
   const handleFilterChange = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
-    setPagination((prev) => ({ ...prev, current_page: 1 }));
-  };
-
-  const handlePageChange = (page) => {
-    if (page >= 1 && page <= pagination.last_page) {
-      setPagination((prev) => ({ ...prev, current_page: page }));
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    resetPage();
   };
 
   const datesActive = Boolean(filters.date_from || filters.date_to);
@@ -115,8 +90,8 @@ export default function MonHistorique() {
           Mon historique
         </h1>
         <p style={{ fontSize: 14, color: 'var(--color-steel)', marginTop: 4 }}>
-          {pagination.total > 0
-            ? `${pagination.total} modification${pagination.total > 1 ? 's' : ''} de statut`
+          {meta.total > 0
+            ? `${meta.total} modification${meta.total > 1 ? 's' : ''} de statut`
             : 'Vos changements de statut'}
         </p>
       </div>
@@ -228,10 +203,19 @@ export default function MonHistorique() {
         </div>
       )}
 
-      {loading && history.length === 0 ? (
-        <div style={{ padding: 48, textAlign: 'center', color: 'var(--color-steel)' }}>
-          <div className="truck-loader" style={{ margin: '0 auto 16px' }} />
-          <p>Chargement de l'historique...</p>
+      {showLoader && history.length === 0 ? (
+        <PageLoader variant="table" embedded />
+      ) : error ? (
+        <div style={{ padding: '48px 16px', textAlign: 'center' }}>
+          <p style={{ fontSize: 16, color: 'var(--color-graphite)', marginBottom: 6 }}>
+            Impossible de charger l'historique
+          </p>
+          <p style={{ fontSize: 14, color: 'var(--color-steel)', marginBottom: 16 }}>
+            Vérifiez votre connexion et réessayez.
+          </p>
+          <button type="button" onClick={fetchHistory} className="btn btn-secondary" style={{ minHeight: 44 }}>
+            Réessayer
+          </button>
         </div>
       ) : history.length === 0 ? (
         <div style={{ padding: '48px 16px', textAlign: 'center' }}>
@@ -321,39 +305,7 @@ export default function MonHistorique() {
             </table>
           </div>
 
-          {pagination.last_page > 1 && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 12,
-                padding: '20px 0 8px',
-              }}
-            >
-              <button
-                onClick={() => handlePageChange(pagination.current_page - 1)}
-                disabled={pagination.current_page === 1}
-                className="btn btn-secondary"
-                aria-label="Page précédente"
-                style={{ minHeight: 44, paddingLeft: 16, paddingRight: 16 }}
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <span style={{ fontSize: 14, color: 'var(--color-iron)', minWidth: 90, textAlign: 'center' }}>
-                Page {pagination.current_page} / {pagination.last_page}
-              </span>
-              <button
-                onClick={() => handlePageChange(pagination.current_page + 1)}
-                disabled={pagination.current_page === pagination.last_page}
-                className="btn btn-secondary"
-                aria-label="Page suivante"
-                style={{ minHeight: 44, paddingLeft: 16, paddingRight: 16 }}
-              >
-                <ChevronRight size={16} />
-              </button>
-            </div>
-          )}
+          <Pagination page={page} lastPage={meta.lastPage} total={meta.total} perPage={meta.perPage} onChange={setPage} />
         </>
       )}
     </>

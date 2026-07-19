@@ -1,3 +1,4 @@
+import { useMinLoading } from '../../hooks';
 import { useState, useEffect, useCallback } from 'react';
 import api from '../../api/axios';
 import { useToast } from '../../contexts/ToastContext';
@@ -5,7 +6,10 @@ import { useDialog } from '../../contexts/DialogContext';
 import PageHeader from '../../components/ui/PageHeader';
 import { DataCard } from '../../components/ui/DataCard';
 import EmployeFormModal from '../../components/ui/EmployeFormModal';
-import { Plus, Edit, Trash2, Search, ChevronLeft, ChevronRight, User, X } from 'lucide-react';
+import PageLoader from '../../components/ui/PageLoader';
+import Pagination from '../../components/ui/Pagination';
+import { useUrlPage } from '../../hooks/useUrlPage';
+import { Plus, Edit, Trash2, Search, User, X } from 'lucide-react';
 
 function formatDate(iso) {
   if (!iso) return '—';
@@ -23,8 +27,10 @@ export default function Employes() {
   const dialog = useDialog();
   const [employes, setEmployes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const showLoader = useMinLoading(loading);
   const [saving, setSaving] = useState(false);
-  const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, per_page: 25, total: 0 });
+  const [meta, setMeta] = useState({ lastPage: 1, total: 0, perPage: 25 });
+  const { page, setPage, resetPage } = useUrlPage();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
@@ -33,36 +39,32 @@ export default function Employes() {
   // Without this the list refetched on every keystroke.
   useEffect(() => {
     const id = setTimeout(() => {
-      setDebouncedSearch(search);
-      setPagination((prev) => ({ ...prev, current_page: 1 }));
+      if (search !== debouncedSearch) {
+        setDebouncedSearch(search);
+        resetPage();
+      }
     }, 300);
     return () => clearTimeout(id);
-  }, [search]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, debouncedSearch]);
 
   const fetchEmployes = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({
-        page: pagination.current_page,
-        limit: pagination.per_page,
-      });
+      const params = new URLSearchParams({ page });
       if (debouncedSearch) params.append('search', debouncedSearch);
 
       const { data } = await api.get(`/admin/employes?${params.toString()}`);
       setEmployes(data.data || []);
-      setPagination((prev) => ({
-        ...prev,
-        current_page: data.current_page,
-        last_page: data.last_page,
-        per_page: data.per_page,
-        total: data.total,
-      }));
+      setMeta({ lastPage: data.last_page || 1, total: data.total ?? 0, perPage: data.per_page || 25 });
+      if (data.last_page && page > data.last_page) resetPage();
     } catch (err) {
       console.error('Failed to fetch employés:', err);
     } finally {
       setLoading(false);
     }
-  }, [pagination.current_page, pagination.per_page, debouncedSearch]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, debouncedSearch]);
 
   useEffect(() => {
     fetchEmployes();
@@ -76,12 +78,6 @@ export default function Employes() {
   const handleEdit = (employe) => {
     setEditingEmploye(employe);
     setModalOpen(true);
-  };
-
-  const handlePageChange = (page) => {
-    if (page >= 1 && page <= pagination.last_page) {
-      setPagination((prev) => ({ ...prev, current_page: page }));
-    }
   };
 
   const handleDelete = async (employe) => {
@@ -140,7 +136,7 @@ export default function Employes() {
         }
       />
 
-      <DataCard title={`Liste des employés (${pagination.total})`} padding={0}>
+      <DataCard title={`Liste des employés (${meta.total})`} padding={0}>
         <div style={{ padding: '0 16px 16px', borderBottom: '1px solid var(--color-ash)' }}>
           <div style={{ position: 'relative', maxWidth: 400 }}>
             <Search
@@ -187,11 +183,8 @@ export default function Employes() {
           </div>
         </div>
 
-        {loading && employes.length === 0 ? (
-          <div style={{ padding: 48, textAlign: 'center', color: 'var(--color-steel)' }}>
-            <div className="truck-loader" style={{ margin: '0 auto 16px' }} />
-            <p>Chargement...</p>
-          </div>
+        {showLoader && employes.length === 0 ? (
+          <PageLoader variant="table" embedded />
         ) : employes.length === 0 ? (
           <div style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--color-steel)' }}>
             <User size={40} style={{ margin: '0 auto 16px', color: 'var(--color-smoke)' }} />
@@ -301,40 +294,9 @@ export default function Employes() {
               </table>
             </div>
 
-            {pagination.last_page > 1 && (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 12,
-                  padding: 16,
-                  borderTop: '1px solid var(--color-ash)',
-                }}
-              >
-                <button
-                  onClick={() => handlePageChange(pagination.current_page - 1)}
-                  disabled={pagination.current_page === 1}
-                  className="btn btn-secondary"
-                  aria-label="Page précédente"
-                  style={{ padding: '8px 14px' }}
-                >
-                  <ChevronLeft size={16} />
-                </button>
-                <span style={{ fontSize: 14, color: 'var(--color-iron)', minWidth: 90, textAlign: 'center' }}>
-                  Page {pagination.current_page} / {pagination.last_page}
-                </span>
-                <button
-                  onClick={() => handlePageChange(pagination.current_page + 1)}
-                  disabled={pagination.current_page === pagination.last_page}
-                  className="btn btn-secondary"
-                  aria-label="Page suivante"
-                  style={{ padding: '8px 14px' }}
-                >
-                  <ChevronRight size={16} />
-                </button>
-              </div>
-            )}
+            <div style={{ padding: '0 4px' }}>
+              <Pagination page={page} lastPage={meta.lastPage} total={meta.total} perPage={meta.perPage} onChange={setPage} />
+            </div>
           </>
         )}
       </DataCard>

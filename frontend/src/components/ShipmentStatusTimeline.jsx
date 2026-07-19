@@ -1,4 +1,5 @@
-import { Check, Circle, Fullscreen } from 'lucide-react';
+import {Check, Circle} from 'lucide-react';
+import { statusVariant } from '../lib/statuses';
 
 const STATUSES = [
   { key: 'information_recue', label: 'Information Recue' },
@@ -7,6 +8,30 @@ const STATUSES = [
   { key: 'en_cours', label: 'En Cours' },
   { key: 'livre', label: 'Livre' },
 ];
+
+const VARIANT_COLOR = {
+  success: 'var(--color-vivid-green)',
+  warning: 'var(--color-warning)',
+  danger: 'var(--color-danger)',
+  info: 'var(--color-primary)',
+  neutral: 'var(--color-primary)',
+};
+
+const VARIANT_GLOW = {
+  success: 'rgba(74,198,76,0.22)',
+  warning: 'rgba(249,115,22,0.22)',
+  danger: 'rgba(186,26,26,0.22)',
+  info: 'rgba(37,68,176,0.22)',
+  neutral: 'rgba(37,68,176,0.22)',
+};
+
+function currentDotColor(statusKey) {
+  return VARIANT_COLOR[statusVariant(statusKey)] || 'var(--color-vivid-green)';
+}
+
+function currentDotGlow(statusKey) {
+  return VARIANT_GLOW[statusVariant(statusKey)] || VARIANT_GLOW.success;
+}
 
 function formatSousStatut(s) {
   return s.replace(/_/g, ' ')
@@ -34,13 +59,14 @@ function HorizontalTimeline({ events, currentIndex, sousEtapes = {} }) {
         const completed = idx <= currentIndex && currentIndex !== -1;
         const current = idx === currentIndex;
         const isLast = idx === STATUSES.length - 1;
+        const currentColor = currentDotColor(status.key);
         const dotBg = current
-          ? 'var(--color-vivid-green)'
+          ? currentColor
           : completed
             ? 'var(--color-primary)'
             : 'var(--color-bone)';
         const dotBorder = current
-          ? 'var(--color-vivid-green)'
+          ? currentColor
           : completed
             ? 'var(--color-primary)'
             : 'var(--color-ash)';
@@ -74,7 +100,7 @@ function HorizontalTimeline({ events, currentIndex, sousEtapes = {} }) {
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: 'var(--color-paper-white)',
-                boxShadow: current ? '0 0 0 6px rgba(74,198,76,0.22)' : 'none',
+                boxShadow: current ? `0 0 0 6px ${currentDotGlow(status.key)}` : 'none',
                 zIndex: 99,
               }}
             >
@@ -300,7 +326,6 @@ function VerticalTimeline({ events, currentIndex, sousEtapes = {} }) {
             <div
               style={{
                 position: 'relative',
-                zIndex: 1,
                 display: 'flex',
                 alignItems: 'flex-start',
                 gap: 20,
@@ -315,13 +340,13 @@ function VerticalTimeline({ events, currentIndex, sousEtapes = {} }) {
                   height: 28,
                   borderRadius: 9999,
                   background: current
-                    ? 'var(--color-vivid-green)'
+                    ? currentDotColor(status.key)
                     : completed
                     ? 'var(--color-primary)'
                     : 'var(--color-bone)',
                   border: `2px solid ${
                     current
-                      ? 'var(--color-vivid-green)'
+                      ? currentDotColor(status.key)
                       : completed
                       ? 'var(--color-primary)'
                       : 'var(--color-ash)'
@@ -330,7 +355,7 @@ function VerticalTimeline({ events, currentIndex, sousEtapes = {} }) {
                   alignItems: 'center',
                   justifyContent: 'center',
                   color: 'var(--color-paper-white)',
-                  boxShadow: current ? '0 0 0 4px rgba(74,198,76,0.32)' : 'none',
+                  boxShadow: current ? `0 0 0 4px ${currentDotGlow(status.key)}` : 'none',
                 }}
               >
                 {completed ? <Check size={11} strokeWidth={3} /> : <Circle size={7} fill="var(--color-smoke)" />}

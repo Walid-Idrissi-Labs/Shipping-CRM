@@ -1,4 +1,7 @@
-export default function EmptyState({ icon: Icon, title, description, actionLabel, onAction, actionTo }) {
+import { Link } from 'react-router-dom';
+
+export default function EmptyState({ icon: Icon, title, description, actionLabel, onAction, actionTo, tone }) {
+  const toneClass = `icon-tile-${['primary', 'success', 'warning', 'danger'].includes(tone) ? tone : 'neutral'}`;
   return (
     <div
       className="flex flex-col items-center justify-center text-center px-6 py-16 animate-fade-in"
@@ -6,13 +9,8 @@ export default function EmptyState({ icon: Icon, title, description, actionLabel
     >
       {Icon && (
         <div
-          className="mb-4 rounded-full flex items-center justify-center"
-          style={{
-            width: 56,
-            height: 56,
-            background: 'var(--color-bone)',
-            color: 'var(--color-iron)',
-          }}
+          className={`icon-tile ${toneClass} mb-4 rounded-full`}
+          style={{ width: 56, height: 56 }}
         >
           <Icon size={24} />
         </div>
@@ -29,9 +27,9 @@ export default function EmptyState({ icon: Icon, title, description, actionLabel
         </button>
       )}
       {actionLabel && actionTo && (
-        <a href={actionTo} className="btn btn-primary">
+        <Link to={actionTo} className="btn btn-primary">
           {actionLabel}
-        </a>
+        </Link>
       )}
     </div>
   );

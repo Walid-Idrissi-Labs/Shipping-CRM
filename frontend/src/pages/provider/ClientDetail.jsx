@@ -1,3 +1,4 @@
+import { useMinLoading } from '../../hooks';
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Copy, Eye, EyeOff, ShieldAlert, Trash2, MapPin, Truck, User, ChevronRight, Package, Receipt, CircleArrowOutUpRight, CircleArrowOutDownLeft, Edit2, X } from 'lucide-react';
@@ -9,7 +10,8 @@ import SaveStatusButton from '../../components/ui/SaveStatusButton';
 import CopyButton from '../../components/ui/CopyButton';
 import StatusBadge from '../../components/ui/StatusBadge';
 import EmptyState from '../../components/ui/EmptyState';
-import TruckLoader from '../../components/ui/TruckLoader';
+import OrbitLoader from '../../components/ui/OrbitLoader';
+import PageLoader from '../../components/ui/PageLoader';
 import { useDirtyForm } from '../../hooks/useDirtyForm';
 import { useDialog } from '../../contexts/DialogContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -50,6 +52,7 @@ export default function ClientDetail() {
   const toast = useToast();
   const [meta, setMeta] = useState({ origin_password: null, account_created_at: null });
   const [loading, setLoading] = useState(true);
+  const showLoader = useMinLoading(loading);
   const [showPassword, setShowPassword] = useState(false);
   const [copied, setCopied] = useState(false);
   const [notFound, setNotFound] = useState(false);
@@ -162,7 +165,7 @@ const [entries, setEntries] = useState([]);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  if (loading) return <div style={{ padding: 48, display: 'flex', justifyContent: 'center' }}><TruckLoader /></div>;
+  if (showLoader) return <PageLoader variant="detail" />;
   if (notFound) return <div style={{ textAlign: 'center', padding: 48, color: 'var(--color-danger)' }}>Client introuvable</div>;
 
   const client = clientForm.data;
@@ -356,7 +359,7 @@ function MissionsSection({ missions, loading, navigate, clientQuery }) {
       }
     >
       {loading ? (
-        <div style={{ padding: 24, display: 'flex', justifyContent: 'center' }}><TruckLoader /></div>
+        <div style={{ padding: 24, display: 'flex', justifyContent: 'center' }}><OrbitLoader /></div>
       ) : missions.length === 0 ? (
         <EmptyState
           icon={MapPin}
@@ -455,7 +458,7 @@ function ShipmentsSection({ shipments, loading, navigate, clientQuery }) {
       }
     >
       {loading ? (
-        <div style={{ padding: 24, display: 'flex', justifyContent: 'center' }}><TruckLoader /></div>
+        <div style={{ padding: 24, display: 'flex', justifyContent: 'center' }}><OrbitLoader /></div>
       ) : shipments.length === 0 ? (
         <EmptyState
           icon={Package}
@@ -552,7 +555,7 @@ function InvoicesSection({ entries, loading, navigate, clientQuery }) {
       }
     >
       {loading ? (
-        <div style={{ padding: 24, display: 'flex', justifyContent: 'center' }}><TruckLoader /></div>
+        <div style={{ padding: 24, display: 'flex', justifyContent: 'center' }}><OrbitLoader /></div>
       ) : entries.length === 0 ? (
         <EmptyState
           icon={Receipt}

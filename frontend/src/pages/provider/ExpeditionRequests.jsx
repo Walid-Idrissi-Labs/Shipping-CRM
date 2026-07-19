@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Search, Filter, ChevronUp, ChevronDown, Package, Eye } from 'lucide-react';
+import {Package, Eye} from 'lucide-react';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
@@ -9,7 +9,9 @@ import EmptyState from '../../components/ui/EmptyState';
 import Skeleton from '../../components/ui/Skeleton';
 import SortHeader from '../../components/ui/SortHeader';
 import SearchInput from '../../components/ui/SearchInput';
+import Pagination from '../../components/ui/Pagination';
 import { useColumnSort } from '../../hooks/useColumnSort';
+import { useUrlPage } from '../../hooks/useUrlPage';
 
 const statusOptions = [
   { value: '', label: 'Tous les statuts' },
@@ -18,10 +20,6 @@ const statusOptions = [
   { value: 'refusee', label: 'Refusee' },
 ];
 
-function formatMoney(v) {
-  const n = Number(v || 0);
-  return n.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-}
 
 export default function ExpeditionRequests() {
   const navigate = useNavigate();
@@ -30,18 +28,22 @@ export default function ExpeditionRequests() {
   const statut = searchParams.get('statut') || '';
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [meta, setMeta] = useState({ lastPage: 1, total: 0, perPage: 25 });
+  const { page, setPage, resetPage } = useUrlPage();
   const { column, direction, toggle, params: sortParams } = useColumnSort('created_at', 'desc');
 
   useEffect(() => {
     fetchRequests();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, statut, column, direction]);
+  }, [q, statut, column, direction, page]);
 
   const fetchRequests = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get('/expedition-requests', { params: { search: q, statut, ...sortParams } });
+      const { data } = await api.get('/expedition-requests', { params: { search: q, statut, page, ...sortParams } });
       setRequests(data.data || []);
+      setMeta({ lastPage: data.last_page || 1, total: data.total ?? 0, perPage: data.per_page || 25 });
+      if (data.last_page && page > data.last_page) resetPage();
     } catch (err) {
       console.error(err);
     } finally {
@@ -53,6 +55,7 @@ export default function ExpeditionRequests() {
     const next = new URLSearchParams(searchParams);
     if (value) next.set(key, value);
     else next.delete(key);
+    next.delete('page');
     setSearchParams(next, { replace: true });
   };
 
@@ -62,6 +65,7 @@ export default function ExpeditionRequests() {
     const next = new URLSearchParams(searchParams);
     next.delete('q');
     next.delete('statut');
+    next.delete('page');
     setSearchParams(next, { replace: true });
   };
 
@@ -156,6 +160,11 @@ export default function ExpeditionRequests() {
               ))}
             </tbody>
           </table>
+        )}
+        {!loading && requests.length > 0 && (
+          <div style={{ padding: '0 16px 12px' }}>
+            <Pagination page={page} lastPage={meta.lastPage} total={meta.total} perPage={meta.perPage} onChange={setPage} />
+          </div>
         )}
       </Card>
     </div>

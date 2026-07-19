@@ -1,15 +1,18 @@
+import { useMinLoading } from '../../hooks';
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Search, Plus, Truck, AlertTriangle, Clock, Trash2 } from 'lucide-react';
+import {Search, Truck, AlertTriangle, Clock, Trash2} from 'lucide-react';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
 import SortHeader from '../../components/ui/SortHeader';
 import SearchInput from '../../components/ui/SearchInput';
+import Pagination from '../../components/ui/Pagination';
 import { useColumnSort } from '../../hooks/useColumnSort';
+import { useUrlPage } from '../../hooks/useUrlPage';
 import { useToast } from '../../contexts/ToastContext';
 import { useDialog } from '../../contexts/DialogContext';
-import TruckLoader from '../../components/ui/TruckLoader';
+import PageLoader from '../../components/ui/PageLoader';
 
 const TYPE_LABELS = {
   camionnette_fourgon_leger: 'Camionnette',
@@ -66,6 +69,9 @@ export default function Vehicles() {
   const statut = searchParams.get('statut') || '';
   const [vehicules, setVehicules] = useState([]);
   const [loading, setLoading] = useState(true);
+  const showLoader = useMinLoading(loading);
+  const [meta, setMeta] = useState({ lastPage: 1, total: 0, perPage: 25 });
+  const { page, setPage, resetPage } = useUrlPage();
   const { column, direction, toggle, params: sortParams } = useColumnSort('immatriculation', 'asc');
   const toast = useToast();
   const dialog = useDialog();
@@ -73,11 +79,13 @@ export default function Vehicles() {
   const fetchVehicules = async () => {
     setLoading(true);
     try {
-      const params = { ...sortParams };
+      const params = { page, ...sortParams };
       if (q) params.search = q;
       if (statut) params.statut = statut;
       const { data } = await api.get('/vehicles', { params });
       setVehicules(data.data || []);
+      setMeta({ lastPage: data.last_page || 1, total: data.total ?? 0, perPage: data.per_page || 25 });
+      if (data.last_page && page > data.last_page) resetPage();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Erreur');
     } finally {
@@ -88,12 +96,13 @@ export default function Vehicles() {
   useEffect(() => {
     fetchVehicules();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, statut, column, direction]);
+  }, [q, statut, column, direction, page]);
 
   const updateParam = (key, value) => {
     const next = new URLSearchParams(searchParams);
     if (value) next.set(key, value);
     else next.delete(key);
+    next.delete('page');
     setSearchParams(next, { replace: true });
   };
 
@@ -103,6 +112,7 @@ export default function Vehicles() {
     const next = new URLSearchParams(searchParams);
     next.delete('q');
     next.delete('statut');
+    next.delete('page');
     setSearchParams(next, { replace: true });
   };
 
@@ -165,10 +175,10 @@ export default function Vehicles() {
               </tr>
             </thead>
             <tbody>
-              {loading ? (
+              {showLoader ? (
                 <tr>
                   <td colSpan={6} style={{ padding: 32, textAlign: 'center' }}>
-                    <TruckLoader />
+                    <PageLoader variant="table" embedded />
                   </td>
                 </tr>
               ) : vehicules.length === 0 ? (
@@ -218,6 +228,11 @@ export default function Vehicles() {
             </tbody>
           </table>
         </div>
+        {!loading && vehicules.length > 0 && (
+          <div style={{ padding: '0 16px 12px' }}>
+            <Pagination page={page} lastPage={meta.lastPage} total={meta.total} perPage={meta.perPage} onChange={setPage} />
+          </div>
+        )}
       </Card>
     </div>
   );

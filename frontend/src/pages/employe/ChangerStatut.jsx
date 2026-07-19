@@ -6,6 +6,7 @@ import { DetailRow } from '../../components/ui/DataCard';
 import StatusBadge from '../../components/ui/StatusBadge';
 import { FormField } from '../../components/ui/Form';
 import QrScannerModal from '../../components/employe/QrScannerModal';
+import { statusLabel, SHIPMENT_STATUSES, SHIPMENT_SUB_STATUSES } from '../../lib/statuses';
 import {
   ChevronDown,
   Check,
@@ -19,20 +20,8 @@ import {
   Clock,
 } from 'lucide-react';
 
-const statuses = [
-  { value: 'information_recue', label: 'Information Reçue' },
-  { value: 'ramasse', label: 'Ramassé' },
-  { value: 'en_transit', label: 'En Transit' },
-  { value: 'en_cours', label: 'En Cours' },
-  { value: 'livre', label: 'Livré' },
-];
-
-const subStatuses = [
-  { value: 'en_cours_de_livraison', label: 'En cours de livraison' },
-  { value: 'tentative_de_livraison', label: 'Tentative de livraison' },
-  { value: 'on_hold', label: 'On Hold' },
-  { value: 'retour', label: 'Retour' },
-];
+const statuses = SHIPMENT_STATUSES;
+const subStatuses = SHIPMENT_SUB_STATUSES;
 
 const REPEATABLE = ['en_cours', 'en_transit'];
 
@@ -46,11 +35,7 @@ const emptyEvent = () => ({
 });
 
 function labelFor(value) {
-  return (
-    statuses.find((s) => s.value === value)?.label ||
-    subStatuses.find((s) => s.value === value)?.label ||
-    (value || '').replace(/_/g, ' ')
-  );
+  return value ? statusLabel(value) : '';
 }
 
 function formatDateTime(iso) {
@@ -199,7 +184,7 @@ export default function ChangerStatut() {
         });
         const { data } = await api.get(`/employe/shipments/${shipment.id}`);
         setSousEtapes(data.sous_etapes || {});
-      } catch (err) {
+      } catch {
         toast("Erreur lors de l'ajout de la sous-étape", 'error');
       }
     }

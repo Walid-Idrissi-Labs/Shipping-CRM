@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { FileDown, CircleCheck, Clock, Receipt, Wallet } from 'lucide-react';
+import { FileDown, Receipt, Wallet } from 'lucide-react';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
@@ -8,32 +8,17 @@ import EmptyState from '../../components/ui/EmptyState';
 import Skeleton from '../../components/ui/Skeleton';
 import SortHeader from '../../components/ui/SortHeader';
 import SearchInput from '../../components/ui/SearchInput';
+import StatusBadge from '../../components/ui/StatusBadge';
+import Pagination from '../../components/ui/Pagination';
 import { useColumnSort } from '../../hooks/useColumnSort';
+import { useUrlPage } from '../../hooks/useUrlPage';
+import { formatDate, formatMoney, getInvoiceNumber } from '../../lib/format';
 
 const statusOptions = [
   { value: '', label: 'Tous les statuts' },
-  { value: 'impayee', label: 'Impayees' },
-  { value: 'payee', label: 'Payees' },
+  { value: 'impayee', label: 'Impayées' },
+  { value: 'payee', label: 'Payées' },
 ];
-
-function formatDate(d) {
-  if (!d) return '-';
-  return new Date(d).toLocaleDateString('fr-FR', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-  });
-}
-
-function formatCurrency(value) {
-  const num = Number(value || 0);
-  return new Intl.NumberFormat('fr-FR', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(num) + ' DH';
-}
-
-function getInvoiceNumber(inv) {
-  return inv.numero || `FA ${inv.numero_n}/${inv.annee}`;
-}
 
 export default function MyInvoices() {
   const navigate = useNavigate();
@@ -43,24 +28,28 @@ export default function MyInvoices() {
   const focusId = searchParams.get('focus');
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [meta, setMeta] = useState({ lastPage: 1, total: 0, perPage: 25 });
+  const { page, setPage, resetPage } = useUrlPage();
   const { column, direction, toggle, params: sortParams } = useColumnSort('created_at', 'desc');
 
   useEffect(() => {
     fetchInvoices();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, statut, column, direction]);
+  }, [q, statut, column, direction, page]);
 
   const fetchInvoices = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get('/my/invoices', { params: { search: q, statut, ...sortParams } });
+      const { data } = await api.get('/my/invoices', { params: { search: q, statut, page, ...sortParams } });
       setInvoices(data.data || []);
+      setMeta({ lastPage: data.last_page || 1, total: data.total ?? 0, perPage: data.per_page || 25 });
+      if (data.last_page && page > data.last_page) resetPage();
     } finally {
       setLoading(false);
     }
   };
 
-  // Top-of-page stats
+  // Top-of-page stats (computed on the visible page)
   const unpaidCount = invoices.filter((i) => i.statut === 'impayee').length;
   const totalImpaye = invoices.filter((i) => i.statut === 'impayee').reduce((acc, i) => acc + Number(i.ttc || 0), 0);
 
@@ -68,6 +57,7 @@ export default function MyInvoices() {
     const next = new URLSearchParams(searchParams);
     if (value) next.set(key, value);
     else next.delete(key);
+    next.delete('page');
     setSearchParams(next, { replace: true });
   };
 
@@ -77,6 +67,7 @@ export default function MyInvoices() {
     const next = new URLSearchParams(searchParams);
     next.delete('q');
     next.delete('statut');
+    next.delete('page');
     setSearchParams(next, { replace: true });
   };
 
@@ -86,21 +77,21 @@ export default function MyInvoices() {
     <div>
       <PageHeader
         title="Mes Factures"
-        subtitle="Consultez, telechargez et suivez vos factures."
+        subtitle="Consultez, téléchargez et suivez vos factures."
       />
 
       {/* Inline Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <SummaryStat
           icon={Receipt}
-          label="Nombre de factures impayees"
+          label="Nombre de factures impayées"
           value={unpaidCount}
           accent="primary"
         />
         <SummaryStat
           icon={Wallet}
-          label="Solde impaye"
-          value={formatCurrency(totalImpaye)}
+          label="Solde impayé"
+          value={formatMoney(totalImpaye)}
           accent="danger"
         />
       </div>
@@ -112,7 +103,7 @@ export default function MyInvoices() {
             onSearch={handleSearch}
             onClear={handleClearAll}
             loading={loading}
-            placeholder="Rechercher par numero de facture..."
+            placeholder="Rechercher par numéro de facture..."
           />
           <select
             value={statut}
@@ -139,20 +130,20 @@ export default function MyInvoices() {
         ) : invoices.length === 0 ? (
           <EmptyState
             icon={Receipt}
-            title="Aucune facture trouvee"
+            title="Aucune facture trouvée"
             description={
               q || statut
-                ? 'Aucun resultat ne correspond a vos filtres.'
-                : "Aucune facture n'a ete emise a votre encontre pour le moment."
+                ? 'Aucun résultat ne correspond à vos filtres.'
+                : "Aucune facture n'a été émise à votre encontre pour le moment."
             }
           />
         ) : (
           <table className="table-clean">
             <thead>
               <tr>
-                <SortHeader label="Numero" col="numero_n" currentCol={column} direction={direction} onClick={toggle} />
+                <SortHeader label="Numéro" col="numero_n" currentCol={column} direction={direction} onClick={toggle} />
                 <SortHeader label="Date" col="date_facture" currentCol={column} direction={direction} onClick={toggle} />
-                <SortHeader label="Echeance" col="date_echeance" currentCol={column} direction={direction} onClick={toggle} />
+                <SortHeader label="Échéance" col="date_echeance" currentCol={column} direction={direction} onClick={toggle} />
                 <SortHeader label="HT" col="taxable" currentCol={column} direction={direction} onClick={toggle} align="right" />
                 <SortHeader label="TVA" col="tva" currentCol={column} direction={direction} onClick={toggle} align="right" />
                 <SortHeader label="TTC" col="ttc" currentCol={column} direction={direction} onClick={toggle} align="right" />
@@ -178,23 +169,23 @@ export default function MyInvoices() {
                     </td>
                     <td>{formatDate(inv.date_facture)}</td>
                     <td>{formatDate(inv.date_echeance)}</td>
-                    <td className="text-right">{formatCurrency(inv.taxable)}</td>
-                    <td className="text-right">{formatCurrency(inv.tva)}</td>
+                    <td className="text-right">{formatMoney(inv.taxable)}</td>
+                    <td className="text-right">{formatMoney(inv.tva)}</td>
                     <td className="text-right" style={{ fontWeight: 700, color: 'var(--color-graphite)' }}>
-                      {formatCurrency(inv.ttc)}
+                      {formatMoney(inv.ttc)}
                     </td>
                     <td>
-                      <InvoiceStatusPill status={inv.statut} />
+                      <StatusBadge status={inv.statut} variant="left" />
                     </td>
                     <td onClick={(e) => e.stopPropagation()}>
                       <a
                         href={`/api/my/invoices/${inv.id}/pdf`}
                         target="_blank"
                         rel="noreferrer"
-                        download={`${inv.numero || `FA ${inv.numero_n}/${inv.annee}`}.pdf`}
+                        download={`${getInvoiceNumber(inv)}.pdf`}
                         className="btn btn-secondary"
                         style={{ padding: '6px 12px', fontSize: 12 }}
-                        title="Telecharger le PDF"
+                        title="Télécharger le PDF"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <FileDown size={16} /> PDF
@@ -209,12 +200,17 @@ export default function MyInvoices() {
       </Card>
 
       {!loading && invoices.length > 0 && (
-        <p
-          className="mt-3 text-center"
-          style={{ fontSize: 12, color: 'var(--color-steel)' }}
-        >
-          {invoices.length} facture{invoices.length > 1 ? 's' : ''}
-        </p>
+        <>
+          <Pagination page={page} lastPage={meta.lastPage} total={meta.total} perPage={meta.perPage} onChange={setPage} />
+          {meta.lastPage <= 1 && (
+            <p
+              className="mt-3 text-center"
+              style={{ fontSize: 12, color: 'var(--color-steel)' }}
+            >
+              {meta.total} facture{meta.total > 1 ? 's' : ''}
+            </p>
+          )}
+        </>
       )}
 
       <p
@@ -227,28 +223,10 @@ export default function MyInvoices() {
   );
 }
 
-function InvoiceStatusPill({ status }) {
-  if (status === 'payee') {
-    return (
-      <span className="pill pill-success">
-        <CircleCheck size={11} /> Payee
-      </span>
-    );
-  }
-  if (status === 'impayee') {
-    return (
-      <span className="pill pill-warning">
-        <Clock size={11} /> Impayee
-      </span>
-    );
-  }
-  return <span className="pill pill-neutral">{status || '-'}</span>;
-}
-
 function SummaryStat({ icon: Icon, label, value, accent }) {
   const accents = {
     primary: { bg: 'var(--color-primary-wash)', fg: 'var(--color-primary)' },
-    success: { bg: '#dcfce7', fg: '#15803d' },
+    success: { bg: 'var(--color-success-container)', fg: 'var(--color-vivid-green-dark)' },
     danger: { bg: 'var(--color-danger-container)', fg: 'var(--color-danger)' },
   };
   const a = accents[accent] || accents.primary;

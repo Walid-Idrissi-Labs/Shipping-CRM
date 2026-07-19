@@ -1,19 +1,19 @@
+import { useMinLoading } from '../../hooks';
 import { useEffect, useState, useMemo, useRef, useLayoutEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import { DataCard, DetailRow } from '../../components/ui/DataCard';
 import StatusBadge from '../../components/ui/StatusBadge';
 import ClientLinkButton from '../../components/ui/ClientLinkButton';
 import CopyButton from '../../components/ui/CopyButton';
-import TruckLoader from '../../components/ui/TruckLoader';
+import PageLoader from '../../components/ui/PageLoader';
 import { FormField } from '../../components/ui/Form';
 import { useDialog } from '../../contexts/DialogContext';
 import { useToast } from '../../contexts/ToastContext';
 import {
   Download, Trash2, Check, Circle, ExternalLink, ChevronDown,
-  Truck, User, MapPin, Calendar, ArrowRight, ChevronRight, Copy, CopyPlus,
-  Plus,
+  Truck, User, MapPin, Calendar, ArrowRight, ChevronRight, CopyPlus,
 } from 'lucide-react';
 import Tooltip from '../../components/ui/Tooltip';
 
@@ -274,7 +274,6 @@ function TrackingTimeline({ events, sousEtapes = {} }) {
 
 export default function ShipmentDetail() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [shipment, setShipment] = useState(null);
   const [events, setEvents] = useState([]);
   const [sousEtapes, setSousEtapes] = useState({});
@@ -288,6 +287,7 @@ const [newEvent, setNewEvent] = useState({
      sousEtapeDescription: '',
    });
   const [loading, setLoading] = useState(true);
+  const showLoader = useMinLoading(loading);
   const [labelHtml, setLabelHtml] = useState(null);
   const [labelLoading, setLabelLoading] = useState(true);
   const [labelMenuOpen, setLabelMenuOpen] = useState(false);
@@ -372,7 +372,7 @@ const [newEvent, setNewEvent] = useState({
 
     // 1. Create the status event if needed
     if (shouldCreateStatusEvent) {
-      const { data } = await api.post(`/shipments/${id}/tracking`, {
+      await api.post(`/shipments/${id}/tracking`, {
         statut: newEvent.statut,
         sous_statut: newEvent.sous_statut,
         date_statut: newEvent.date_statut,
@@ -455,7 +455,7 @@ const [newEvent, setNewEvent] = useState({
     setLabelMenuOpen(false);
   };
 
-  if (loading) return <div style={{ padding: 48, display: 'flex', justifyContent: 'center' }}><TruckLoader /></div>;
+  if (showLoader) return <PageLoader variant="detail" />;
   if (!shipment) return <div style={{ textAlign: 'center', padding: 48, color: 'var(--color-danger)' }}>Expedition introuvable</div>;
 
   return (
@@ -513,17 +513,48 @@ const [newEvent, setNewEvent] = useState({
         </div>
 
         <div style={{ minWidth: 0 }}>
-          <DataCard title="Colis & Service" description="Caracteristiques du colis et du service." padding={16}>
+          <DataCard title="Colis & Service" description="Caractéristiques du colis et du service." padding={16}>
             <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16 }}>
               <DetailRow label="Service" value={(shipment.type_service || '').replace(/_/g, ' ')} />
               <DetailRow label="Statut actuel"><StatusBadge status={shipment.statut_actuel} /></DetailRow>
-              <DetailRow label="Type de colis" value={shipment.type_colis || '-'} />
-              <DetailRow label="Poids" value={shipment.poids ? `${shipment.poids} kg` : '-'} />
-              <DetailRow label="Dimensions (cm)" value={shipment.longueur && shipment.largeur && shipment.hauteur ? `${shipment.longueur} x ${shipment.largeur} x ${shipment.hauteur}` : '-'} />
-              <DetailRow label="Pieces" value={shipment.nb_pieces ?? '-'} />
-              <DetailRow label="Valeur declaree" value={shipment.valeur_declaree && Number(shipment.valeur_declaree) > 0 ? `${shipment.valeur_declaree} ${shipment.devise_valeur || 'MAD'}` : '-'} />
+              <DetailRow label="Valeur déclarée" value={shipment.valeur_declaree && Number(shipment.valeur_declaree) > 0 ? `${shipment.valeur_declaree} ${shipment.devise_valeur || 'MAD'}` : '-'} />
               <DetailRow label="Description" value={shipment.description_colis || '-'} />
             </div>
+
+            {Array.isArray(shipment.colis) && shipment.colis.length > 0 ? (
+              <div style={{ marginTop: 16 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-steel)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>
+                  Colis ({shipment.colis.length})
+                </div>
+                <table className="table-clean">
+                  <thead>
+                    <tr>
+                      <th>Type</th>
+                      <th>Pièces</th>
+                      <th>Poids</th>
+                      <th>Dimensions (cm)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {shipment.colis.map((c, i) => (
+                      <tr key={c.id ?? i}>
+                        <td style={{ textTransform: 'capitalize' }}>{(c.type_colis || '-').replace(/_/g, ' ')}</td>
+                        <td>{c.nb_pieces ?? '-'}</td>
+                        <td>{c.poids ? `${c.poids} kg` : '-'}</td>
+                        <td>{c.longueur && c.largeur && c.hauteur ? `${c.longueur} x ${c.largeur} x ${c.hauteur}` : '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16, marginTop: 16 }}>
+                <DetailRow label="Type de colis" value={shipment.type_colis || '-'} />
+                <DetailRow label="Poids" value={shipment.poids ? `${shipment.poids} kg` : '-'} />
+                <DetailRow label="Dimensions (cm)" value={shipment.longueur && shipment.largeur && shipment.hauteur ? `${shipment.longueur} x ${shipment.largeur} x ${shipment.hauteur}` : '-'} />
+                <DetailRow label="Pièces" value={shipment.nb_pieces ?? '-'} />
+              </div>
+            )}
           </DataCard>
         </div>
       </div>
@@ -645,7 +676,7 @@ const [newEvent, setNewEvent] = useState({
                     style={{
                       padding: 12,
                       borderRadius: 6,
-                      background: isEvent ? 'var(--color-bone)' : 'var(--color-cream)',
+                      background: isEvent ? 'var(--color-bone)' : 'var(--color-marble)',
                       borderLeft: isEvent ? 'none' : '3px solid var(--color-primary)',
                       display: 'flex',
                       flexDirection: 'column',

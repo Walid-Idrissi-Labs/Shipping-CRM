@@ -39,7 +39,7 @@
   /* ---------- Fonts ---------- */
   --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-display: 'Playfair Display', ui-serif, Georgia, 'Times New Roman', serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Monaco, Consolas, monospace;
 
   /* ---------- Radii ---------- */
   --radius-sm: 4px;
@@ -118,6 +118,21 @@ a:hover {
   }
 }
 
+/* Public marketing serif — Fraunces. Unifies headlines across the public
+   surface (landing, login, tracking, forms). Internal app pages keep
+   .display-headline (Playfair) via --font-display. */
+.public-serif {
+  font-family: 'Fraunces', var(--font-display), ui-serif, Georgia, serif;
+  font-weight: 300;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--color-graphite);
+}
+.public-serif em {
+  font-style: italic;
+  color: var(--color-primary);
+}
+
 /* Standard page h1 (used in app internal pages, not public marketing) */
 .page-heading {
   font-family: var(--font-sans);
@@ -181,6 +196,7 @@ a:hover {
 
 .btn-secondary:hover:not(:disabled) {
   background: var(--color-bone);
+  color: var(--color-graphite);
 }
 
 .btn-ghost {
@@ -501,6 +517,39 @@ a:hover {
   background: var(--color-marble);
 }
 
+/* ---------- Icon tile (tinted icon badge used in stat cards, quick actions, empty states) ---------- */
+.icon-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.icon-tile-primary {
+  background: var(--color-primary-wash);
+  color: var(--color-primary);
+}
+
+.icon-tile-success {
+  background: var(--color-success-container);
+  color: var(--color-vivid-green-dark);
+}
+
+.icon-tile-warning {
+  background: var(--color-warning-container);
+  color: var(--color-warning);
+}
+
+.icon-tile-danger {
+  background: var(--color-danger-container);
+  color: var(--color-danger);
+}
+
+.icon-tile-neutral {
+  background: var(--color-bone);
+  color: var(--color-graphite);
+}
+
 /* ---------- Hero radial wash ---------- */
 .hero-wash {
   background:
@@ -600,6 +649,177 @@ a:hover {
   border: 1px solid var(--color-ash);
 }
 
+/* ---------- Status hero (shared status banner card) ---------- */
+.status-hero {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--color-ash);
+}
+.status-hero-message {
+  font-size: 13px;
+  color: var(--color-iron);
+}
+.status-hero-success {
+  background: radial-gradient(at 0% 0%, rgba(74, 198, 76, 0.14) 0%, transparent 60%);
+  border-color: rgba(74, 198, 76, 0.22);
+}
+.status-hero-info {
+  background: radial-gradient(at 0% 0%, rgba(37, 68, 176, 0.12) 0%, transparent 60%);
+  border-color: rgba(37, 68, 176, 0.18);
+}
+.status-hero-warning {
+  background: radial-gradient(at 0% 0%, rgba(240, 140, 50, 0.14) 0%, transparent 60%);
+  border-color: rgba(240, 140, 50, 0.2);
+}
+.status-hero-danger {
+  background: radial-gradient(at 0% 0%, rgba(220, 80, 60, 0.13) 0%, transparent 60%);
+  border-color: rgba(220, 80, 60, 0.18);
+}
+.status-hero-neutral {
+  background: var(--color-bone);
+}
+
+/* ---------- Tabs (shared segmented tab control) ---------- */
+.tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 9999px;
+  background: var(--color-bone);
+  border: 1px solid var(--color-ash);
+}
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 16px;
+  border: 0;
+  background: transparent;
+  border-radius: 9999px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-steel);
+  cursor: pointer;
+  transition: color 160ms ease, background 160ms ease;
+}
+.tab:hover { color: var(--color-graphite); }
+.tab.is-active {
+  background: var(--color-paper-white);
+  color: var(--color-graphite);
+  box-shadow: var(--shadow-secondary);
+}
+.tab-count {
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 9999px;
+  background: var(--color-fog);
+  font-size: 11px;
+  line-height: 18px;
+  color: var(--color-iron);
+}
+.tab.is-active .tab-count {
+  background: var(--color-primary-wash);
+  color: var(--color-primary);
+}
+
+/* ---------- Pagination ---------- */
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 14px 4px 2px;
+  border-top: 1px solid var(--color-ash);
+  margin-top: 4px;
+}
+
+.pagination-summary {
+  font-size: 13px;
+  color: var(--color-steel);
+  font-variant-numeric: tabular-nums;
+}
+
+.pagination-pages {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.page-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 6px;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-iron);
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+
+.page-btn:hover:not(:disabled):not(.is-active) {
+  background: var(--color-bone);
+  color: var(--color-graphite);
+}
+
+.page-btn.is-active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-paper-white);
+  cursor: default;
+}
+
+.page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.page-btn-nav {
+  border-color: var(--color-ash);
+  background: var(--color-paper-white);
+}
+
+.page-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.page-ellipsis {
+  min-width: 24px;
+  text-align: center;
+  color: var(--color-smoke);
+  font-size: 13px;
+  user-select: none;
+}
+
+@media (max-width: 640px) {
+  .pagination-bar {
+    justify-content: center;
+  }
+}
+
+/* ---------- Shared drawer / panel animations ---------- */
+@keyframes slideInRight {
+  from { transform: translateX(24px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes slideOutRight {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(24px); opacity: 0; }
+}
+
 /* ---------- Kanban card ---------- */
 .kanban-card {
   background: var(--color-paper-white);
@@ -682,23 +902,45 @@ a:hover {
   100% { transform: translateX(0); }
 }
 
-@keyframes truckBounce {
-  0%   { transform: translateY(0); }
-  50%  { transform: translateY(3px); }
-  100% { transform: translateY(0); }
-}
-
-@keyframes truckRoadScroll {
-  0%   { transform: translateX(0); }
-  100% { transform: translateX(-350px); }
-}
-
 .animate-fade-in { animation: fadeIn 400ms ease-out; }
 .animate-fade-in-up { animation: fadeInUp 200ms ease-out; }
 .animate-shake { animation: shake 420ms cubic-bezier(0.36, 0.07, 0.19, 0.97); }
 
-/* ---------- Truck loader ---------- */
-.truck-loader {
+/* ---------- Orbit loader ---------- */
+/* The plane flies a tilted ellipse: near half in front of the globe, far half
+   behind it. Two copies of the plane follow the same offset-path; opacity
+   flips between them at the orbit's side extremes (25% / 75% of the cycle),
+   and scale shrinks toward the far side to sell the depth. */
+@keyframes orbitTravel {
+  to { offset-distance: 100%; }
+}
+
+@keyframes orbitFrontVis {
+  0%, 24.9% { opacity: 1; }
+  25%, 74.9% { opacity: 0; }
+  75%, 100% { opacity: 1; }
+}
+
+@keyframes orbitBackVis {
+  0%, 24.9% { opacity: 0; }
+  25%, 74.9% { opacity: 1; }
+  75%, 100% { opacity: 0; }
+}
+
+@keyframes orbitDepthFront {
+  0%   { transform: scale(0.95); }
+  25%  { transform: scale(0.78); }
+  75%  { transform: scale(0.78); }
+  100% { transform: scale(0.95); }
+}
+
+@keyframes orbitDepthBack {
+  0%, 25%  { transform: scale(0.78); }
+  50%      { transform: scale(0.66); }
+  75%, 100% { transform: scale(0.78); }
+}
+
+.orbit-loader {
   width: fit-content;
   height: fit-content;
   display: flex;
@@ -706,79 +948,160 @@ a:hover {
   justify-content: center;
 }
 
-.truck-loader .truck-wrapper {
-  width: 200px;
-  height: 100px;
+.orbit-loader svg {
+  width: 176px;
+  height: 176px;
+  overflow: visible;
+}
+
+.orbit-loader .orbit-plane-front,
+.orbit-loader .orbit-plane-back {
+  offset-path: path('M 0 16 A 52 16 0 0 0 52 0 A 52 16 0 0 0 0 -16 A 52 16 0 0 0 -52 0 A 52 16 0 0 0 0 16');
+  offset-rotate: auto;
+}
+
+.orbit-loader .orbit-plane-front {
+  animation:
+    orbitTravel 3s linear infinite,
+    orbitFrontVis 3s linear infinite,
+    orbitDepthFront 3s linear infinite;
+}
+
+.orbit-loader .orbit-plane-back {
+  animation:
+    orbitTravel 3s linear infinite,
+    orbitBackVis 3s linear infinite,
+    orbitDepthBack 3s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orbit-loader .orbit-plane-front,
+  .orbit-loader .orbit-plane-back {
+    animation-duration: 9s, 9s, 9s;
+  }
+}
+
+/* ---------- Page loader: skeleton + blurred veil ---------- */
+@keyframes skeletonPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.page-loader {
+  position: relative;
+  min-height: clamp(360px, calc(100svh - var(--header-height) - 128px), 100svh);
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.page-loader-embedded {
+  min-height: 420px;
+}
+
+.page-loader-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+.page-skeleton {
   display: flex;
   flex-direction: column;
-  position: relative;
-  align-items: center;
-  justify-content: flex-end;
-  overflow-x: hidden;
+  gap: 16px;
 }
 
-.truck-loader .truck-body {
-  width: 130px;
-  height: fit-content;
-  margin-bottom: 6px;
-  animation: truckBounce 1s linear infinite;
+.skeleton-bar {
+  background: var(--color-fog);
+  border-radius: 6px;
+  flex-shrink: 0;
+  animation: skeletonPulse 1.8s ease-in-out infinite;
 }
 
-.truck-loader .truck-tires {
-  width: 130px;
-  height: fit-content;
+.skeleton-card {
+  border: 1px solid var(--color-ash);
+  border-radius: 8px;
+  padding: 20px;
   display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: var(--color-paper-white);
+}
+
+.page-skeleton-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.page-skeleton-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.page-skeleton-toolbar {
+  display: flex;
+  gap: 12px;
   align-items: center;
-  justify-content: space-between;
-  padding: 0px 10px 0px 15px;
-  position: absolute;
-  bottom: 0;
 }
 
-.truck-loader .truck-tires svg {
-  width: 24px;
+@media (max-width: 900px) {
+  .page-skeleton-grid { grid-template-columns: 1fr; }
+  .page-skeleton-tiles { grid-template-columns: repeat(2, 1fr); }
 }
 
-.truck-loader .truck-road {
-  width: 100%;
-  height: 1.5px;
-  background-color: #282828;
-  position: relative;
-  bottom: 0;
-  align-self: flex-end;
-  border-radius: 3px;
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-bar { animation: none; }
 }
 
-.truck-loader .truck-road::before {
-  content: "";
-  position: absolute;
-  width: 20px;
-  height: 100%;
-  background-color: #282828;
-  right: -50%;
-  border-radius: 3px;
-  animation: truckRoadScroll 1.4s linear infinite;
-  border-left: 10px solid white;
+/* ---------- App shell skeleton (auth gate) ---------- */
+.app-shell-skeleton {
+  display: flex;
+  min-height: 100svh;
 }
 
-.truck-loader .truck-road::after {
-  content: "";
-  position: absolute;
-  width: 10px;
-  height: 100%;
-  background-color: #282828;
-  right: -65%;
-  border-radius: 3px;
-  animation: truckRoadScroll 1.4s linear infinite;
-  border-left: 4px solid white;
+.app-shell-skeleton-sidebar {
+  width: var(--sidebar-width);
+  flex-shrink: 0;
+  background: var(--color-sidebar-bg);
+  border-right: 1px solid var(--color-ash);
 }
 
-.truck-loader .lamp-post {
-  position: absolute;
-  bottom: 0;
-  right: -90%;
-  height: 90px;
-  animation: truckRoadScroll 1.4s linear infinite;
+.app-shell-skeleton-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-shell-skeleton-header {
+  height: var(--header-height);
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--color-ash);
+}
+
+.app-shell-skeleton-content {
+  flex: 1;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-shell-skeleton-content .page-loader {
+  flex: 1;
+  min-height: 0;
+}
+
+@media (max-width: 1023px) {
+  .app-shell-skeleton-sidebar { display: none; }
+  .app-shell-skeleton-content { padding: 20px 16px; }
 }
 
 /* ---------- Loader overlay ---------- */
@@ -787,7 +1110,7 @@ a:hover {
   --header-height: 64px;
 }
 
-.truck-loader-overlay {
+.loader-overlay {
   position: fixed;
   top: var(--header-height);
   left: var(--sidebar-width);
@@ -805,7 +1128,7 @@ a:hover {
 
 /* Mobile: no sidebar, full‑width overlay */
 @media (max-width: 1023px) {
-  .truck-loader-overlay {
+  .loader-overlay {
     left: 0;
   }
 }
@@ -1030,7 +1353,7 @@ a:hover {
 /* ---------- Public Layout Navbar & Footer (shared with Home) ---------- */
 .lp-navbar {
   background: rgba(245, 245, 245, 0.55);
-  border-bottom: 2px solid var(--color-ash);
+  border-bottom: 1px solid var(--color-ash);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -1058,12 +1381,12 @@ a:hover {
 .lp-nav-link {
   font-size: 14px;
   font-weight: 500;
-  color: rgba(10,10 , 10, 0.8);
+  color: var(--color-iron);
   text-decoration: none;
   transition: color 200ms ease;
 }
 .lp-nav-link:hover,
-.lp-nav-link.is-active { color: rgba(1,1,1); }
+.lp-nav-link.is-active { color: var(--color-graphite); }
 .lp-nav-actions {
   display: flex;
   align-items: center;
@@ -1169,7 +1492,7 @@ a:hover {
     0 1px 2px -1px rgba(0, 0, 0, 0.1),
     0 0 8px 2px rgba(37, 68, 176, 0.35);
 }
-.lp-btn-primary:hover { background: var(--color-primary-hover); }
+.lp-btn-primary:hover { background: var(--color-primary-hover); color: var(--color-paper-white); }
 .lp-btn-secondary {
   background: var(--color-paper-white);
   color: var(--color-graphite);
@@ -1179,6 +1502,130 @@ a:hover {
 .lp-btn-secondary:hover {
   background: var(--color-bone);
   border-color: var(--color-mist);
+  color: var(--color-graphite);
+}
+
+/* ===== Icon micro-animations (public pages) =====
+   Keyed off lucide's per-icon classes; each icon family gets a signature
+   move. Scoped to public button contexts only (.lp-btn, .public-shell,
+   .login-split). */
+@media (prefers-reduced-motion: no-preference) {
+  /* Fallback: soft pop for any icon without a signature move */
+  .lp-btn:hover svg,
+  .lp-menu-btn:hover svg,
+  .public-shell .btn:hover svg,
+  .login-split .btn:hover svg {
+    animation: ico-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  /* Arrow: flies off right, re-enters from the left */
+  .lp-btn:hover .lucide-arrow-right,
+  .public-shell .btn:hover .lucide-arrow-right,
+  .login-split .btn:hover .lucide-arrow-right {
+    animation: ico-fly-right 520ms cubic-bezier(0.65, 0, 0.35, 1);
+  }
+
+  /* Diagonal arrow: flies off top-right, re-enters from bottom-left */
+  .lp-btn:hover .lucide-arrow-up-right,
+  .public-shell .btn:hover .lucide-arrow-up-right,
+  .login-split .btn:hover .lucide-arrow-up-right {
+    animation: ico-fly-up-right 520ms cubic-bezier(0.65, 0, 0.35, 1);
+  }
+
+  /* Chevrons: springy nudge in their direction */
+  .lp-btn:hover .lucide-chevron-right,
+  .public-shell .btn:hover .lucide-chevron-right,
+  .login-split .btn:hover .lucide-chevron-right {
+    animation: ico-nudge-right 460ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .lp-btn:hover .lucide-chevron-left,
+  .public-shell .btn:hover .lucide-chevron-left,
+  .login-split .btn:hover .lucide-chevron-left {
+    animation: ico-nudge-left 460ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  /* Log-in: winds up, then steps through the door */
+  .lp-btn:hover .lucide-log-in,
+  .public-shell .btn:hover .lucide-log-in,
+  .login-split .btn:hover .lucide-log-in {
+    animation: ico-enter 520ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  /* Send: paper plane pulls back, launches, glides back in */
+  .lp-btn:hover .lucide-send,
+  .public-shell .btn:hover .lucide-send,
+  .login-split .btn:hover .lucide-send {
+    animation: ico-send 640ms cubic-bezier(0.65, 0, 0.35, 1);
+  }
+
+  /* Search: lens zooms in and sweeps */
+  .lp-btn:hover .lucide-search,
+  .public-shell .btn:hover .lucide-search,
+  .login-split .btn:hover .lucide-search {
+    animation: ico-scan 560ms ease-in-out;
+  }
+
+  /* Mail: envelope lifts and waggles */
+  .lp-btn:hover .lucide-mail,
+  .public-shell .btn:hover .lucide-mail,
+  .login-split .btn:hover .lucide-mail {
+    animation: ico-mail 560ms ease-in-out;
+  }
+}
+
+@keyframes ico-pop {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.16); }
+  100% { transform: scale(1); }
+}
+@keyframes ico-fly-right {
+  0% { transform: translateX(0); opacity: 1; }
+  40% { transform: translateX(12px); opacity: 0; }
+  41% { transform: translateX(-12px); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+@keyframes ico-fly-up-right {
+  0% { transform: translate(0, 0); opacity: 1; }
+  40% { transform: translate(10px, -10px); opacity: 0; }
+  41% { transform: translate(-10px, 10px); opacity: 0; }
+  100% { transform: translate(0, 0); opacity: 1; }
+}
+@keyframes ico-nudge-right {
+  0% { transform: translateX(0); }
+  40% { transform: translateX(4px); }
+  70% { transform: translateX(-1px); }
+  100% { transform: translateX(0); }
+}
+@keyframes ico-nudge-left {
+  0% { transform: translateX(0); }
+  40% { transform: translateX(-4px); }
+  70% { transform: translateX(1px); }
+  100% { transform: translateX(0); }
+}
+@keyframes ico-enter {
+  0% { transform: translateX(0) scale(1); }
+  35% { transform: translateX(-3px) scale(0.94); }
+  70% { transform: translateX(4px) scale(1.05); }
+  100% { transform: translateX(0) scale(1); }
+}
+@keyframes ico-send {
+  0% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 1; }
+  28% { transform: translate(-2px, 2px) rotate(-14deg) scale(0.96); opacity: 1; }
+  55% { transform: translate(14px, -14px) rotate(-14deg) scale(0.9); opacity: 0; }
+  56% { transform: translate(-12px, 12px) rotate(0deg) scale(0.9); opacity: 0; }
+  100% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 1; }
+}
+@keyframes ico-scan {
+  0% { transform: scale(1) rotate(0deg); }
+  30% { transform: scale(1.18) rotate(-12deg); }
+  62% { transform: scale(1.18) rotate(9deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+@keyframes ico-mail {
+  0% { transform: translateY(0) rotate(0deg); }
+  35% { transform: translateY(-3px) rotate(-8deg); }
+  65% { transform: translateY(-3px) rotate(6deg); }
+  100% { transform: translateY(0) rotate(0deg); }
 }
 .lp-text-link {
   font-size: 14px;

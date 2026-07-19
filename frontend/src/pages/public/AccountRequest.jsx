@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Send, Check } from 'lucide-react';
 import { FormField, Section } from '../../components/ui/Form';
+import api, { csrf } from '../../api/axios';
 
 const MAX_NOTES = 500;
 const initial = {
@@ -22,22 +23,19 @@ export default function AccountRequest() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      setError('Format d\'email invalide.');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/account-requests', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.message || 'Erreur lors de l\'envoi.');
-      }
+      await csrf();
+      await api.post('/account-requests', form);
       setSuccess(true);
       setForm(initial);
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.message || err.message || 'Erreur lors de l\'envoi.');
     } finally {
       setLoading(false);
     }
@@ -65,12 +63,12 @@ export default function AccountRequest() {
             >
               <Check size={28} />
             </div>
-            <h1 className="display-headline" style={{ fontSize: 32 }}>Demande soumise</h1>
+            <h1 className="public-serif" style={{ fontSize: 32 }}>Demande soumise</h1>
             <p style={{ fontSize: 14, color: 'var(--color-iron)', maxWidth: 420, margin: '16px auto 0' }}>
-              Votre demande a ete envoyee. Votre compte sera cree sous peu et vos identifiants vous seront communiques par email.
+              Votre demande a été envoyée. Votre compte sera créé sous peu et vos identifiants vous seront communiqués par email.
             </p>
             <button onClick={() => navigate('/')} className="btn btn-primary" style={{ marginTop: 28 }}>
-              Retour a l'accueil
+              Retour à l'accueil
             </button>
           </div>
         </div>
@@ -91,9 +89,9 @@ export default function AccountRequest() {
           >
             Devenir client
           </div>
-          <h1 className="display-headline" style={{ fontSize: 38 }}>Demande de Compte Client</h1>
+          <h1 className="public-serif" style={{ fontSize: 40 }}>Demande de compte client</h1>
           <p style={{ fontSize: 14, color: 'var(--color-steel)', maxWidth: 540, margin: '12px auto 0' }}>
-            Renseignez vos informations. Notre equipe validera votre demande et vous communiquera vos identifiants.
+            Renseignez vos informations. Notre équipe validera votre demande et vous communiquera vos identifiants.
           </p>
         </div>
 
@@ -130,13 +128,13 @@ export default function AccountRequest() {
               <FormField label="Email" required>
                 <input name="email" value={form.email} onChange={handleChange} type="email" className="input" required />
               </FormField>
-              <FormField label="Telephone" required>
+              <FormField label="Téléphone" required>
                 <input name="phone" value={form.phone} onChange={handleChange} className="input" required />
               </FormField>
             </div>
           </Section>
 
-          <Section title="Adresse" description="Optionnel. Peut etre completé ulterieurement.">
+          <Section title="Adresse" description="Optionnel. Peut être complété ultérieurement.">
             <FormField label="Adresse"><input name="address" value={form.address} onChange={handleChange} className="input" /></FormField>
             <div className="grid grid-cols-1 md:grid-cols-3" style={{ gap: 16 }}>
               <FormField label="Ville"><input name="city" value={form.city} onChange={handleChange} className="input" /></FormField>
@@ -145,14 +143,14 @@ export default function AccountRequest() {
             </div>
           </Section>
 
-          <FormField label="Notes supplementaires" hint={`${form.notes.length} / ${MAX_NOTES} caracteres`}>
+          <FormField label="Notes supplémentaires" hint={`${form.notes.length} / ${MAX_NOTES} caractères`}>
             <textarea
               name="notes"
               value={form.notes}
               onChange={handleChange}
               rows={3}
               maxLength={MAX_NOTES}
-              placeholder="Avez-vous une demande particuliere ?"
+              placeholder="Avez-vous une demande particulière ?"
               className="textarea"
             />
           </FormField>

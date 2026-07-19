@@ -27,7 +27,7 @@ const emptyPassword = {
   new_password_confirmation: '',
 };
 
-const countryOptions = ['Maroc', 'France', 'Espagne', 'Allemagne', 'Belgique', 'Italie', 'Pays-Bas', 'Tunisie', 'Algerie'];
+const countryOptions = ['Maroc', 'France', 'Espagne', 'Allemagne', 'Belgique', 'Italie', 'Pays-Bas', 'Tunisie', 'Algérie'];
 
 export default function MyAccount() {
   const toast = useToast();
@@ -82,7 +82,7 @@ export default function MyAccount() {
     try {
       await api.patch('/client/profile', profileForm.data);
       profileForm.succeedSave();
-      toast.push('Profil mis a jour', 'success');
+      toast.push('Profil mis à jour', 'success');
     } catch (err) {
       profileForm.failSave();
       toast.push(err.response?.data?.message || 'Erreur lors de la sauvegarde.', 'error');
@@ -108,7 +108,7 @@ export default function MyAccount() {
         new_password: passwordForm.data.new_password,
       });
       passwordForm.succeedSave(emptyPassword);
-      toast.push('Mot de passe mis a jour', 'success');
+      toast.push('Mot de passe mis à jour', 'success');
     } catch (err) {
       passwordForm.failSave();
       toast.push(err.response?.data?.message || 'Erreur lors du changement de mot de passe.', 'error');
@@ -125,7 +125,7 @@ export default function MyAccount() {
       <PageHeader
         eyebrow="Espace Client"
         title="Mon Compte"
-        subtitle="Modifier vos informations et securite."
+        subtitle="Modifier vos informations et votre sécurité."
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -144,7 +144,7 @@ export default function MyAccount() {
               <div>
                 <h3 className="section-heading">Informations personnelles</h3>
                 <p style={{ fontSize: 12, color: 'var(--color-steel)', marginTop: 2 }}>
-                  Mettez a jour vos informations de contact et adresse.
+                  Mettez à jour vos informations de contact et d’adresse.
                 </p>
               </div>
             </div>
@@ -194,7 +194,7 @@ export default function MyAccount() {
                   </div>
 
                   <div>
-                    <label className="field-label">Telephone</label>
+                    <label className="field-label">Téléphone</label>
                     <input
                       type="tel"
                       name="phone"
@@ -272,7 +272,7 @@ export default function MyAccount() {
                 >
                   <SaveStatusButton state={profileForm.status} />
                   <p style={{ fontSize: 12, color: 'var(--color-steel)' }}>
-                    Vos modifications sont prises en compte immediatement.
+                    Vos modifications sont prises en compte immédiatement.
                   </p>
                 </div>
               </form>
@@ -285,7 +285,7 @@ export default function MyAccount() {
           <Card style={{ padding: 24 }}>
             <h3 className="section-heading mb-4">Mon Compte</h3>
             <dl className="space-y-3" style={{ fontSize: 13 }}>
-              <FieldRow label="Numero de compte" value={readOnly.account_number} mono />
+              <FieldRow label="Numéro de compte" value={readOnly.account_number} mono />
               <FieldRow label="Email de connexion" value={readOnly.email_login} />
             </dl>
             <div
@@ -293,37 +293,29 @@ export default function MyAccount() {
               style={{ borderTop: '1px solid var(--color-ash)' }}
             >
               <p style={{ fontSize: 12, color: 'var(--color-steel)', lineHeight: 1.6 }}>
-                Pour toute modification liee a votre numero de compte ou email de connexion, merci de nous contacter.
+                Pour toute modification liée à votre numéro de compte ou email de connexion, merci de nous contacter.
               </p>
             </div>
           </Card>
 
-          <Card style={{ padding: 24 , marginTop: 26 }}>
-  <div className="flex items-center gap-3 mb-5">
-    <div
-      className="flex items-center justify-center"
-      style={{
-        width: 36, height: 36, borderRadius: 8,
-        background: 'var(--color-bone)', color: 'var(--color-graphite)',
-      }}
-    >
-        <div
-              className="flex items-center justify-center"
-              style={{
-                width: 36, height: 36, borderRadius: 8,
-                background: 'rgba(255,0,0,0.1)', color: 'rgba(255,0,0,0.4)',
-              }}
-            >    
-            <Lock size={18} />
-        </div>
-    </div>
-    <div>
-      <h3 className="section-heading">Securite</h3>
-      <p style={{ fontSize: 12, color: 'var(--color-steel)', marginTop: 2 }}>
-        Changez votre mot de passe. Minimum 8 caracteres.
-      </p>
-    </div>
-  </div>
+          <Card style={{ padding: 24, marginTop: 26 }}>
+            <div className="flex items-center gap-3 mb-5">
+              <div
+                className="flex items-center justify-center"
+                style={{
+                  width: 36, height: 36, borderRadius: 8,
+                  background: 'var(--color-bone)', color: 'var(--color-graphite)',
+                }}
+              >
+                <Lock size={18} />
+              </div>
+              <div>
+                <h3 className="section-heading">Sécurité</h3>
+                <p style={{ fontSize: 12, color: 'var(--color-steel)', marginTop: 2 }}>
+                  Changez votre mot de passe. Minimum 8 caractères.
+                </p>
+              </div>
+            </div>
 
   <form onSubmit={handlePasswordSubmit}>
     <div className="space-y-4">
@@ -399,7 +391,7 @@ export default function MyAccount() {
             Votre mot de passe doit contenir:
           </p>
           <div className="space-y-1">
-            <ChecklistItem ok={passwordForm.data.new_password.length >= 8} label="Au moins 8 caracteres" />
+            <ChecklistItem ok={passwordForm.data.new_password.length >= 8} label="Au moins 8 caractères" />
             <ChecklistItem ok={/[A-Z]/.test(passwordForm.data.new_password)} label="Une lettre majuscule" />
             <ChecklistItem ok={/[0-9]/.test(passwordForm.data.new_password)} label="Un chiffre" />
           </div>
@@ -415,8 +407,8 @@ export default function MyAccount() {
         state={passwordForm.status}
         initialText="Changer le mot de passe"
         dirtyText="Changer le mot de passe"
-        savingText="Mise a jour..."
-        savedText="Mot de passe mis a jour"
+        savingText="Mise à jour..."
+        savedText="Mot de passe mis à jour"
       />
     </div>
   </form>
@@ -431,7 +423,7 @@ export default function MyAccount() {
           className="btn btn-danger"
           style={{ display: 'inline-flex', alignItems: 'center', gap: 8, minWidth: 200 }}
         >
-          <LogOut size={16} /> Se deconnecter
+          <LogOut size={16} /> Se déconnecter
         </button>
       </div>
     </div>

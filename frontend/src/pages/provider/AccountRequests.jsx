@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Check, X, Eye, UserCheck, UserX } from 'lucide-react';
+import {Eye, UserCheck, UserX} from 'lucide-react';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
@@ -8,7 +8,9 @@ import StatusBadge from '../../components/ui/StatusBadge';
 import Skeleton from '../../components/ui/Skeleton';
 import EmptyState from '../../components/ui/EmptyState';
 import SortHeader from '../../components/ui/SortHeader';
+import Pagination from '../../components/ui/Pagination';
 import { useColumnSort } from '../../hooks/useColumnSort';
+import { useUrlPage } from '../../hooks/useUrlPage';
 import { useDialog } from '../../contexts/DialogContext';
 import { useToast } from '../../contexts/ToastContext';
 
@@ -20,11 +22,14 @@ export default function AccountRequests() {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
   const [feedback, setFeedback] = useState('');
+  const [meta, setMeta] = useState({ lastPage: 1, total: 0, perPage: 25 });
+  const { page, setPage, resetPage } = useUrlPage();
   const { column, direction, toggle, params: sortParams } = useColumnSort('created_at', 'desc');
 
   useEffect(() => {
     fetchRequests();
-  }, [column, direction]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [column, direction, page]);
 
   useEffect(() => {
     if (!feedback) return;
@@ -35,8 +40,10 @@ export default function AccountRequests() {
   const fetchRequests = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get('/account-requests', { params: { limit: 1000, ...sortParams } });
+      const { data } = await api.get('/account-requests', { params: { page, ...sortParams } });
       setRequests(data.data || data || []);
+      setMeta({ lastPage: data.last_page || 1, total: data.total ?? 0, perPage: data.per_page || 25 });
+      if (data.last_page && page > data.last_page) resetPage();
     } finally {
       setLoading(false);
     }
@@ -188,6 +195,11 @@ export default function AccountRequests() {
               ))}
             </tbody>
           </table>
+        )}
+        {!loading && requests.length > 0 && (
+          <div style={{ padding: '0 16px 12px' }}>
+            <Pagination page={page} lastPage={meta.lastPage} total={meta.total} perPage={meta.perPage} onChange={setPage} />
+          </div>
         )}
       </Card>
     </div>

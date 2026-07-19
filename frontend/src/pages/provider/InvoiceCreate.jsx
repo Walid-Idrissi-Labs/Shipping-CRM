@@ -1,3 +1,4 @@
+import { useMinLoading } from '../../hooks';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
@@ -7,7 +8,7 @@ import { FormField } from '../../components/ui/Form';
 import { FileText, Eye, Download, Plus, List } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { useSuccess } from '../../contexts/SuccessModalContext';
-import TruckLoader from '../../components/ui/TruckLoader';
+import PageLoader from '../../components/ui/PageLoader';
 
 const today = () => new Date().toISOString().split('T')[0];
 const inThirtyDays = () => {
@@ -29,8 +30,8 @@ export default function InvoiceCreate() {
   const [clients, setClients] = useState([]);
   const [shipments, setShipments] = useState([]);
   const [selectedShipments, setSelectedShipments] = useState([]);
-  const [loadingClients, setLoadingClients] = useState(false);
   const [loadingShipments, setLoadingShipments] = useState(false);
+  const showShipmentsLoader = useMinLoading(loadingShipments);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -48,6 +49,7 @@ export default function InvoiceCreate() {
   const [dateEcheance, setDateEcheance] = useState(inThirtyDays());
   const [taxable, setTaxable] = useState('');
   const [nonTaxable, setNonTaxable] = useState('');
+  const [reference, setReference] = useState('');
 
   const [previewUrl, setPreviewUrl] = useState(null);
   const [previewing, setPreviewing] = useState(false);
@@ -72,10 +74,8 @@ export default function InvoiceCreate() {
   }, []);
 
   useEffect(() => {
-    setLoadingClients(true);
     api.get('/clients?limit=1000')
-      .then((res) => setClients(res.data.data || []))
-      .finally(() => setLoadingClients(false));
+      .then((res) => setClients(res.data.data || []));
   }, []);
 
   useEffect(() => {
@@ -112,6 +112,7 @@ export default function InvoiceCreate() {
 
   const buildPayload = () => ({
     type_destination: typeDestination,
+    reference: reference.trim() || null,
     date_facture: dateFacture,
     date_echeance: dateEcheance,
     numero_n: Number.parseInt(numeroN || numeroSequence, 10),
@@ -272,8 +273,8 @@ export default function InvoiceCreate() {
             title={`Expeditions a facturer ${clientMode === 'divers' ? '(1 max)' : ''}`}
             description="Selectionnez les expeditions a inclure dans cette facture."
           >
-            {loadingShipments ? (
-              <div style={{ padding: 16, display: 'flex', justifyContent: 'center' }}><TruckLoader /></div>
+            {showShipmentsLoader ? (
+              <PageLoader variant="table" embedded />
             ) : shipments.length === 0 ? (
               <div style={{ fontSize: 14, color: 'var(--color-steel)', padding: 12 }}>Aucune expedition non facturee pour ce client.</div>
             ) : (
@@ -440,6 +441,19 @@ export default function InvoiceCreate() {
                 />
               </FormField>
             </div>
+          </DataCard>
+
+          <DataCard title="Reference" description="Reference libre affichee sur la facture (optionnel).">
+            <FormField label="Reference">
+              <input
+                type="text"
+                value={reference}
+                onChange={(e) => setReference(e.target.value)}
+                placeholder="Ex : Bon de commande, contrat..."
+                maxLength={255}
+                className="input"
+              />
+            </FormField>
           </DataCard>
 
           <div className="flex flex-col sm:flex-row flex-wrap" style={{ gap: 10 }}>

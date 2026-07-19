@@ -8,7 +8,9 @@ import EmptyState from '../../components/ui/EmptyState';
 import Skeleton from '../../components/ui/Skeleton';
 import SortHeader from '../../components/ui/SortHeader';
 import SearchInput from '../../components/ui/SearchInput';
+import Pagination from '../../components/ui/Pagination';
 import { useColumnSort } from '../../hooks/useColumnSort';
+import { useUrlPage } from '../../hooks/useUrlPage';
 
 export default function Clients() {
   const navigate = useNavigate();
@@ -16,18 +18,22 @@ export default function Clients() {
   const q = searchParams.get('q') || '';
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [meta, setMeta] = useState({ lastPage: 1, total: 0, perPage: 25 });
+  const { page, setPage, resetPage } = useUrlPage();
   const { column, direction, toggle, params: sortParams } = useColumnSort('created_at', 'desc');
 
   useEffect(() => {
     fetchClients();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, column, direction]);
+  }, [q, column, direction, page]);
 
   const fetchClients = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get('/clients', { params: { search: q, ...sortParams } });
+      const { data } = await api.get('/clients', { params: { search: q, page, ...sortParams } });
       setClients(data.data || []);
+      setMeta({ lastPage: data.last_page || 1, total: data.total ?? 0, perPage: data.per_page || 25 });
+      if (data.last_page && page > data.last_page) resetPage();
     } finally {
       setLoading(false);
     }
@@ -37,6 +43,7 @@ export default function Clients() {
     const next = new URLSearchParams(searchParams);
     if (value) next.set(key, value);
     else next.delete(key);
+    next.delete('page');
     setSearchParams(next, { replace: true });
   };
 
@@ -45,6 +52,7 @@ export default function Clients() {
   const handleClearAll = () => {
     const next = new URLSearchParams(searchParams);
     next.delete('q');
+    next.delete('page');
     setSearchParams(next, { replace: true });
   };
 
@@ -108,6 +116,11 @@ export default function Clients() {
               ))}
             </tbody>
           </table>
+        )}
+        {!loading && clients.length > 0 && (
+          <div style={{ padding: '0 16px 12px' }}>
+            <Pagination page={page} lastPage={meta.lastPage} total={meta.total} perPage={meta.perPage} onChange={setPage} />
+          </div>
         )}
       </Card>
     </div>

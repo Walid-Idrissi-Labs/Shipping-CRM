@@ -123,7 +123,7 @@ export default function ClientQuoteRequestCreate() {
     <div style={{ maxWidth: 960 }}>
       <PageHeader
         title="Nouvelle Demande de Devis"
-        subtitle="Decrivez votre besoin pour recevoir une proposition tarifaire."
+        subtitle="Décrivez votre besoin pour recevoir une proposition tarifaire."
         breadcrumbs={[
           { label: 'Devis', to: '/client/devis' },
           { label: 'Demandes', to: '/client/devis?tab=demandes' },
@@ -166,11 +166,11 @@ export default function ClientQuoteRequestCreate() {
           Vos informations d'expediteur ci-dessous sont pre-remplies depuis votre fiche client. Vous pouvez les modifier avant l'envoi.
         </div>
 
-        <DataCard title="Vos informations (Expediteur)" description="Ces champs sont pre-remplis depuis votre profil. Vous pouvez les modifier si besoin.">
+        <DataCard title="Vos informations (Expéditeur)" description="Ces champs sont préremplis depuis votre profil. Vous pouvez les modifier si besoin.">
           <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 16 }}>
             <FormField label="Nom" required><input name="client_name" value={form.client_name} onChange={handleChange} className="input" required /></FormField>
             <FormField label="Email" required><input name="client_email" value={form.client_email} onChange={handleChange} type="email" className="input" required /></FormField>
-            <FormField label="Telephone" required><input name="client_phone" value={form.client_phone} onChange={handleChange} className="input" required /></FormField>
+            <FormField label="Téléphone" required><input name="client_phone" value={form.client_phone} onChange={handleChange} className="input" required /></FormField>
             <FormField label="Adresse" required><input name="client_address" value={form.client_address} onChange={handleChange} className="input" required /></FormField>
             <FormField label="Ville" required><input name="client_city" value={form.client_city} onChange={handleChange} className="input" required /></FormField>
             <FormField label="Code postal" required><input name="client_postal_code" value={form.client_postal_code} onChange={handleChange} className="input" required /></FormField>
@@ -190,7 +190,7 @@ export default function ClientQuoteRequestCreate() {
             <FormField label="Nom" required><input name="recipient_name" value={form.recipient_name} onChange={handleChange} className="input" required /></FormField>
             <FormField label="Entreprise"><input name="recipient_company" value={form.recipient_company} onChange={handleChange} className="input" /></FormField>
             <FormField label="Email"><input name="recipient_email" value={form.recipient_email} onChange={handleChange} type="email" className="input" /></FormField>
-            <FormField label="Telephone" required><input name="recipient_phone" value={form.recipient_phone} onChange={handleChange} className="input" required /></FormField>
+            <FormField label="Téléphone" required><input name="recipient_phone" value={form.recipient_phone} onChange={handleChange} className="input" required /></FormField>
             <FormField label="Adresse" required><input name="recipient_address" value={form.recipient_address} onChange={handleChange} className="input" required /></FormField>
             <FormField label="Ville" required><input name="recipient_city" value={form.recipient_city} onChange={handleChange} className="input" required /></FormField>
             <FormField label="Code postal" required><input name="recipient_postal_code" value={form.recipient_postal_code} onChange={handleChange} className="input" required /></FormField>
@@ -204,7 +204,7 @@ export default function ClientQuoteRequestCreate() {
             onChange={setColis}
             showTotals={true}
           />
-          <FormField label="Valeur Totale Declaree" style={{ marginTop: 12 }} hint="Valeur totale declaree pour l'ensemble des colis.">
+          <FormField label="Valeur totale déclarée" style={{ marginTop: 12 }} hint="Valeur totale déclarée pour l'ensemble des colis.">
             <div style={{ display: 'flex', alignItems: 'stretch', border: '1px solid var(--color-ash)', borderRadius: 8, background: 'var(--color-paper-white)', overflow: 'hidden' }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <input name="valeur_declaree" value={form.valeur_declaree} onChange={handleChange} type="number" step="0.01" min="0" className="input" style={{ borderRadius: 0, borderRight: 'none', border: 'none', boxShadow: 'none' }} />
@@ -222,7 +222,7 @@ export default function ClientQuoteRequestCreate() {
             <select name="type_service" value={form.type_service} onChange={handleChange} className="select">
               <option value="national">National</option>
               <option value="international_express_dap">International Express DAP</option>
-              <option value="fret_aerien">Fret Aerien</option>
+              <option value="fret_aerien">Fret aérien</option>
               <option value="routier_groupage">Routier (Groupage)</option>
               <option value="maritime_groupage">Maritime (Groupage)</option>
             </select>

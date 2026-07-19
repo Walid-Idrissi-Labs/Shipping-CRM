@@ -1,15 +1,16 @@
+import { useMinLoading } from '../../hooks';
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Truck, User, MapPin, Calendar, ExternalLink, ChevronDown, ArrowRight,
-  CircleCheck, Clock, CircleX, PlayCircle, Save,
+  CircleCheck, Clock, CircleX, PlayCircle,
 } from 'lucide-react';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
 import StatusBadge from '../../components/ui/StatusBadge';
 import EmptyState from '../../components/ui/EmptyState';
-import TruckLoader from '../../components/ui/TruckLoader';
+import PageLoader from '../../components/ui/PageLoader';
 import { useToast } from '../../contexts/ToastContext';
 
 const STATUSES = [
@@ -90,6 +91,7 @@ export default function AssignmentDetail() {
   const toast = useToast();
   const [affectation, setAffectation] = useState(null);
   const [loading, setLoading] = useState(true);
+  const showLoader = useMinLoading(loading);
   const [statusOpen, setStatusOpen] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
@@ -102,7 +104,7 @@ export default function AssignmentDetail() {
     try {
       const { data } = await api.get(`/assignments/${id}`);
       setAffectation(data.affectation || data);
-    } catch (err) {
+    } catch {
       toast.error('Impossible de charger la mission.');
     } finally {
       setLoading(false);
@@ -129,13 +131,11 @@ export default function AssignmentDetail() {
     }
   };
 
-  if (loading) {
+  if (showLoader) {
     return (
       <div>
         <PageHeader title="Mission" subtitle="Chargement..." />
-        <Card style={{ padding: 24, display: 'flex', justifyContent: 'center' }}>
-          <TruckLoader />
-        </Card>
+        <PageLoader variant="detail" embedded />
       </div>
     );
   }

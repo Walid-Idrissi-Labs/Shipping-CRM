@@ -1,4 +1,6 @@
 @php
+    use App\Services\NumberToFrenchWords;
+
     $isAvoir = ($type ?? 'facture') === 'avoir';
     $doc = $document;
     $provider = $doc->provider;
@@ -25,7 +27,7 @@ $cachePath = public_path('logos/cache3.png');
     $fmt = fn ($v) => number_format((float) $v, 2, ',', ' ');
 
     $docNumber = $doc->numero;
-    $emission = $doc->date_facture?->format('d/m/Y') ?? '-';
+    $emission = ($doc->date_facture ?? $doc->created_at)?->format('d/m/Y') ?? '-';
     $echeance = $isAvoir ? null : ($doc->date_echeance?->format('d/m/Y') ?? '-');
     $destination = ucfirst($doc->type_destination ?? '');
 
@@ -81,8 +83,22 @@ $cachePath = public_path('logos/cache3.png');
     $provRc = $provider->rc ?? '-';
     $provIce = $provider->ice ?? '-';
     $provIf = $provider->if_ ?? '-';
+    $provCnss = trim((string) ($provider->cnss ?? ''));
+    $provPatente = trim((string) ($provider->patente ?? ''));
     $provTel = $provider->phone ?? '-';
     $provEmail = $provider->email ?? '-';
+    $provWeb = preg_replace('#^https?://#i', '', rtrim($provider->website ?? '', '/'));
+
+    $bankName = trim((string) ($provider->bank_name ?? ''));
+    $bankRib = trim((string) ($provider->bank_rib ?? ''));
+    $bankSwift = trim((string) ($provider->bank_swift ?? ''));
+    $bankAccountName = trim((string) ($provider->bank_account_name ?? ''));
+    $bankAgence = trim((string) ($provider->bank_agence ?? ''));
+    // Bloc « modalités de règlement » sur la facture uniquement (pas d'avoir).
+    $hasPayment = !$isAvoir
+        && ($bankName !== '' || $bankRib !== '' || $bankSwift !== '' || $bankAccountName !== '' || $bankAgence !== '');
+
+    $fontDir = storage_path('fonts');
 
     $negFor = function ($value) use ($isAvoir) {
         if (!$isAvoir) return '';
@@ -90,8 +106,38 @@ $cachePath = public_path('logos/cache3.png');
     };
     $watermarkText = $isAvoir ? 'AVOIR' : null;
 
-    $chunkSize = 8;
-    $expeditionPages = $expeditions->chunk($chunkSize);
+    // Mention légale « arrêté » : montant TTC en toutes lettres.
+    $ttcEnLettres = ucfirst(NumberToFrenchWords::amount($ttc));
+    $arreteIntro = $isAvoir
+        ? 'Arrêté le présent avoir à la somme de :'
+        : 'Arrêté la présente facture à la somme de :';
+
+    $serviceLabels = [
+        'national' => 'National',
+        'international_express_dap' => 'International Express (DAP)',
+        'fret_aerien' => 'Fret aérien',
+        'routier_groupage' => 'Routier groupage',
+        'maritime_groupage' => 'Maritime groupage',
+    ];
+    $serviceLabel = fn ($type) => $serviceLabels[$type] ?? (ucfirst(str_replace('_', ' ', (string) $type)) ?: '-');
+
+    // Pages pleines à 10 lignes ; la dernière page est plafonnée à 5 lignes
+    // pour laisser la place au bloc fiscal, à l'arrêté et au bloc de règlement.
+    $fullPageSize = 10;
+    $lastPageMax = 5;
+    $expeditionPages = collect();
+    $rest = $expeditions->values();
+    do {
+        $left = $rest->count();
+        if ($left <= $lastPageMax) {
+            $expeditionPages->push($rest);
+            $rest = collect();
+        } else {
+            $take = $left <= $fullPageSize ? (int) ceil($left / 2) : $fullPageSize;
+            $expeditionPages->push($rest->slice(0, $take)->values());
+            $rest = $rest->slice($take)->values();
+        }
+    } while ($rest->isNotEmpty());
     $totalPages = $expeditionPages->count();
 @endphp
 <!DOCTYPE html>
@@ -100,10 +146,29 @@ $cachePath = public_path('logos/cache3.png');
 <meta charset="UTF-8">
 <title>{{ $isAvoir ? 'Avoir' : 'Facture' }} {{ $docNumber }}</title>
 <style>
+    @font-face {
+        font-family: 'Fraunces';
+        font-style: normal;
+        font-weight: 400;
+        src: url('{{ $fontDir }}/Fraunces-Regular.ttf') format('truetype');
+    }
+    @font-face {
+        font-family: 'Fraunces';
+        font-style: normal;
+        font-weight: 600;
+        src: url('{{ $fontDir }}/Fraunces-SemiBold.ttf') format('truetype');
+    }
+    @font-face {
+        font-family: 'Fraunces';
+        font-style: italic;
+        font-weight: 400;
+        src: url('{{ $fontDir }}/Fraunces-Italic.ttf') format('truetype');
+    }
+
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-        font-family: Helvetica, 'DejaVu Sans', sans-serif;
+        font-family: Inter, Helvetica, 'DejaVu Sans', sans-serif;
         font-size: 11px;
         line-height: 1.5;
         color: #555555;
@@ -116,8 +181,8 @@ $cachePath = public_path('logos/cache3.png');
     .header-table {
         width: 100%;
         border-collapse: collapse;
-        margin-bottom: 24px;
-        padding-bottom: 18px;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
         border-bottom: 1px solid #e0e0e0;
         table-layout: fixed;
     }
@@ -146,34 +211,35 @@ $cachePath = public_path('logos/cache3.png');
     .brand-name {
         font-size: 16px;
         font-weight: 700;
-        color: #0a0a0a;
+        color: #1a1a1a;
         letter-spacing: -0.3px;
         margin-top: 2px;
         margin-left: 24px;
     }
 
     .doc-type {
-        font-size: 26px;
-        font-weight: 700;
+        font-family: Fraunces, Georgia, serif;
+        font-size: 27px;
+        font-weight: 600;
         /* color: #0a0a0a; */
         color: #2544b0;
-        letter-spacing: -0.6px;
+        letter-spacing: 0.5px;
         margin-bottom: 4px;
     }
-    .doc-type.avoir { color: #555555; }
+    .doc-type.avoir { color: #1a1a1a; }
 
     .doc-number {
+        display: inline-block;
         font-size: 12px;
         font-weight: 600;
-        color: #ffffff;
-        /* background: #0a0a0a; */
-        background: #2544b0;
+        color: #2544b0;
+        background: #eef1fb;
         padding: 3px 10px;
         border-radius: 4px;
         letter-spacing: 0.5px;
         margin-bottom: 10px;
     }
-    .doc-number.avoir-badge { background: #555555; }
+    .doc-number.avoir-badge { background: #f2f2f2; color: #555555; }
 
     .meta-row {
         margin-top: 3px;
@@ -182,7 +248,7 @@ $cachePath = public_path('logos/cache3.png');
         text-align: right;
     }
     .meta-row .meta-value {
-        color: #2a2a2a;
+        color: #1a1a1a;
         font-weight: 500;
         margin-left: 6px;
     }
@@ -190,7 +256,7 @@ $cachePath = public_path('logos/cache3.png');
     /* ===== AVOIR REF (plain black, sits under badge) ===== */
     .avoir-ref-inline {
         font-size: 10.5px;
-        color: #0a0a0a;
+        color: #1a1a1a;
         font-weight: 400;
         margin-bottom: 6px;
         text-align: right;
@@ -207,7 +273,7 @@ $cachePath = public_path('logos/cache3.png');
     .client-outer {
         width: 100%;
         border-collapse: collapse;
-        margin-bottom: 20px;
+        margin-bottom: 14px;
     }
     .client-outer > tbody > tr > td.client-cell {
         width: 50%;
@@ -217,24 +283,25 @@ $cachePath = public_path('logos/cache3.png');
         width: 50%;
     }
     .party-block {
-        padding: 12px 22px;
+        padding: 10px 18px;
         border-radius: 5px;
-        background: #f7f7f7;
+        background: #ffffff;
         border: 1px solid #e0e0e0;
         width: 100%;
         border-spacing: 0;
     }
     .party-name {
+        font-family: Fraunces, Georgia, serif;
         font-size: 16px;
-        font-weight: 700;
-        color: #0a0a0a;
-        margin-bottom: 8px;
-        letter-spacing: -0.2px;
+        font-weight: 600;
+        color: #1a1a1a;
+        margin-bottom: 5px;
+        letter-spacing: 0;
     }
     .party-detail {
         font-size: 11px;
         color: #555555;
-        line-height: 1.5;
+        line-height: 1.4;
     }
     .party-line { display: block; }
     .party-detail .detail-label {
@@ -243,9 +310,9 @@ $cachePath = public_path('logos/cache3.png');
         font-weight: 300;
     }
     .party-ids {
-        margin-top: 10px;
-        padding-top: 8px;
-        border-top: 2px dashed #b0b0b0;
+        margin-top: 6px;
+        padding-top: 6px;
+        border-top: 1px solid #e0e0e0;
     }
     .id-item {
         font-size: 10px;
@@ -260,7 +327,7 @@ $cachePath = public_path('logos/cache3.png');
         letter-spacing: 0.5px;
     }
     .id-value {
-        color: #2a2a2a;
+        color: #1a1a1a;
         font-weight: 500;
     }
 
@@ -272,38 +339,36 @@ $cachePath = public_path('logos/cache3.png');
         text-transform: uppercase;
         letter-spacing: 1.2px;
         color: #888888;
-        margin-bottom: 10px;
+        margin-bottom: 8px;
     }
     .expedition-table {
         width: 100%;
         border-collapse: collapse;
-        border-radius: 8px;
-        border: 1px solid #e0e0e0;
+        border: none;
     }
     .expedition-table thead th {
-        /* background: #0a0a0a; */
-        background: #2544b0;
-        color: #ffffff;
+        background: transparent;
+        color: #888888;
         font-size: 9.5px;
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.8px;
-        padding: 10px 14px;
+        padding: 8px 14px;
         text-align: left;
+        border-bottom: 1px solid #1a1a1a;
     }
     .expedition-table tbody td {
-        padding: 11px 14px;
+        padding: 9px 14px;
         font-size: 11px;
-        color: #2a2a2a;
+        color: #1a1a1a;
         border-bottom: 1px solid #f0f0f0;
         vertical-align: top;
     }
-    .expedition-table tbody tr:nth-child(even) { background: #f7f7f7; }
-    .expedition-table tbody tr:last-child td { border-bottom: none; }
+    .expedition-table tbody tr:last-child td { border-bottom: 1px solid #e0e0e0; }
 
     /* ===== FISCAL SUMMARY ===== */
     .summary-wrapper {
-        margin-bottom: 36px;
+        margin-bottom: 14px;
         width: 100%;
     }
     .summary-outer {
@@ -320,7 +385,7 @@ $cachePath = public_path('logos/cache3.png');
         border-spacing: 0;
     }
     .summary-block td {
-        padding: 10px 16px;
+        padding: 7px 16px;
         font-size: 11px;
         vertical-align: middle;
         border-bottom: 1px solid #f0f0f0;
@@ -329,17 +394,17 @@ $cachePath = public_path('logos/cache3.png');
     .summary-block td.summary-value {
         text-align: right;
         font-weight: 500;
-        color: #2a2a2a;
+        color: #1a1a1a;
         font-variant-numeric: tabular-nums;
         white-space: nowrap;
     }
-    .summary-block tr.tva-row td { background: #f7f7f7; }
+    .summary-block tr.tva-row td { background: transparent; }
     .tva-rate {
         display: inline-block;
         font-size: 9px;
         font-weight: 600;
         color: #888888;
-        background: #e0e0e0;
+        background: #f2f2f2;
         padding: 1px 6px;
         border-radius: 3px;
         margin-left: 6px;
@@ -347,13 +412,11 @@ $cachePath = public_path('logos/cache3.png');
     .summary-block .summary-total-row td {
         /* background: #0a0a0a; */
         background: #2544b0;
-        padding: 14px 16px;
+        padding: 10px 16px;
         border-bottom: none;
-
-
     }
     .summary-block .summary-total-row td.summary-label {
-        color: #c0c0c0;
+        color: #cdd7f5;
         font-weight: 600;
         font-size: 10px;
         text-transform: uppercase;
@@ -368,31 +431,66 @@ $cachePath = public_path('logos/cache3.png');
     .summary-block .summary-total-row .currency {
         font-size: 11px;
         font-weight: 500;
-        color: #c0c0c0;
+        color: #cdd7f5;
         margin-left: 4px;
     }
 
+    /* ===== ARRETE (montant en lettres, bas de derniere page) ===== */
+    .arrete-final {
+        position: absolute;
+        bottom: 142pt;
+        left: 80pt;
+        right: 0;
+        font-family: Fraunces, Georgia, serif;
+        font-size: 13.5px;
+        font-style: italic;
+        color: #0a0a0a;
+        line-height: 1.5;
+    }
+    .arrete-final.no-payment { bottom: 106pt; }
+    .arrete-final .arrete-amount { font-weight: 600; font-style: normal; }
+
+    /* ===== MODALITES DE REGLEMENT (sous l'arrete, facture uniquement) ===== */
+    .payment-block {
+        position: absolute;
+        bottom: 66pt;
+        left: 80pt;
+        right: 40pt;
+        font-size: 10px;
+        color: #555555;
+        line-height: 1.45;
+    }
+    .payment-title {
+        font-size: 8.5px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        color: #888888;
+        margin-bottom: 3px;
+    }
+    .payment-line .payment-value { color: #1a1a1a; font-weight: 600; }
+
     /* ===== CACHE IMAGE ===== */
     .cache-cell {
-        width: 200px;
+        width: 203px;
         vertical-align: middle;
         text-align: center;
         padding-left: 20px;
     }
     .cache-cell .cache-img {
         display: inline-block;
-        max-width: 200px;
+        max-width: 203px;
         height: auto;
     }
     .cache-below-block {
         margin-top: 18px;
         margin-bottom: 18px;
     }
-    .cache-below-block .cache-right { text-align: right; }
-    .cache-below-block .cache-left  { text-align: left; }
+    .cache-below-block.cache-right { text-align: right; }
+    .cache-below-block.cache-left  { text-align: left; }
     .cache-below-block .cache-img {
         display: inline-block;
-        max-width: 160px;
+        max-width: 163px;
         height: auto;
     }
 
@@ -420,26 +518,30 @@ $cachePath = public_path('logos/cache3.png');
         bottom: 0;
         left: 0;
         right: 0;
-        padding: 12pt 100pt 14pt 50pt;
+        padding: 10pt 50pt 12pt 50pt;
         border-top: 1px solid #e0e0e0;
-        background: #f7f7f7;
-        font-size: 10px;
-        color: #555555;
+        background: #ffffff;
+        font-size: 8.5px;
+        color: #888888;
         -webkit-print-color-adjust: exact;
     }
-    .footer-row {
-        line-height: 1.3;
+    .footer-line {
+        line-height: 1.55;
         width: 100%;
+        text-align: center;
     }
-    .footer-item {
-        display: inline-block;
-        margin-right: 14px;
+    .footer-line .fl-val {
+        color: #1a1a1a;
+        font-weight: 500;
     }
-    .footer-item .footer-label {
+    .footer-company {
+        font-size: 9px;
+    }
+    .footer-company .fl-strong {
         font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: #2a2a2a;
+        letter-spacing: 0.4px;
+        color: #1a1a1a;
     }
     .page-number {
         text-align: right;
@@ -448,7 +550,7 @@ $cachePath = public_path('logos/cache3.png');
         margin-top: 8px;
         font-weight: 500;
     }
-    .page-number .page-current { color: #2a2a2a; font-weight: 700; }
+    .page-number .page-current { color: #1a1a1a; font-weight: 700; }
 
     /* ===== PAGE BREAK ===== */
     .page-block {
@@ -470,14 +572,19 @@ $cachePath = public_path('logos/cache3.png');
 
 <!-- FOOTER (fixed at bottom, registered before paginated content for DomPDF) -->
 <div class="page-footer">
-    <div class="footer-row">
-        <span class="footer-item"><span class="footer-label">Société :</span> {{ $society }}</span>
-        <span class="footer-item"><span class="footer-label">Adresse :</span> {{ $provAddress }}{{ $provAddressFull ? ' — ' . $provAddressFull : '' }}</span>
-        <span class="footer-item"><span class="footer-label">RC :</span> {{ $provRc }}</span>
-        <span class="footer-item"><span class="footer-label">ICE :</span> {{ $provIce }}</span>
-        <span class="footer-item"><span class="footer-label">IF :</span> {{ $provIf }}</span>
-        <span class="footer-item"><span class="footer-label">Tél :</span> {{ $provTel }}</span>
-        <span class="footer-item"><span class="footer-label">Email :</span> {{ $provEmail }}</span>
+    <div class="footer-line footer-company">
+        <span class="fl-strong">{{ $society }}</span> — {{ $provAddress }}{{ $provAddressFull ? ', ' . $provAddressFull : '' }}
+    </div>
+    <div class="footer-line">
+        RC : <span class="fl-val">{{ $provRc }}</span> &middot;
+        ICE : <span class="fl-val">{{ $provIce }}</span> &middot;
+        IF : <span class="fl-val">{{ $provIf }}</span>
+        @if($provCnss !== '') &middot; CNSS : <span class="fl-val">{{ $provCnss }}</span>@endif
+        @if($provPatente !== '') &middot; Patente : <span class="fl-val">{{ $provPatente }}</span>@endif
+    </div>
+    <div class="footer-line">
+        Tél : <span class="fl-val">{{ $provTel }}</span> &middot;
+        Email : <span class="fl-val">{{ $provEmail }}</span>@if($provWeb) &middot; Site web : <span class="fl-val">{{ $provWeb }}</span>@endif
     </div>
 </div>
 
@@ -573,11 +680,10 @@ $cachePath = public_path('logos/cache3.png');
             <table class="expedition-table">
                 <thead>
                     <tr>
-                        <th style="width:90px;">N° Expéd.</th>
-                        <th style="width:80px;">Date</th>
+                        <th style="width:78px;">N° Expéd.</th>
+                        <th style="width:70px;">Date</th>
                         <th>Destinataire</th>
-                        <th>Ville / Pays</th>
-                        <th style="width:130px;">Service</th>
+                        <th style="width:150px;">Service</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -586,8 +692,7 @@ $cachePath = public_path('logos/cache3.png');
                             <td>{{ $exp->shipping_number }}</td>
                             <td>{{ $exp->created_at?->format('d/m/Y') }}</td>
                             <td>{{ $exp->recipient_name }}</td>
-                            <td>{{ trim(($exp->recipient_city ?? '') . ($exp->recipient_city && $exp->recipient_country ? ', ' : '') . ($exp->recipient_country ?? '')) ?: '-' }}</td>
-                            <td>{{ str_replace('_', ' ', ucfirst($exp->type_service ?? '')) ?: '-' }}</td>
+                            <td>{{ $serviceLabel($exp->type_service) }}</td>
                         </tr>
                     @endforeach
                 </tbody>
@@ -597,7 +702,8 @@ $cachePath = public_path('logos/cache3.png');
         @endif
     </div>
 
-    <!-- SUMMARY + CACHE (on EVERY page) -->
+    <!-- SUMMARY + CACHE (last page only — one fiscal block per document) -->
+    @if($isLastPage)
     <div class="summary-wrapper">
         <table class="summary-outer">
             <tr>
@@ -631,19 +737,44 @@ $cachePath = public_path('logos/cache3.png');
         </table>
 
         @if($cacheSrc && !$cacheOnLeft)
-            <div class="cache-below-block">
+            <div class="cache-below-block cache-right">
                 <img src="{{ $cacheSrc }}" class="cache-img" alt="Cache">
             </div>
         @endif
     </div>
+
+    <!-- Mention légale, en texte simple au bas de la dernière page -->
+    <div class="arrete-final {{ $hasPayment ? '' : 'no-payment' }}">
+        {{ $arreteIntro }} <span class="arrete-amount">{{ $ttcEnLettres }}.</span>
+    </div>
+
+    @if($hasPayment)
+    <!-- Modalités de règlement (coordonnées bancaires du prestataire) -->
+    <div class="payment-block">
+        <div class="payment-title">Modalités de règlement</div>
+        @if($bankAccountName !== '')
+            <div class="payment-line">Merci de libeller vos chèques à l'ordre de : <span class="payment-value">{{ $bankAccountName }}</span></div>
+        @endif
+        @if($bankName !== '' || $bankAgence !== '')
+            <div class="payment-line">{{ $bankAccountName !== '' ? 'Ou paiement' : 'Paiement' }} par virement : <span class="payment-value">{{ $bankName }}{{ $bankName !== '' && $bankAgence !== '' ? ' — ' : '' }}{{ $bankAgence }}</span></div>
+        @endif
+        @if($bankRib !== '')
+            <div class="payment-line">Compte N° : <span class="payment-value">{{ $bankRib }}</span></div>
+        @endif
+        @if($bankSwift !== '')
+            <div class="payment-line">Code Swift : <span class="payment-value">{{ $bankSwift }}</span></div>
+        @endif
+    </div>
+    @endif
+    @endif
 
     </div>
 @endforeach
 
 <script type="text/php">
     if (isset($pdf)) {
-        $font = $fontMetrics->get_font("Helvetica", "normal");
-        $pdf->page_text(542, 783, "Page {PAGE_NUM} / {PAGE_COUNT}", $font, 9, array(0, 0, 0));
+        $font = $fontMetrics->get_font("inter", "normal") ?: $fontMetrics->get_font("Helvetica", "normal");
+        $pdf->page_text(542, 758, "Page {PAGE_NUM} / {PAGE_COUNT}", $font, 9, array(0, 0, 0));
     }
 </script>
 </body>

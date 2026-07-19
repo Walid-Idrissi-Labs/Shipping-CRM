@@ -179,22 +179,35 @@ class QuoteRequestController extends Controller
         return response()->json(['message' => 'Demande de devis envoyee.', 'quote_request' => $quoteRequest->load('colis')], 201);
     }
 
-    public function show(QuoteRequest $quoteRequest)
+    public function show(Request $request, QuoteRequest $quoteRequest)
     {
+        $this->authorizeAccess($request, $quoteRequest);
+
         return response()->json($quoteRequest->load(['quote', 'client', 'colis']));
     }
 
-    public function markAsTreated(QuoteRequest $quoteRequest)
+    public function markAsTreated(Request $request, QuoteRequest $quoteRequest)
     {
+        $this->authorizeAccess($request, $quoteRequest);
+
         $quoteRequest->update(['statut' => 'traitee']);
 
         return response()->json(['message' => 'Demande marquee comme traitee.', 'quote_request' => $quoteRequest->fresh()->load('colis')]);
     }
 
-    public function destroy(QuoteRequest $quoteRequest)
+    public function destroy(Request $request, QuoteRequest $quoteRequest)
     {
+        $this->authorizeAccess($request, $quoteRequest);
+
         $quoteRequest->delete();
 
         return response()->json(['message' => 'Demande supprimee.']);
+    }
+
+    private function authorizeAccess(Request $request, QuoteRequest $quoteRequest): void
+    {
+        if ($quoteRequest->provider_id !== $request->user()->provider->id) {
+            abort(403, 'Acces refuse.');
+        }
     }
 }

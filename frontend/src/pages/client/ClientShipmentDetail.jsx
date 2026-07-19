@@ -1,3 +1,4 @@
+import { useMinLoading } from '../../hooks';
 import { useEffect, useState, useRef, useLayoutEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -13,7 +14,7 @@ import PageHeader from '../../components/ui/PageHeader';
 import { DataCard, DetailRow } from '../../components/ui/DataCard';
 import StatusBadge from '../../components/ui/StatusBadge';
 import CopyButton from '../../components/ui/CopyButton';
-import TruckLoader from '../../components/ui/TruckLoader';
+import PageLoader from '../../components/ui/PageLoader';
 import { useToast } from '../../contexts/ToastContext';
 import { ShipmentStatusTimeline } from '../../components/ShipmentStatusTimeline';
 
@@ -59,18 +60,6 @@ function LabelPreview({ html }) {
   );
 }
 
-function formatDate(d) {
-  if (!d) return '-';
-  return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-}
-
-function formatDateTimeFR(iso) {
-  if (!iso) return '-';
-  return new Date(iso).toLocaleString('fr-FR', {
-    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
-  });
-}
-
 export default function ClientShipmentDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -79,6 +68,7 @@ export default function ClientShipmentDetail() {
   const [events, setEvents] = useState([]);
   const [sousEtapes, setSousEtapes] = useState({});
   const [loading, setLoading] = useState(true);
+  const showLoader = useMinLoading(loading);
   const [labelHtml, setLabelHtml] = useState(null);
   const [labelLoading, setLabelLoading] = useState(true);
   const [labelMenuOpen, setLabelMenuOpen] = useState(false);
@@ -153,12 +143,8 @@ export default function ClientShipmentDetail() {
     setLabelMenuOpen(false);
   };
 
-  if (loading) {
-    return (
-      <div style={{ maxWidth: 1080, display: 'flex', justifyContent: 'center', padding: 32 }}>
-        <TruckLoader />
-      </div>
-    );
+  if (showLoader) {
+    return <PageLoader variant="detail" />;
   }
 
   if (!shipment) return null;
@@ -171,7 +157,7 @@ export default function ClientShipmentDetail() {
           onClick={() => navigate('/client/mes-expeditions')}
           className="btn btn-ghost"
         >
-          <ArrowLeft size={14} /> Retour aux expeditions
+          <ArrowLeft size={14} /> Retour aux expéditions
         </button>
       </div>
 
@@ -183,7 +169,7 @@ export default function ClientShipmentDetail() {
           </>
         }
         breadcrumbs={[
-          { label: 'Mes Expeditions', to: '/client/mes-expeditions' },
+          { label: 'Mes Expéditions', to: '/client/mes-expeditions' },
           { label: shipment.shipping_number },
         ]}
         actions={
@@ -195,13 +181,13 @@ export default function ClientShipmentDetail() {
               className="btn btn-primary"
               style={{ width: '100%' }}
             >
-              <Download size={14} /> Telecharger etiquette
+              <Download size={14} /> Télécharger étiquette
             </button>
             <Link
               to={`/client/expeditions/nouveau?copyFrom=${shipment.id}`}
               className="btn btn-secondary"
               style={{ width: '100%', justifyContent: 'center' }}
-              title="Creer une nouvelle expedition avec les memes informations. Les champs resteront modifiables."
+              title="Créer une nouvelle expédition avec les mêmes informations. Les champs resteront modifiables."
             >
               <CopyPlus size={14} /> Copier Details dans Nouvelle Expedition
             </Link>
@@ -211,7 +197,7 @@ export default function ClientShipmentDetail() {
 
       <DataCard
         title="Suivi"
-        description="Progression actuelle de votre expedition."
+        description="Progression actuelle de votre expédition."
         padding={16}
         style={{ marginBottom: 16 }}
       >
@@ -231,7 +217,7 @@ export default function ClientShipmentDetail() {
               <DetailRow label="Nom" value={shipment.sender_name} />
               <DetailRow label="Entreprise" value={shipment.sender_company || '-'} />
               <DetailRow label="Email" value={shipment.sender_email || '-'} />
-              <DetailRow label="Telephone" value={shipment.sender_phone || '-'} />
+              <DetailRow label="Téléphone" value={shipment.sender_phone || '-'} />
               <DetailRow label="Adresse" value={shipment.sender_address || '-'} />
               <DetailRow label="Ville" value={shipment.sender_city || '-'} />
               <DetailRow label="Code postal" value={shipment.sender_postal_code || '-'} />
@@ -243,7 +229,7 @@ export default function ClientShipmentDetail() {
             <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16 }}>
               <DetailRow label="Nom" value={shipment.recipient_name || '-'} />
               <DetailRow label="Entreprise" value={shipment.recipient_company || '-'} />
-              <DetailRow label="Telephone" value={shipment.recipient_phone || '-'} />
+              <DetailRow label="Téléphone" value={shipment.recipient_phone || '-'} />
               <DetailRow label="Adresse" value={shipment.recipient_address || '-'} />
               <DetailRow label="Ville" value={shipment.recipient_city || '-'} />
               <DetailRow label="Code postal" value={shipment.recipient_postal_code || '-'} />
@@ -253,28 +239,59 @@ export default function ClientShipmentDetail() {
         </div>
 
         <div className="flex flex-col min-w-0" style={{ gap: 16 }}>
-          <DataCard title="Colis & Service" description="Caracteristiques du colis et du service." padding={16}>
+          <DataCard title="Colis & Service" description="Caractéristiques du colis et du service." padding={16}>
             <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16 }}>
               <DetailRow label="Service" value={(shipment.type_service || '').replace(/_/g, ' ')} />
               <DetailRow label="Statut actuel"><StatusBadge status={shipment.statut_actuel} /></DetailRow>
-              <DetailRow label="Type de colis" value={shipment.type_colis || '-'} />
-              <DetailRow label="Poids" value={shipment.poids ? `${shipment.poids} kg` : '-'} />
               <DetailRow
-                label="Dimensions (cm)"
-                value={shipment.longueur && shipment.largeur && shipment.hauteur ? `${shipment.longueur} x ${shipment.largeur} x ${shipment.hauteur}` : '-'}
-              />
-              <DetailRow label="Pieces" value={shipment.nb_pieces ?? '-'} />
-              <DetailRow
-                label="Valeur declaree"
+                label="Valeur déclarée"
                 value={shipment.valeur_declaree && Number(shipment.valeur_declaree) > 0 ? `${shipment.valeur_declaree} ${shipment.devise_valeur || 'MAD'}` : '-'}
               />
               <DetailRow label="Description" value={shipment.description_colis || '-'} />
             </div>
+
+            {Array.isArray(shipment.colis) && shipment.colis.length > 0 ? (
+              <div style={{ marginTop: 16 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-steel)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>
+                  Colis ({shipment.colis.length})
+                </div>
+                <table className="table-clean">
+                  <thead>
+                    <tr>
+                      <th>Type</th>
+                      <th>Pièces</th>
+                      <th>Poids</th>
+                      <th>Dimensions (cm)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {shipment.colis.map((c, i) => (
+                      <tr key={c.id ?? i}>
+                        <td style={{ textTransform: 'capitalize' }}>{(c.type_colis || '-').replace(/_/g, ' ')}</td>
+                        <td>{c.nb_pieces ?? '-'}</td>
+                        <td>{c.poids ? `${c.poids} kg` : '-'}</td>
+                        <td>{c.longueur && c.largeur && c.hauteur ? `${c.longueur} x ${c.largeur} x ${c.hauteur}` : '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16, marginTop: 16 }}>
+                <DetailRow label="Type de colis" value={shipment.type_colis || '-'} />
+                <DetailRow label="Poids" value={shipment.poids ? `${shipment.poids} kg` : '-'} />
+                <DetailRow
+                  label="Dimensions (cm)"
+                  value={shipment.longueur && shipment.largeur && shipment.hauteur ? `${shipment.longueur} x ${shipment.largeur} x ${shipment.hauteur}` : '-'}
+                />
+                <DetailRow label="Pièces" value={shipment.nb_pieces ?? '-'} />
+              </div>
+            )}
           </DataCard>
 
           <DataCard
-            title="Etiquette"
-            description="Apercu de l'etiquette de colis."
+            title="Étiquette"
+            description="Aperçu de l'étiquette de colis."
             actions={
               <div ref={labelMenuRef} style={{ position: 'relative' }}>
                 <button
@@ -342,7 +359,7 @@ export default function ClientShipmentDetail() {
                         color: 'var(--color-graphite)',
                       }}
                     >
-                      <Download size={14} /> Telecharger
+                      <Download size={14} /> Télécharger
                     </button>
                   </div>
                 )}
@@ -360,13 +377,13 @@ export default function ClientShipmentDetail() {
                   fontSize: 14,
                 }}
               >
-                Generation de l'etiquette...
+                Génération de l'étiquette...
               </div>
             ) : labelHtml ? (
               <LabelPreview html={labelHtml} />
             ) : (
               <div style={{ fontSize: 14, color: 'var(--color-danger)', padding: 12 }}>
-                Impossible de charger l'etiquette.
+                Impossible de charger l'étiquette.
               </div>
             )}
           </DataCard>
