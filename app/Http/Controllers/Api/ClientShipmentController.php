@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Colis;
 use App\Models\Shipment;
+use App\Services\ClientActivityLogger;
 use App\Services\LabelPdfService;
 use App\Traits\AppliesSorting;
 use App\Traits\GeneratesNumbers;
@@ -70,6 +71,8 @@ class ClientShipmentController extends Controller
         $colisData = $validated['colis'] ?? [];
 
         $shipment = Shipment::create($data);
+
+        ClientActivityLogger::log($client, 'shipment_created', "Expedition {$shipment->shipping_number} creee", 'shipment', $shipment->id);
 
         // Create colis from new array format
         if (! empty($colisData)) {

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\PasswordView;
 use App\Models\User;
+use App\Services\ClientActivityLogger;
 use App\Traits\AppliesSorting;
 use App\Traits\GeneratesNumbers;
 use Illuminate\Http\Request;
@@ -218,6 +219,8 @@ class ClientController extends Controller
                 'email' => $validated['email'],
             ]);
         });
+
+        ClientActivityLogger::log($client->fresh(), 'profile_updated', 'Profil mis a jour');
 
         return response()->json([
             'message' => 'Profil mis a jour.',

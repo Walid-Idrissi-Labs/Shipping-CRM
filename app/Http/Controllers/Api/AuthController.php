@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\LoginRequest;
 use App\Models\Client;
 use App\Models\User;
+use App\Services\ClientActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -33,6 +34,10 @@ class AuthController extends Controller
             $user->update(['first_login_completed' => true]);
         }
 
+        if ($user->role === 'client' && $user->client) {
+            ClientActivityLogger::log($user->client, 'login', 'Connexion au compte');
+        }
+
         return response()->json([
             'user' => $this->userResponse($user),
         ]);
@@ -48,9 +53,7 @@ class AuthController extends Controller
 
         return response()->json(['message' => 'Deconnecte.'])
             ->withCookie(cookie()->forget(config('session.cookie')))
-            ->withCookie(cookie()->forget('XSRF-TOKEN'))
-            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
-            ->header('Pragma', 'no-cache');
+            ->withCookie(cookie()->forget('XSRF-TOKEN'));
     }
 
     public function me(Request $request)
@@ -59,8 +62,7 @@ class AuthController extends Controller
 
         return response()->json([
             'user' => $user ? $this->userResponse($user) : null,
-        ])->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
-          ->header('Pragma', 'no-cache');
+        ]);
     }
 
     private function resolveUser(string $identifier): ?User

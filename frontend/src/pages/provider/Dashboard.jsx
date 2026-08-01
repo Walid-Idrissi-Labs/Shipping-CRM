@@ -4,15 +4,32 @@ import {
   Package, Users, FileText, Receipt, ArrowUpRight,
   Truck, AlertTriangle, FileWarning, TrendingUp, Wallet,
   Route, PlusCircle, ScrollText, UserPlus,
+  Activity, LogIn, FileEdit, User, Bell,
 } from 'lucide-react';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
+import MagicCard from '../../components/ui/MagicCard';
 import StatusBadge from '../../components/ui/StatusBadge';
 import Skeleton from '../../components/ui/Skeleton';
 import EmptyState from '../../components/ui/EmptyState';
 import ShipmentStatusDonut from '../../components/charts/ShipmentStatusDonut';
 import ServiceTypeBarChart from '../../components/charts/ServiceTypeBarChart';
+import { formatRelativeTime } from '../../lib/format';
+
+const activityTypeMeta = {
+  login: { icon: LogIn, tone: 'primary' },
+  shipment_created: { icon: Package, tone: 'primary' },
+  quote_request_created: { icon: FileEdit, tone: 'warning' },
+  invoice_downloaded: { icon: Receipt, tone: 'success' },
+  profile_updated: { icon: User, tone: 'neutral' },
+};
+
+const notificationTypeMeta = {
+  quote_request: { icon: FileEdit, tone: 'warning', label: 'Demande de devis', to: () => '/dashboard/demandes-devis' },
+  account_request: { icon: UserPlus, tone: 'primary', label: 'Demande de compte', to: () => '/dashboard/demandes-compte' },
+  expedition_request: { icon: Package, tone: 'success', label: "Demande d'expedition", to: (id) => `/dashboard/demandes-expedition/${id}` },
+};
 
 const fmtMAD = (value) => {
   const n = Number(value || 0);
@@ -30,7 +47,15 @@ const METRIC_TONES = ['primary', 'success', 'warning', 'danger'];
 function MetricCard({ label, value, icon: Icon, tone, href, trend }) {
   const toneClass = `icon-tile-${METRIC_TONES.includes(tone) ? tone : 'primary'}`;
   const body = (
-    <Card style={{ padding: 20, height: '100%' }}>
+    <MagicCard
+      radius={12}
+      gradientSize={220}
+      gradientColor="rgba(37, 68, 176, 0.07)"
+      restingBorderColor="rgba(74, 198, 76, 0.4)"
+      disableOnTouch
+      style={{ height: '100%' }}
+      contentStyle={{ padding: 20, height: '100%' }}
+    >
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
         <span
           className={`icon-tile ${toneClass}`}
@@ -80,7 +105,7 @@ function MetricCard({ label, value, icon: Icon, tone, href, trend }) {
           {trend.positive ? '+' : ''}{trend.percent}% vs mois precedent
         </div>
       )}
-    </Card>
+    </MagicCard>
   );
   if (!href) return body;
   return (
@@ -249,6 +274,71 @@ export default function ProviderDashboard() {
           />
         ))}
       </div>
+
+      {/* Notifications: untreated demandes from the last 7 days */}
+      <Card style={{ padding: 0 }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '18px 24px',
+            borderBottom: '1px solid var(--color-ash)',
+          }}
+        >
+          <h2 className="section-heading" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            <Bell size={16} color="var(--color-olive-gray)" /> Notifications
+          </h2>
+        </div>
+        {loading ? (
+          <div style={{ padding: 24 }}>
+            {[...Array(3)].map((_, i) => (
+              <div key={i} style={{ marginBottom: 12 }}>
+                <Skeleton height={16} width="60%" />
+              </div>
+            ))}
+          </div>
+        ) : (stats?.notifications || []).length === 0 ? (
+          <EmptyState
+            icon={Bell}
+            title="Aucune nouvelle demande"
+            description="Les demandes de devis, de compte et d'expedition des 7 derniers jours apparaitront ici."
+          />
+        ) : (
+          <div>
+            {stats.notifications.map((n) => {
+              const meta = notificationTypeMeta[n.type] || { icon: Bell, tone: 'neutral', label: n.type, to: () => '/dashboard' };
+              const Icon = meta.icon;
+              return (
+                <Link
+                  key={`${n.type}-${n.id}`}
+                  to={meta.to(n.id)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    padding: '12px 24px',
+                    borderBottom: '1px solid var(--color-ash)',
+                    textDecoration: 'none',
+                    color: 'inherit',
+                  }}
+                >
+                  <div className={`icon-tile icon-tile-${meta.tone} rounded-full`} style={{ width: 32, height: 32, flexShrink: 0 }}>
+                    <Icon size={14} />
+                  </div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-graphite)' }}>
+                      {meta.label} — {n.label || '—'}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--color-steel)' }}>{formatRelativeTime(n.created_at)}</div>
+                  </div>
+                  <StatusBadge status={n.statut} />
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </Card>
 
       {/* Row 2: Operations grid (alerts + fleet + ship/donut + service/bar) */}
       <div
@@ -651,6 +741,82 @@ export default function ProviderDashboard() {
               ))}
             </tbody>
           </table>
+        )}
+      </Card>
+
+      {/* Row 5: Recent client activity */}
+      <Card style={{ padding: 0 }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '20px 24px',
+            borderBottom: '1px solid var(--color-ash)',
+          }}
+        >
+          <h2 className="section-heading">Activite recente</h2>
+          <Link
+            to="/dashboard/activite-clients"
+            style={{
+              fontSize: 13,
+              fontWeight: 500,
+              color: 'var(--color-primary)',
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+            }}
+          >
+            Voir tout <ArrowUpRight size={14} />
+          </Link>
+        </div>
+        {loading ? (
+          <div style={{ padding: 24 }}>
+            {[...Array(5)].map((_, i) => (
+              <div key={i} style={{ marginBottom: 12 }}>
+                <Skeleton height={16} width="60%" />
+              </div>
+            ))}
+          </div>
+        ) : (stats?.recent_activities || []).length === 0 ? (
+          <EmptyState
+            icon={Activity}
+            title="Aucune activite pour l'instant"
+            description="Les connexions et actions de vos clients apparaitront ici."
+          />
+        ) : (
+          <div>
+            {(stats?.recent_activities || []).map((a) => {
+              const meta = activityTypeMeta[a.type] || { icon: Activity, tone: 'neutral' };
+              const Icon = meta.icon;
+              return (
+                <div
+                  key={a.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    padding: '12px 24px',
+                    borderBottom: '1px solid var(--color-ash)',
+                  }}
+                >
+                  <div className={`icon-tile icon-tile-${meta.tone} rounded-full`} style={{ width: 32, height: 32, flexShrink: 0 }}>
+                    <Icon size={14} />
+                  </div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-graphite)' }}>
+                      {a.client?.company_name || a.client?.full_name || '—'}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--color-steel)' }}>{a.description}</div>
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--color-steel)', whiteSpace: 'nowrap' }}>
+                    {formatRelativeTime(a.created_at)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
       </Card>
     </div>

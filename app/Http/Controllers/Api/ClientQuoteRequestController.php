@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Colis;
 use App\Models\QuoteRequest;
+use App\Services\ClientActivityLogger;
 use App\Traits\AppliesSorting;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -69,6 +70,8 @@ class ClientQuoteRequestController extends Controller
         $colisData = $validated['colis'] ?? [];
 
         $quoteRequest = QuoteRequest::create($data);
+
+        ClientActivityLogger::log($client, 'quote_request_created', 'Demande de devis envoyee', 'quote_request', $quoteRequest->id);
 
         // Create colis from new array format
         if (! empty($colisData)) {

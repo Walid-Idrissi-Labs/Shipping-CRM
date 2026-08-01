@@ -4,7 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Affectation;
+use App\Models\AccountRequest;
 use App\Models\Chauffeur;
+use App\Models\ClientActivity;
+use App\Models\ExpeditionRequest;
 use App\Models\Facture;
 use App\Models\QuoteRequest;
 use App\Models\Shipment;
@@ -109,6 +112,54 @@ class DashboardController extends Controller
             }
         }
 
+        $since = now()->subDays(7);
+
+        $notifications = collect()
+            ->concat(
+                QuoteRequest::where('provider_id', $providerId)
+                    ->where('created_at', '>=', $since)
+                    ->orderByDesc('created_at')
+                    ->limit(10)
+                    ->get(['id', 'client_name', 'statut', 'created_at'])
+                    ->map(fn ($r) => [
+                        'type' => 'quote_request',
+                        'id' => $r->id,
+                        'label' => $r->client_name,
+                        'statut' => $r->statut,
+                        'created_at' => $r->created_at,
+                    ])
+            )
+            ->concat(
+                AccountRequest::where('created_at', '>=', $since)
+                    ->orderByDesc('created_at')
+                    ->limit(10)
+                    ->get(['id', 'full_name', 'statut', 'created_at'])
+                    ->map(fn ($r) => [
+                        'type' => 'account_request',
+                        'id' => $r->id,
+                        'label' => $r->full_name,
+                        'statut' => $r->statut,
+                        'created_at' => $r->created_at,
+                    ])
+            )
+            ->concat(
+                ExpeditionRequest::where('provider_id', $providerId)
+                    ->where('created_at', '>=', $since)
+                    ->orderByDesc('created_at')
+                    ->limit(10)
+                    ->get(['id', 'sender_name', 'recipient_name', 'statut', 'created_at'])
+                    ->map(fn ($r) => [
+                        'type' => 'expedition_request',
+                        'id' => $r->id,
+                        'label' => trim(($r->sender_name ?? '') . ' → ' . ($r->recipient_name ?? '')),
+                        'statut' => $r->statut,
+                        'created_at' => $r->created_at,
+                    ])
+            )
+            ->sortByDesc('created_at')
+            ->values()
+            ->take(10);
+
         return response()->json([
             'total_shipments' => $shipmentBase()->count(),
             'total_clients' => $request->user()->provider->clients()->count(),
@@ -133,6 +184,30 @@ class DashboardController extends Controller
 
             'fleet_summary' => $fleetSummary,
             'document_alerts' => $documentAlerts,
+
+            'recent_activities' => ClientActivity::where('provider_id', $providerId)
+                ->where('created_at', '>=', now()->subDays(30))
+                ->with('client:id,full_name,company_name')
+                ->orderByDesc('created_at')
+                ->limit(5)
+                ->get(),
+
+            'notifications' => $notifications,
+        ]);
+    }
+
+    public function pendingCounts(Request $request)
+    {
+        $providerId = $request->user()->provider->id;
+
+        return response()->json([
+            'quote_requests' => QuoteRequest::where('provider_id', $providerId)
+                ->where('statut', 'en_attente')
+                ->count(),
+            'account_requests' => AccountRequest::where('statut', 'en_attente')->count(),
+            'expedition_requests' => ExpeditionRequest::where('provider_id', $providerId)
+                ->where('statut', 'en_attente')
+                ->count(),
         ]);
     }
 
