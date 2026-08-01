@@ -58,10 +58,42 @@ export function formatDateTime(value) {
 }
 
 /**
+ * Value for a <input type="datetime-local"> defaulted to "now" — built from the
+ * browser's local wall-clock fields, not toISOString() (which is UTC and would
+ * silently mislabel the field whenever the browser isn't in UTC).
+ */
+export function toLocalDatetimeInputValue(date = new Date()) {
+  const pad = (n) => String(n).padStart(2, '0');
+  return (
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
+    `T${pad(date.getHours())}:${pad(date.getMinutes())}`
+  );
+}
+
+/**
+ * Relative time in French, e.g. "il y a 5 min", "il y a 2 h". Falls back to
+ * formatDate() beyond 7 days so old entries don't show an absurd "il y a 34 j".
+ */
+export function formatRelativeTime(value) {
+  if (!value) return '-';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '-';
+  const diffSec = Math.round((Date.now() - d.getTime()) / 1000);
+  if (diffSec < 60) return "à l'instant";
+  const diffMin = Math.round(diffSec / 60);
+  if (diffMin < 60) return `il y a ${diffMin} min`;
+  const diffH = Math.round(diffMin / 60);
+  if (diffH < 24) return `il y a ${diffH} h`;
+  const diffD = Math.round(diffH / 24);
+  if (diffD < 7) return `il y a ${diffD} j`;
+  return formatDate(value);
+}
+
+/**
  * Human-facing invoice number: prefer the explicit `numero`, else compose from
- * the sequence + year (e.g. "FA 42/2026").
+ * the sequence + year (e.g. "FE 42/2026").
  */
 export function getInvoiceNumber(inv) {
   if (!inv) return '';
-  return inv.numero || `FA ${inv.numero_n}/${inv.annee}`;
+  return inv.numero || `FE ${inv.numero_n}/${inv.annee}`;
 }

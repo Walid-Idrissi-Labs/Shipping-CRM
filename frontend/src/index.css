@@ -342,6 +342,28 @@ a:hover {
   color: var(--color-graphite);
 }
 
+.provider-refresh-trigger {
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.provider-refresh-trigger:hover {
+  background: var(--color-fog);
+  border-color: var(--color-smoke);
+  color: var(--color-graphite);
+}
+
+.provider-refresh-trigger svg {
+  transition: transform 450ms ease;
+}
+
+.provider-refresh-trigger:hover svg {
+  transform: rotate(180deg);
+}
+
+.provider-refresh-trigger:active svg {
+  transform: rotate(360deg);
+}
+
 /* ---------- Elegante button (radial hover glow, primary blue) ---------- */
 .boton-elegante {
   display: inline-flex;
@@ -491,6 +513,22 @@ a:hover {
 
 .table-clean tbody tr:last-child td {
   border-bottom: 0;
+}
+
+/* Compact variant — dense sidecar tables inside a narrow card (e.g. per-colis
+   breakdown), where the full list-page sizing above is oversized. */
+.table-clean.table-compact {
+  font-size: 12px;
+}
+
+.table-clean.table-compact thead th {
+  padding: 8px 10px;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.table-clean.table-compact tbody td {
+  padding: 8px 10px;
 }
 
 /* ---------- Mono / data ---------- */
@@ -1133,6 +1171,97 @@ a:hover {
   }
 }
 
+/* ---------- Download overlay (full-screen, file downloads only) ---------- */
+.download-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: fadeIn 160ms ease-out;
+}
+
+.download-overlay-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.download-overlay-label {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-graphite);
+  letter-spacing: 0.1px;
+}
+
+/* ---------- Timezone preview (Settings > Fuseau horaire) ---------- */
+.tz-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.tz-preview-card {
+  flex: 1;
+  min-width: 180px;
+  background: var(--color-paper-white);
+  border: 1px solid var(--color-ash);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.tz-preview-card--accent {
+  border-color: var(--color-primary);
+  background: rgba(37, 68, 176, 0.05);
+}
+
+.tz-preview-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-steel);
+  margin-bottom: 6px;
+}
+
+.tz-preview-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--color-vivid-green);
+  animation: tzPulse 1.8s ease-in-out infinite;
+}
+
+.tz-preview-time {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--color-graphite);
+  letter-spacing: -0.01em;
+}
+
+.tz-preview-card--accent .tz-preview-time {
+  color: var(--color-primary);
+}
+
+.tz-preview-date {
+  font-size: 12px;
+  color: var(--color-smoke);
+  margin-top: 2px;
+}
+
+@keyframes tzPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
 
 /* ---------- Dialog ---------- */
 .dialog-backdrop {
