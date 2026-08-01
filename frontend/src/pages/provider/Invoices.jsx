@@ -1,4 +1,4 @@
-import { useMinLoading } from '../../hooks';
+import { useMinLoading, useFileDownload } from '../../hooks';
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../../api/axios';
@@ -41,6 +41,7 @@ export default function Invoices() {
   const navigate = useNavigate();
   const dialog = useDialog();
   const toast = useToast();
+  const downloadFile = useFileDownload();
   const [factures, setFactures] = useState([]);
   const [avoirs, setAvoirs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -182,24 +183,36 @@ export default function Invoices() {
 
   const downloadPdf = async (id) => {
     const facture = factures.find((f) => f.id === id);
-    const { data } = await api.get(`/invoices/${id}/pdf`, { responseType: 'blob' });
-    const url = URL.createObjectURL(new Blob([data]));
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${facture?.numero || `FA ${id}`}.pdf`;
-    a.click();
-    URL.revokeObjectURL(url);
+    try {
+      await downloadFile(async () => {
+        const { data } = await api.get(`/invoices/${id}/pdf`, { responseType: 'blob' });
+        const url = URL.createObjectURL(new Blob([data]));
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${facture?.numero || `FE ${id}`}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }, 'Génération de la facture...');
+    } catch (err) {
+      toast.push(err.response?.data?.message || 'Erreur lors du téléchargement.', 'error');
+    }
   };
 
   const downloadAvoirPdf = async (id) => {
     const avoir = avoirs.find((x) => x.id === id);
-    const { data } = await api.get(`/credit-notes/${id}/pdf`, { responseType: 'blob' });
-    const url = URL.createObjectURL(new Blob([data]));
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${avoir?.numero || `AV ${id}`}.pdf`;
-    a.click();
-    URL.revokeObjectURL(url);
+    try {
+      await downloadFile(async () => {
+        const { data } = await api.get(`/credit-notes/${id}/pdf`, { responseType: 'blob' });
+        const url = URL.createObjectURL(new Blob([data]));
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${avoir?.numero || `AV ${id}`}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }, "Génération de l'avoir...");
+    } catch (err) {
+      toast.push(err.response?.data?.message || 'Erreur lors du téléchargement.', 'error');
+    }
   };
 
   const deleteAvoir = async (id) => {

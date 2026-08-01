@@ -1,4 +1,4 @@
-import { useMinLoading } from '../../hooks';
+import { useMinLoading, useFileDownload } from '../../hooks';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Check, X, SquareArrowOutUpRight } from 'lucide-react';
@@ -22,6 +22,7 @@ export default function InvoiceDetail() {
   const [facture, setFacture] = useState(null);
   const [loading, setLoading] = useState(true);
   const showLoader = useMinLoading(loading);
+  const downloadFile = useFileDownload();
 
   useEffect(() => {
     fetchInvoice();
@@ -40,13 +41,19 @@ export default function InvoiceDetail() {
   };
 
   const downloadPdf = async () => {
-    const { data } = await api.get(`/invoices/${id}/pdf`, { responseType: 'blob' });
-    const url = URL.createObjectURL(new Blob([data]));
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${facture.numero}.pdf`;
-    a.click();
-    URL.revokeObjectURL(url);
+    try {
+      await downloadFile(async () => {
+        const { data } = await api.get(`/invoices/${id}/pdf`, { responseType: 'blob' });
+        const url = URL.createObjectURL(new Blob([data]));
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${facture.numero}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }, 'Génération de la facture...');
+    } catch (err) {
+      toast.push(err.response?.data?.message || 'Erreur lors du téléchargement.', 'error');
+    }
   };
 
   const markAsPaid = async () => {

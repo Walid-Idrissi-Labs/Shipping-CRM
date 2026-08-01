@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import {Eye, UserCheck, UserX} from 'lucide-react';
+import {Eye, UserCheck, UserX, Trash2} from 'lucide-react';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
@@ -13,11 +13,13 @@ import { useColumnSort } from '../../hooks/useColumnSort';
 import { useUrlPage } from '../../hooks/useUrlPage';
 import { useDialog } from '../../contexts/DialogContext';
 import { useToast } from '../../contexts/ToastContext';
+import { usePendingCounts } from '../../contexts/PendingCountsContext';
 
 export default function AccountRequests() {
   const navigate = useNavigate();
   const dialog = useDialog();
   const toast = useToast();
+  const { refresh: refreshPendingCounts } = usePendingCounts();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
@@ -66,6 +68,28 @@ export default function AccountRequests() {
     try {
       await api.delete(`/account-requests/${id}`);
       toast.push('Demande rejetee', 'success');
+      fetchRequests();
+      refreshPendingCounts();
+    } catch (err) {
+      toast.push(err.response?.data?.message || 'Erreur', 'error');
+    }
+  };
+
+  const remove = async (id) => {
+    const ok = await dialog.confirm({
+      title: 'Supprimer definitivement cette demande ?',
+      description: 'La demande rejetee sera supprimee de la liste de maniere definitive.',
+      confirmText: 'Supprimer',
+      cancelText: 'Annuler',
+      variant: 'danger',
+      safetyGate: true,
+      requiredInput: 'supprimer',
+      inputLabel: 'Tapez supprimer pour confirmer',
+    });
+    if (!ok) return;
+    try {
+      await api.delete(`/account-requests/${id}/force`);
+      toast.push('Demande supprimee', 'success');
       fetchRequests();
     } catch (err) {
       toast.push(err.response?.data?.message || 'Erreur', 'error');
@@ -147,6 +171,11 @@ export default function AccountRequests() {
                               <UserX size={16} color="var(--color-danger)" />
                             </button>
                           </>
+                        )}
+                        {r.statut === 'rejetee' && (
+                          <button onClick={() => remove(r.id)} className="btn-icon" title="Supprimer definitivement">
+                            <Trash2 size={16} color="var(--color-danger)" />
+                          </button>
                         )}
                       </div>
                     </td>

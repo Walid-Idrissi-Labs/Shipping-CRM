@@ -1,4 +1,4 @@
-import { useMinLoading } from '../../hooks';
+import { useMinLoading, useFileDownload } from '../../hooks';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {ArrowLeft, SquareArrowOutUpRight} from 'lucide-react';
@@ -19,6 +19,7 @@ export default function AvoirDetail() {
   const [avoir, setAvoir] = useState(null);
   const [loading, setLoading] = useState(true);
   const showLoader = useMinLoading(loading);
+  const downloadFile = useFileDownload();
 
   useEffect(() => {
     fetchAvoir();
@@ -38,13 +39,15 @@ export default function AvoirDetail() {
 
   const downloadPdf = async () => {
     try {
-      const { data } = await api.get(`/credit-notes/${id}/pdf`, { responseType: 'blob' });
-      const url = URL.createObjectURL(new Blob([data]));
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${avoir.numero}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
+      await downloadFile(async () => {
+        const { data } = await api.get(`/credit-notes/${id}/pdf`, { responseType: 'blob' });
+        const url = URL.createObjectURL(new Blob([data]));
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${avoir.numero}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }, "Génération de l'avoir...");
     } catch {
       navigate('/dashboard/factures?tab=avoirs');
     }
