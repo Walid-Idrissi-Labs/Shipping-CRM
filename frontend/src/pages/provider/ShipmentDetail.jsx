@@ -1,6 +1,6 @@
 import { useMinLoading } from '../../hooks';
 import { useEffect, useState, useMemo, useRef, useLayoutEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import { DataCard, DetailRow } from '../../components/ui/DataCard';
@@ -9,6 +9,7 @@ import ClientLinkButton from '../../components/ui/ClientLinkButton';
 import CopyButton from '../../components/ui/CopyButton';
 import PageLoader from '../../components/ui/PageLoader';
 import { FormField } from '../../components/ui/Form';
+import { toLocalDatetimeInputValue } from '../../lib/format';
 import { useDialog } from '../../contexts/DialogContext';
 import { useToast } from '../../contexts/ToastContext';
 import {
@@ -274,14 +275,16 @@ function TrackingTimeline({ events, sousEtapes = {} }) {
 
 export default function ShipmentDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [shipment, setShipment] = useState(null);
+  const [isBilled, setIsBilled] = useState(false);
   const [events, setEvents] = useState([]);
   const [sousEtapes, setSousEtapes] = useState({});
   const [affectations, setAffectations] = useState([]);
 const [newEvent, setNewEvent] = useState({
      statut: '',
      sous_statut: '',
-     date_statut: new Date().toISOString().slice(0, 16),
+     date_statut: toLocalDatetimeInputValue(),
      description: '',
      addSousEtape: false,
      sousEtapeDescription: '',
@@ -330,6 +333,7 @@ const [newEvent, setNewEvent] = useState({
     const { data } = await api.get(`/shipments/${id}`);
     const s = data.shipment || data;
     setShipment(s);
+    setIsBilled(Boolean(data.is_billed));
     setEvents(s.suivi_statuts || data.suivi_statuts || []);
     // Load sous_etapes from the API response
     if (data.sous_etapes) {
@@ -393,7 +397,7 @@ const [newEvent, setNewEvent] = useState({
     setNewEvent({
       statut: '',
       sous_statut: '',
-      date_statut: new Date().toISOString().slice(0, 16),
+      date_statut: toLocalDatetimeInputValue(),
       description: '',
       addSousEtape: false,
       sousEtapeDescription: '',
@@ -401,6 +405,25 @@ const [newEvent, setNewEvent] = useState({
 
     fetchShipment();
     fetchLabel();
+  };
+
+  const handleDeleteShipment = async () => {
+    const ok = await dialog.confirm({
+      title: 'Supprimer cette expedition ?',
+      description: 'Cette expedition sera definitivement supprimee. Cette action est irreversible.',
+      confirmText: 'Supprimer',
+      cancelText: 'Annuler',
+      variant: 'danger',
+    });
+    if (!ok) return;
+    try {
+      await api.delete(`/shipments/${id}`);
+      toast.push('Expedition supprimee', 'success');
+      navigate('/dashboard/expeditions');
+    } catch (err) {
+      const message = err?.response?.data?.message || 'Suppression impossible.';
+      toast.push(message, 'error');
+    }
   };
 
   const handleDeleteEvent = async (eventId) => {
@@ -466,13 +489,24 @@ const [newEvent, setNewEvent] = useState({
         subtitle={`${shipment.sender_name} -> ${shipment.recipient_name}`}
         breadcrumbs={[{ label: 'Expeditions', to: '/dashboard/expeditions' }, { label: shipment.shipping_number }]}
         actions={
-          <Link
-            to={`/dashboard/expeditions/nouveau?copyFrom=${shipment.id}`}
-            className="btn btn-secondary"
-            title="Creer une nouvelle expedition avec les memes informations. Les champs resteront modifiables."
-          >
-            <CopyPlus size={14} /> Copier Details dans Nouvelle Expedition
-          </Link>
+          <>
+            <Link
+              to={`/dashboard/expeditions/nouveau?copyFrom=${shipment.id}`}
+              className="btn btn-secondary"
+              title="Creer une nouvelle expedition avec les memes informations. Les champs resteront modifiables."
+            >
+              <CopyPlus size={14} /> Copier Details dans Nouvelle Expedition
+            </Link>
+            <button
+              type="button"
+              onClick={handleDeleteShipment}
+              className="btn btn-danger"
+              disabled={isBilled}
+              title={isBilled ? 'Impossible de supprimer une expedition deja facturee.' : undefined}
+            >
+              <Trash2 size={14} /> Supprimer
+            </button>
+          </>
         }
       />
 
@@ -518,7 +552,6 @@ const [newEvent, setNewEvent] = useState({
               <DetailRow label="Service" value={(shipment.type_service || '').replace(/_/g, ' ')} />
               <DetailRow label="Statut actuel"><StatusBadge status={shipment.statut_actuel} /></DetailRow>
               <DetailRow label="Valeur déclarée" value={shipment.valeur_declaree && Number(shipment.valeur_declaree) > 0 ? `${shipment.valeur_declaree} ${shipment.devise_valeur || 'MAD'}` : '-'} />
-              <DetailRow label="Description" value={shipment.description_colis || '-'} />
             </div>
 
             {Array.isArray(shipment.colis) && shipment.colis.length > 0 ? (
@@ -526,26 +559,30 @@ const [newEvent, setNewEvent] = useState({
                 <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-steel)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>
                   Colis ({shipment.colis.length})
                 </div>
-                <table className="table-clean">
-                  <thead>
-                    <tr>
-                      <th>Type</th>
-                      <th>Pièces</th>
-                      <th>Poids</th>
-                      <th>Dimensions (cm)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {shipment.colis.map((c, i) => (
-                      <tr key={c.id ?? i}>
-                        <td style={{ textTransform: 'capitalize' }}>{(c.type_colis || '-').replace(/_/g, ' ')}</td>
-                        <td>{c.nb_pieces ?? '-'}</td>
-                        <td>{c.poids ? `${c.poids} kg` : '-'}</td>
-                        <td>{c.longueur && c.largeur && c.hauteur ? `${c.longueur} x ${c.largeur} x ${c.hauteur}` : '-'}</td>
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="table-clean table-compact">
+                    <thead>
+                      <tr>
+                        <th>Type</th>
+                        <th>Pièces</th>
+                        <th>Poids</th>
+                        <th>Dimensions (cm)</th>
+                        <th>Description</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {shipment.colis.map((c, i) => (
+                        <tr key={c.id ?? i}>
+                          <td style={{ textTransform: 'capitalize' }}>{(c.type_colis || '-').replace(/_/g, ' ')}</td>
+                          <td>{c.nb_pieces ?? '-'}</td>
+                          <td>{c.poids ? `${c.poids} kg` : '-'}</td>
+                          <td>{c.longueur && c.largeur && c.hauteur ? `${c.longueur} x ${c.largeur} x ${c.hauteur}` : '-'}</td>
+                          <td>{c.description_colis || '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16, marginTop: 16 }}>
@@ -553,6 +590,7 @@ const [newEvent, setNewEvent] = useState({
                 <DetailRow label="Poids" value={shipment.poids ? `${shipment.poids} kg` : '-'} />
                 <DetailRow label="Dimensions (cm)" value={shipment.longueur && shipment.largeur && shipment.hauteur ? `${shipment.longueur} x ${shipment.largeur} x ${shipment.hauteur}` : '-'} />
                 <DetailRow label="Pièces" value={shipment.nb_pieces ?? '-'} />
+                <DetailRow label="Description" value={shipment.description_colis || '-'} />
               </div>
             )}
           </DataCard>

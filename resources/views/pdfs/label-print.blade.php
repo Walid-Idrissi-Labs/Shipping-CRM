@@ -379,15 +379,15 @@
                     </div>
                     <div class="package-info-item">
                         <div class="label-title">Poids</div>
-                        <div class="label-value">{{ $shipment->poids ?? '0' }} kg</div>
+                        <div class="label-value">{{ $shipment->package_summary['weight_kg'] }} kg</div>
                     </div>
                     <div class="package-info-item">
                         <div class="label-title">Dimensions (cm)</div>
-                        <div class="label-value" style="font-size:8pt;">{{ $shipment->longueur && $shipment->largeur && $shipment->hauteur ? $shipment->largeur . ' x ' . $shipment->longueur . ' x ' . $shipment->hauteur : 'N/A' }}</div>
+                        <div class="label-value" style="font-size:8pt;">{{ $shipment->package_summary['dimensions_label'] ?? 'N/A' }}</div>
                     </div>
                     <div class="package-info-item">
                         <div class="label-title">Pieces</div>
-                        <div class="label-value-large">{{ $shipment->nb_pieces ?? 1 }}</div>
+                        <div class="label-value-large">{{ $shipment->package_summary['pieces'] }}</div>
                     </div>
                     <div class="package-info-item">
                         <div class="label-title">Valeur declaree</div>
@@ -396,7 +396,7 @@
                 </div>
 
                 <div class="contents">
-                    <strong>Contents:</strong> {{ $shipment->description_colis ?: 'Documents - general business' }}
+                    <strong>Contents:</strong> {{ $shipment->package_summary['contents_label'] ?? 'Documents - general business' }}
                 </div>
 
                 <div class="label-conditions">

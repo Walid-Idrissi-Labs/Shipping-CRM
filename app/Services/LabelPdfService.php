@@ -17,7 +17,7 @@ class LabelPdfService
 
     public function generate(Shipment $shipment): string
     {
-        $shipment->load(['client', 'provider']);
+        $shipment->load(['client', 'provider', 'colis']);
 
         $barcodeDataUri = $this->barcodeDataUri($shipment->shipping_number);
         $qrCodeDataUri = $this->qrCodeDataUri($shipment);
@@ -32,7 +32,7 @@ class LabelPdfService
 
         $filename = "label-{$shipment->shipping_number}.pdf";
         $path = "labels/{$filename}";
-        $fullPath = storage_path("app/public/{$path}");
+        $fullPath = public_path("storage/{$path}");
 
         if (! is_dir(dirname($fullPath))) {
             mkdir(dirname($fullPath), 0755, true);
@@ -58,6 +58,9 @@ class LabelPdfService
         }
         if (! $shipment->relationLoaded('provider')) {
             $shipment->load('provider');
+        }
+        if (! $shipment->relationLoaded('colis')) {
+            $shipment->load('colis');
         }
 
         $originCity = $shipment->sender_city ?: '';
@@ -107,15 +110,11 @@ class LabelPdfService
                 'email' => $shipment->recipient_email,
             ],
             'package' => [
-                'description' => $shipment->description_colis,
-                'type' => $shipment->type_colis,
-                'weight_kg' => $shipment->poids,
-                'dimensions_cm' => [
-                    'length' => $shipment->longueur,
-                    'width' => $shipment->largeur,
-                    'height' => $shipment->hauteur,
-                ],
-                'pieces' => $shipment->nb_pieces,
+                'description' => $shipment->package_summary['contents_label'],
+                'type' => $shipment->colis->first()?->type_colis ?? $shipment->type_colis,
+                'weight_kg' => $shipment->package_summary['weight_kg'],
+                'dimensions_cm' => $shipment->package_summary['dimensions_label'],
+                'pieces' => $shipment->package_summary['pieces'],
                 'declared_value' => [
                     'amount' => $shipment->valeur_declaree,
                     'currency' => $shipment->devise_valeur ?: 'MAD',

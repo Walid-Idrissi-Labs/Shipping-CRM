@@ -95,6 +95,40 @@ class Shipment extends Model
         return $this->colis->sum('nb_pieces');
     }
 
+    /**
+     * Package details for the étiquette/QR payload: prefers the colis relation
+     * (how every shipment created via the multi-colis form stores this data),
+     * falling back to the legacy flat columns for older records that predate it.
+     */
+    public function getPackageSummaryAttribute(): array
+    {
+        if ($this->colis->isEmpty()) {
+            return [
+                'weight_kg' => (float) ($this->poids ?? 0),
+                'pieces' => (int) ($this->nb_pieces ?? 1),
+                'dimensions_label' => ($this->longueur && $this->largeur && $this->hauteur)
+                    ? "{$this->largeur} x {$this->longueur} x {$this->hauteur}"
+                    : null,
+                'contents_label' => $this->description_colis ?: null,
+            ];
+        }
+
+        $withDimensions = $this->colis->first(
+            fn ($c) => $c->longueur && $c->largeur && $c->hauteur
+        );
+
+        return [
+            'weight_kg' => $this->total_poids,
+            'pieces' => $this->total_pieces,
+            'dimensions_label' => match (true) {
+                $this->colis->count() === 1 && $withDimensions => "{$withDimensions->largeur} x {$withDimensions->longueur} x {$withDimensions->hauteur}",
+                (bool) $withDimensions => 'Multiple (' . $this->colis->count() . ' colis)',
+                default => null,
+            },
+            'contents_label' => $this->colis->pluck('description_colis')->filter()->implode(' / ') ?: null,
+        ];
+    }
+
     public function scopeUnbilledForProvider($query, $providerId, $clientId = null)
     {
         return $query->where('provider_id', $providerId)
