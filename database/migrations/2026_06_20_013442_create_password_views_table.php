@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('password_views', function (Blueprint $table) {
             $table->id();
             $table->foreignId('client_id')->constrained('clients')->cascadeOnDelete();
-            $table->foreignId('viewed_by')->constrained('users')->nullOnDelete();
+            $table->foreignId('viewed_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('created_at')->useCurrent();
 
             $table->index(['client_id', 'created_at']);
