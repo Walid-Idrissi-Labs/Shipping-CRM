@@ -195,6 +195,19 @@ class QuoteRequestController extends Controller
         return response()->json(['message' => 'Demande marquee comme traitee.', 'quote_request' => $quoteRequest->fresh()->load('colis')]);
     }
 
+    public function reject(Request $request, QuoteRequest $quoteRequest)
+    {
+        $this->authorizeAccess($request, $quoteRequest);
+
+        if ($quoteRequest->statut !== 'en_attente') {
+            return response()->json(['message' => 'Cette demande a deja ete traitee.'], 422);
+        }
+
+        $quoteRequest->update(['statut' => 'refusee']);
+
+        return response()->json(['message' => 'Demande refusee.', 'quote_request' => $quoteRequest->fresh()->load('colis')]);
+    }
+
     public function destroy(Request $request, QuoteRequest $quoteRequest)
     {
         $this->authorizeAccess($request, $quoteRequest);

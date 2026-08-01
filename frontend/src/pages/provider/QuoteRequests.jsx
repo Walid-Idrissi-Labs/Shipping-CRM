@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { FileText, Trash2, Eye, X, Mail, Phone, MapPin, Package, Clock, Globe } from 'lucide-react';
+import { FileText, Trash2, Eye, X, XCircle, Mail, Phone, MapPin, Package, Clock, Globe } from 'lucide-react';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
@@ -14,6 +14,7 @@ import { useColumnSort } from '../../hooks/useColumnSort';
 import { useUrlPage } from '../../hooks/useUrlPage';
 import { useDialog } from '../../contexts/DialogContext';
 import { useToast } from '../../contexts/ToastContext';
+import { usePendingCounts } from '../../contexts/PendingCountsContext';
 import {getCountryName} from '../../components/ui/CountrySelect';
 
 function calculateTotals(colis) {
@@ -40,6 +41,7 @@ const statusOptions = [
   { value: '', label: 'Tous les statuts' },
   { value: 'en_attente', label: 'En attente' },
   { value: 'traitee', label: 'Traitee' },
+  { value: 'refusee', label: 'Refusee' },
 ];
 
 export default function QuoteRequests() {
@@ -52,6 +54,7 @@ export default function QuoteRequests() {
   const [detailLoading, setDetailLoading] = useState(false);
   const dialog = useDialog();
   const toast = useToast();
+  const { refresh: refreshPendingCounts } = usePendingCounts();
   const [meta, setMeta] = useState({ lastPage: 1, total: 0, perPage: 25 });
   const { page, setPage, resetPage } = useUrlPage();
   const { column, direction, toggle, params: sortParams } = useColumnSort('created_at', 'desc');
@@ -106,6 +109,26 @@ export default function QuoteRequests() {
     await api.delete(`/quote-requests/${id}`);
     toast.push('Demande supprimee', 'success');
     fetchRequests();
+    refreshPendingCounts();
+  };
+
+  const handleReject = async (id) => {
+    const ok = await dialog.confirm({
+      title: 'Refuser cette demande de devis ?',
+      description: 'La demande sera marquee comme refusee et restera visible dans l\'historique.',
+      confirmText: 'Refuser',
+      cancelText: 'Annuler',
+      variant: 'danger',
+    });
+    if (!ok) return;
+    try {
+      await api.post(`/quote-requests/${id}/reject`);
+      toast.push('Demande refusee', 'success');
+      fetchRequests();
+      refreshPendingCounts();
+    } catch (err) {
+      toast.push(err.response?.data?.message || 'Erreur', 'error');
+    }
   };
 
   const openDetail = async (id) => {
@@ -249,10 +272,15 @@ export default function QuoteRequests() {
                   </td>
                   <td style={{ textAlign: 'right' }}>
                     <div className="flex items-center justify-end" style={{ gap: 4 }}>
-                      {!r.quote_id && (
+                      {!r.quote_id && r.statut === 'en_attente' && (
                         <Link to={`/dashboard/devis/nouveau?demandeId=${r.id}`} className="btn-icon" title="Creer un Devis">
                           <FileText size={16} />
                         </Link>
+                      )}
+                      {r.statut === 'en_attente' && (
+                        <button onClick={() => handleReject(r.id)} className="btn-icon" title="Refuser">
+                          <XCircle size={16} color="var(--color-danger)" />
+                        </button>
                       )}
                       <button
                         onClick={() => openDetail(r.id)}
@@ -262,7 +290,7 @@ export default function QuoteRequests() {
                       >
                         <Eye size={16} />
                       </button>
-                      <button onClick={() => handleDelete(r.id)} className="btn-icon" title="Supprimer">
+                      <button onClick={() => handleDelete(r.id)} className="btn-icon" title="Supprimer definitivement">
                         <Trash2 size={16} color="var(--color-danger)" />
                       </button>
                     </div>
