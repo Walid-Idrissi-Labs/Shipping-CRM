@@ -63,6 +63,17 @@ class AccountRequestController extends Controller
         return response()->json(['message' => 'Demande rejetee.']);
     }
 
+    public function forceDelete(AccountRequest $accountRequest)
+    {
+        if ($accountRequest->statut !== 'rejetee') {
+            return response()->json(['message' => 'Seules les demandes rejetees peuvent etre supprimees.'], 422);
+        }
+
+        $accountRequest->delete();
+
+        return response()->json(['message' => 'Demande supprimee.']);
+    }
+
     public function approve(Request $request, AccountRequest $accountRequest)
     {
         if ($accountRequest->statut !== 'en_attente') {

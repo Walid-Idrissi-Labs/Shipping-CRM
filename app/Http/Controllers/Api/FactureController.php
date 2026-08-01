@@ -8,6 +8,7 @@ use App\Models\Client;
 use App\Models\Facture;
 use App\Models\FactureExpedition;
 use App\Models\Shipment;
+use App\Services\ClientActivityLogger;
 use App\Services\FiscalCalculator;
 use App\Traits\AppliesSorting;
 use App\Traits\GeneratesNumbers;
@@ -57,7 +58,7 @@ class FactureController extends Controller
             $query->where(function ($qb) use ($q, $numeroStr) {
                 $qb->whereHas('client', fn ($qq) => $qq->whereRaw('LOWER(full_name) like ?', [$q]))
                     ->orWhereRaw('LOWER(client_divers_nom) like ?', [$q])
-                    ->orWhereRaw("LOWER('FA ' || numero_n || '/' || annee) like ?", [$q]);
+                    ->orWhereRaw("LOWER(CONCAT('FE ', numero_n, '/', annee)) like ?", [$q]);
                 if ($numeroStr !== '' && ctype_digit($numeroStr)) {
                     $qb->orWhere('numero_n', (int) $numeroStr);
                 }
@@ -229,6 +230,10 @@ class FactureController extends Controller
         $this->authorizeAccess($request, $facture);
         $facture->load(['client', 'expeditions', 'provider']);
 
+        if ($request->user()->role === 'client') {
+            ClientActivityLogger::log($facture->client, 'invoice_downloaded', "Facture {$facture->numero} telechargee", 'facture', $facture->id);
+        }
+
         $pdf = Pdf::loadView('pdfs.invoice', ['facture' => $facture])
             ->setPaper('a4', 'portrait');
 
@@ -346,7 +351,7 @@ class FactureController extends Controller
         return response()->json([
             'sequence' => $seq['sequence'],
             'year' => $seq['year'],
-            'numero' => "FA {$seq['sequence']}/{$seq['year']}",
+            'numero' => "FE {$seq['sequence']}/{$seq['year']}",
         ]);
     }
 

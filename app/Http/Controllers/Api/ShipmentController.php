@@ -177,6 +177,7 @@ class ShipmentController extends Controller
 
         return response()->json([
             'shipment' => $shipment,
+            'is_billed' => $shipment->factureExpedition()->exists(),
             'has_employee_changes' => $employeeChanges->isNotEmpty(),
             'employee_name' => $latestEmployeeChange?->changedBy?->name,
             'employee_changed_at' => $latestEmployeeChange?->changed_at,
@@ -255,6 +256,12 @@ class ShipmentController extends Controller
     public function destroy(Request $request, Shipment $shipment)
     {
         $this->authorizeAccess($request, $shipment);
+
+        if ($shipment->factureExpedition()->exists()) {
+            return response()->json([
+                'message' => 'Impossible de supprimer une expedition deja facturee.',
+            ], 422);
+        }
 
         $shipment->delete();
 
