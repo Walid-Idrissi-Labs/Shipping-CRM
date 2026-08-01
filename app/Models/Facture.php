@@ -39,7 +39,7 @@ class Facture extends Model
 
     public function getNumeroAttribute(): string
     {
-        return "FA {$this->numero_n}/{$this->annee}";
+        return "FE {$this->numero_n}/{$this->annee}";
     }
 
     protected function casts(): array

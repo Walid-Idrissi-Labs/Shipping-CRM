@@ -36,6 +36,11 @@ class Client extends Model
         return $this->hasMany(Facture::class);
     }
 
+    public function activities()
+    {
+        return $this->hasMany(ClientActivity::class);
+    }
+
     protected function casts(): array
     {
         return [

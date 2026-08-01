@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
     'user_id', 'company_name', 'address', 'postal_code', 'city', 'country',
     'phone', 'website', 'email', 'ice', 'rc', 'if_', 'cnss', 'patente',
     'bank_name', 'bank_rib', 'bank_swift', 'bank_account_name', 'bank_agence',
-    'logo_invoice_url', 'per_page_expeditions', 'per_page_factures'
+    'logo_invoice_url', 'per_page_expeditions', 'per_page_factures', 'timezone'
 ])]
 class Provider extends Model
 {
@@ -51,6 +51,11 @@ class Provider extends Model
     public function affectations()
     {
         return $this->hasMany(Affectation::class);
+    }
+
+    public function clientActivities()
+    {
+        return $this->hasMany(ClientActivity::class);
     }
 
     protected function casts(): array
