@@ -4,6 +4,7 @@ import { ChevronDown, ChevronUp, FileText, Save, ArrowLeft, UserRound, Plus, Lis
 import api from '../../api/axios';
 import { useToast } from '../../contexts/ToastContext';
 import { useSuccess } from '../../contexts/SuccessModalContext';
+import { usePendingCounts } from '../../contexts/PendingCountsContext';
 import PageHeader from '../../components/ui/PageHeader';
 import { DataCard } from '../../components/ui/DataCard';
 import { FormField } from '../../components/ui/Form';
@@ -35,6 +36,7 @@ export default function ClientCreate() {
   const navigate = useNavigate();
   const toast = useToast();
   const success = useSuccess();
+  const { refresh: refreshPendingCounts } = usePendingCounts();
   const toastShown = useRef(false);
 
   const [form, setForm] = useState(EMPTY_FORM);
@@ -109,6 +111,7 @@ export default function ClientCreate() {
       if (demandeId && demande?.statut === 'en_attente') {
         try {
           await api.patch(`/account-requests/${demandeId}/approve`, { client_id: data.client.id });
+          refreshPendingCounts();
         } catch {
           toast.warning('Client cree, mais la demande n\'a pas pu etre marquee comme approuvee.');
         }

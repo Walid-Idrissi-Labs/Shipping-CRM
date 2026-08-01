@@ -10,6 +10,7 @@ import StatusBadge from '../../components/ui/StatusBadge';
 import PageLoader from '../../components/ui/PageLoader';
 import { useToast } from '../../contexts/ToastContext';
 import { useDialog } from '../../contexts/DialogContext';
+import { usePendingCounts } from '../../contexts/PendingCountsContext';
 
 function formatMoney(value) {
   const n = Number(value || 0);
@@ -42,6 +43,7 @@ export default function ExpeditionRequestDetail() {
   const navigate = useNavigate();
   const toast = useToast();
   const dialog = useDialog();
+  const { refresh: refreshPendingCounts } = usePendingCounts();
   const [request, setRequest] = useState(null);
   const [loading, setLoading] = useState(true);
   const showLoader = useMinLoading(loading);
@@ -80,6 +82,7 @@ export default function ExpeditionRequestDetail() {
     try {
       const { data } = await api.post(`/expedition-requests/${id}/accept`);
       toast.push('Expedition creee avec succes.', 'success');
+      refreshPendingCounts();
       navigate(`/dashboard/expeditions/${data.shipment.id}`);
     } catch (err) {
       toast.push(err.response?.data?.message || 'Erreur lors de la creation.', 'error');
@@ -104,6 +107,7 @@ export default function ExpeditionRequestDetail() {
       await api.post(`/expedition-requests/${id}/reject`);
       toast.push('Demande refusee.', 'success');
       fetchRequest();
+      refreshPendingCounts();
     } catch (err) {
       toast.push(err.response?.data?.message || 'Erreur lors du refus.', 'error');
     } finally {

@@ -247,7 +247,6 @@ export default function ClientShipmentDetail() {
                 label="Valeur déclarée"
                 value={shipment.valeur_declaree && Number(shipment.valeur_declaree) > 0 ? `${shipment.valeur_declaree} ${shipment.devise_valeur || 'MAD'}` : '-'}
               />
-              <DetailRow label="Description" value={shipment.description_colis || '-'} />
             </div>
 
             {Array.isArray(shipment.colis) && shipment.colis.length > 0 ? (
@@ -255,26 +254,30 @@ export default function ClientShipmentDetail() {
                 <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-steel)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>
                   Colis ({shipment.colis.length})
                 </div>
-                <table className="table-clean">
-                  <thead>
-                    <tr>
-                      <th>Type</th>
-                      <th>Pièces</th>
-                      <th>Poids</th>
-                      <th>Dimensions (cm)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {shipment.colis.map((c, i) => (
-                      <tr key={c.id ?? i}>
-                        <td style={{ textTransform: 'capitalize' }}>{(c.type_colis || '-').replace(/_/g, ' ')}</td>
-                        <td>{c.nb_pieces ?? '-'}</td>
-                        <td>{c.poids ? `${c.poids} kg` : '-'}</td>
-                        <td>{c.longueur && c.largeur && c.hauteur ? `${c.longueur} x ${c.largeur} x ${c.hauteur}` : '-'}</td>
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="table-clean table-compact">
+                    <thead>
+                      <tr>
+                        <th>Type</th>
+                        <th>Pièces</th>
+                        <th>Poids</th>
+                        <th>Dimensions (cm)</th>
+                        <th>Description</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {shipment.colis.map((c, i) => (
+                        <tr key={c.id ?? i}>
+                          <td style={{ textTransform: 'capitalize' }}>{(c.type_colis || '-').replace(/_/g, ' ')}</td>
+                          <td>{c.nb_pieces ?? '-'}</td>
+                          <td>{c.poids ? `${c.poids} kg` : '-'}</td>
+                          <td>{c.longueur && c.largeur && c.hauteur ? `${c.longueur} x ${c.largeur} x ${c.hauteur}` : '-'}</td>
+                          <td>{c.description_colis || '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16, marginTop: 16 }}>
@@ -285,6 +288,7 @@ export default function ClientShipmentDetail() {
                   value={shipment.longueur && shipment.largeur && shipment.hauteur ? `${shipment.longueur} x ${shipment.largeur} x ${shipment.hauteur}` : '-'}
                 />
                 <DetailRow label="Pièces" value={shipment.nb_pieces ?? '-'} />
+                <DetailRow label="Description" value={shipment.description_colis || '-'} />
               </div>
             )}
           </DataCard>
