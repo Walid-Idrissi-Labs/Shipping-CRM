@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AffectationController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AvoirController;
 use App\Http\Controllers\Api\ChauffeurController;
+use App\Http\Controllers\Api\ClientActivityController;
 use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\ClientQuoteController;
 use App\Http\Controllers\Api\ClientQuoteRequestController;
@@ -57,6 +58,8 @@ Route::middleware('auth:sanctum')->group(function () {
         // Provider-only
         Route::middleware('role:prestataire')->group(function () {
         Route::get('/dashboard/provider', [DashboardController::class, 'provider']);
+        Route::get('/dashboard/pending-counts', [DashboardController::class, 'pendingCounts']);
+        Route::get('/client-activities', [ClientActivityController::class, 'index']);
 
         Route::get('/provider/settings', [ProviderSettingController::class, 'show']);
         Route::patch('/provider/settings', [ProviderSettingController::class, 'update']);
@@ -70,6 +73,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::apiResource('quote-requests', QuoteRequestController::class)->only(['index', 'show', 'destroy']);
         Route::patch('/quote-requests/{quoteRequest}/treat', [QuoteRequestController::class, 'markAsTreated']);
+        Route::post('/quote-requests/{quoteRequest}/reject', [QuoteRequestController::class, 'reject']);
         Route::post('/quote-requests/{quoteRequest}/create-quote', [QuoteController::class, 'createFromRequest']);
 
 Route::apiResource('quotes', QuoteController::class)->except(['store']);
@@ -90,6 +94,7 @@ Route::apiResource('shipments', ShipmentController::class);
         Route::get('/account-requests/{accountRequest}', [AccountRequestController::class, 'show']);
         Route::patch('/account-requests/{accountRequest}/approve', [AccountRequestController::class, 'approve']);
         Route::delete('/account-requests/{accountRequest}', [AccountRequestController::class, 'destroy']);
+        Route::delete('/account-requests/{accountRequest}/force', [AccountRequestController::class, 'forceDelete']);
 
         Route::get('/invoices/unbilled-shipments', [FactureController::class, 'unbilledShipments']);
         Route::get('/invoices/next-number', [FactureController::class, 'nextNumber']);

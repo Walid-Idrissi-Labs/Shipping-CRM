@@ -3,16 +3,26 @@ import { useAuth } from '../contexts/AuthContext';
 import { useContext } from 'react';
 import LoadingOverlay from '../components/ui/LoadingOverlay';
 import LoadingContext from '../contexts/LoadingContext';
+import { PendingCountsProvider, usePendingCounts } from '../contexts/PendingCountsContext';
 import {
   LayoutDashboard, Package, Users, Receipt, Truck, Settings, LogOut,
-  Menu, X, UserPlus, ClipboardList, Search,
+  Menu, X, UserPlus, ClipboardList, Search, RefreshCw,
   FileEdit, Undo2, Car, UserCog, CalendarRange, ScreenShare,
-  User, History,
+  User, History, Activity,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import CommandPalette from '../components/CommandPalette';
 
 const EXPANDED_WIDTH = 240;
+
+// Paths whose untreated-demande count drives the green sidebar outline.
+// Cleared only when a demande is actually accepted/refused (see
+// usePendingCounts), never by simply visiting the page.
+const PENDING_COUNT_PATHS = {
+  '/dashboard/demandes-devis': 'quote_requests',
+  '/dashboard/demandes-compte': 'account_requests',
+  '/dashboard/demandes-expedition': 'expedition_requests',
+};
 
 const navGroups = [
   {
@@ -34,6 +44,10 @@ const navGroups = [
   },
   {
     parent: { path: '/dashboard/clients', label: 'Clients', icon: Users },
+    children: [],
+  },
+  {
+    parent: { path: '/dashboard/activite-clients', label: 'Activite Clients', icon: Activity },
     children: [],
   },
   {
@@ -102,7 +116,12 @@ function isChildActive(child, pathname, search) {
   return true;
 }
 
-function Sidebar({ user, onLogout, location, onNavigate, width = EXPANDED_WIDTH }) {
+function hasPendingBadge(path, pendingCounts) {
+  const key = PENDING_COUNT_PATHS[path];
+  return key ? (pendingCounts?.[key] || 0) > 0 : false;
+}
+
+function Sidebar({ user, onLogout, location, onNavigate, pendingCounts, width = EXPANDED_WIDTH }) {
   return (
     <aside
       className="flex flex-col sidebar-tinted"
@@ -151,6 +170,7 @@ function Sidebar({ user, onLogout, location, onNavigate, width = EXPANDED_WIDTH 
           // show which section you are in.
           const childActive = group.children.some((c) => isChildActive(c, location.pathname, location.search));
           const isParentFilled = isParentActive && !childActive;
+          const parentPending = hasPendingBadge(group.parent.path, pendingCounts);
           return (
             <div key={group.parent.path} style={{ marginBottom: 4 }}>
               <Link
@@ -168,6 +188,7 @@ function Sidebar({ user, onLogout, location, onNavigate, width = EXPANDED_WIDTH 
                   background: isParentFilled ? 'var(--color-primary-wash)' : 'transparent',
                   color: isParentActive ? 'var(--color-primary)' : 'var(--color-iron)',
                   marginBottom: 2,
+                  boxShadow: parentPending ? 'inset 0 0 0 1.5px var(--color-vivid-green)' : 'none',
                   transition: 'background 150ms ease, color 150ms ease',
                 }}
                 onMouseEnter={(e) => { if (!isParentFilled) e.currentTarget.style.background = 'var(--color-bone)'; }}
@@ -189,6 +210,7 @@ function Sidebar({ user, onLogout, location, onNavigate, width = EXPANDED_WIDTH 
                   {group.children.map((child) => {
                     const ChildIcon = child.icon;
                     const childActive = isChildActive(child, location.pathname, location.search);
+                    const childPending = hasPendingBadge(child.path, pendingCounts);
                     return (
                       <Link
                         key={child.path}
@@ -206,6 +228,7 @@ function Sidebar({ user, onLogout, location, onNavigate, width = EXPANDED_WIDTH 
                           background: childActive ? 'var(--color-primary-wash)' : 'transparent',
                           color: childActive ? 'var(--color-primary)' : 'var(--color-steel)',
                           marginBottom: 1,
+                          boxShadow: childPending ? 'inset 0 0 0 1.5px var(--color-vivid-green)' : 'none',
                           transition: 'background 150ms ease, color 150ms ease',
                         }}
                         onMouseEnter={(e) => {
@@ -288,12 +311,28 @@ function Sidebar({ user, onLogout, location, onNavigate, width = EXPANDED_WIDTH 
 }
 
 export default function ProviderLayout() {
+  return (
+    <PendingCountsProvider>
+      <ProviderLayoutInner />
+    </PendingCountsProvider>
+  );
+}
+
+function ProviderLayoutInner() {
   const { user, logout } = useAuth();
   const { isLoading } = useContext(LoadingContext);
+  const { counts: pendingCounts, refresh: refreshPendingCounts } = usePendingCounts();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+
+  useEffect(() => {
+    refreshPendingCounts();
+    // Refetch on every navigation so the outline clears as soon as a
+    // demande is treated on its own page (accept flows navigate away).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
 
   useEffect(() => {
     const handler = (e) => {
@@ -320,6 +359,22 @@ export default function ProviderLayout() {
     navigate('/login');
   };
 
+  const handleHardRefresh = async () => {
+    // A plain reload() can still be served from a stale cached document by
+    // the browser. Force-revalidate the current URL first so the reload
+    // that follows is guaranteed to pick up fresh content — the same
+    // outcome as Ctrl+Shift+R.
+    try {
+      await fetch(window.location.pathname + window.location.search, {
+        cache: 'reload',
+        credentials: 'include',
+      });
+    } catch {
+      // Network hiccup — still reload below, no worse than a plain refresh.
+    }
+    window.location.reload();
+  };
+
   return (
     <div className="min-h-screen surface-canvas" style={{ background: 'var(--color-paper-white)' }}>
       <div
@@ -331,6 +386,7 @@ export default function ProviderLayout() {
           onLogout={handleLogout}
           location={location}
           onNavigate={() => {}}
+          pendingCounts={pendingCounts}
         />
       </div>
 
@@ -350,6 +406,7 @@ export default function ProviderLayout() {
             onLogout={handleLogout}
             location={location}
             onNavigate={() => setMobileOpen(false)}
+            pendingCounts={pendingCounts}
             width="100%"
           />
         </div>
@@ -380,28 +437,46 @@ export default function ProviderLayout() {
               <Menu size={20} />
             </button>
 
-            <button
-              type="button"
-              onClick={() => setPaletteOpen(true)}
-              className="flex items-center gap-2 surface-recessed provider-search-trigger"
-              style={{
-                marginLeft: 'auto',
-                padding: '8px 12px',
-                borderRadius: 8,
-                border: '1px solid var(--color-ash)',
-                fontSize: 13,
-                color: 'var(--color-smoke)',
-                background: 'var(--color-bone)',
-              }}
-            >
-              <Search size={15} />
-              <span className="provider-search-label">Rechercher...</span>
-              <span className="provider-search-kbd" style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--color-smoke)' }}>
-                {typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || '')
-                  ? '⌘K'
-                  : 'Ctrl K'}
-              </span>
-            </button>
+            <div className="flex items-center" style={{ marginLeft: 'auto', gap: 8 }}>
+              <button
+                type="button"
+                onClick={handleHardRefresh}
+                className="flex items-center surface-recessed provider-refresh-trigger"
+                style={{
+                  padding: 9,
+                  borderRadius: 8,
+                  border: '1px solid var(--color-ash)',
+                  color: 'var(--color-smoke)',
+                  background: 'var(--color-bone)',
+                }}
+                title="Actualiser la page"
+                aria-label="Actualiser la page"
+              >
+                <RefreshCw size={15} />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPaletteOpen(true)}
+                className="flex items-center gap-2 surface-recessed provider-search-trigger"
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: 8,
+                  border: '1px solid var(--color-ash)',
+                  fontSize: 13,
+                  color: 'var(--color-smoke)',
+                  background: 'var(--color-bone)',
+                }}
+              >
+                <Search size={15} />
+                <span className="provider-search-label">Rechercher...</span>
+                <span className="provider-search-kbd" style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--color-smoke)' }}>
+                  {typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || '')
+                    ? '⌘K'
+                    : 'Ctrl K'}
+                </span>
+              </button>
+            </div>
           </div>
         </header>
 
