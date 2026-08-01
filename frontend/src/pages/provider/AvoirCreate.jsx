@@ -139,7 +139,7 @@ export default function AvoirCreate() {
           <FormField label="Rechercher" hint="Filtre par numero ou nom de client.">
             <input
               type="text"
-              placeholder="ex: FA 5/2025 ou Atlas Logistics"
+              placeholder="ex: FE 5/2025 ou Atlas Logistics"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="input"

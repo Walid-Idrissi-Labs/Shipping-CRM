@@ -7,6 +7,7 @@ import StatusBadge from '../../components/ui/StatusBadge';
 import { FormField } from '../../components/ui/Form';
 import QrScannerModal from '../../components/employe/QrScannerModal';
 import { statusLabel, SHIPMENT_STATUSES, SHIPMENT_SUB_STATUSES } from '../../lib/statuses';
+import { toLocalDatetimeInputValue } from '../../lib/format';
 import {
   ChevronDown,
   Check,
@@ -28,7 +29,7 @@ const REPEATABLE = ['en_cours', 'en_transit'];
 const emptyEvent = () => ({
   statut: '',
   sous_statut: '',
-  date_statut: new Date().toISOString().slice(0, 16),
+  date_statut: toLocalDatetimeInputValue(),
   description: '',
   addSousEtape: false,
   sousEtapeDescription: '',

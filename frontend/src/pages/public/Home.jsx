@@ -17,6 +17,7 @@ import {
   Boxes,
   Building2,
 } from 'lucide-react';
+import MagicCard from '../../components/ui/MagicCard';
 
 // Hero background map — cities (x/y in % of the map box) and flight routes.
 const HERO_CITIES = [
@@ -407,15 +408,12 @@ export default function LandingPage() {
           justify-self: end;
           width: 100%;
           max-width: 420px;
-          background: var(--color-paper-white);
-          border: 1px solid var(--color-ash);
-          border-radius: 16px;
           box-shadow:
             rgb(239, 239, 239) 0 0 0 1px,
             rgba(0, 0, 0, 0.02) 0 22px 40px 0,
             rgba(0, 0, 0, 0.05) 0 12px 20px 0,
             rgba(0, 0, 0, 0.06) 0 4px 8px 0;
-          overflow: hidden;
+          border-radius: 16px;
         }
         .lp-widget-tabs {
           display: flex;
@@ -572,24 +570,24 @@ export default function LandingPage() {
           grid-template-columns: repeat(4, 1fr);
           gap: 20px;
         }
+        .lp-card-shell {
+          display: flex;
+          height: 100%;
+          text-decoration: none;
+          border-radius: 14px;
+          transition: transform 200ms ease, box-shadow 200ms ease;
+        }
+        .lp-card-shell:hover {
+          transform: translateY(-3px);
+          box-shadow:
+            rgba(0, 0, 0, 0.08) 0 16px 28px -12px,
+            rgba(0, 0, 0, 0.05) 0 4px 8px -4px;
+        }
         .lp-card {
           display: flex;
           flex-direction: column;
           height: 100%;
           padding: 24px;
-          background: var(--color-paper-white);
-          border: 1px solid var(--color-ash);
-          border-radius: 14px;
-          text-decoration: none;
-          transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
-        }
-        .lp-card:hover {
-          transform: translateY(-3px);
-          border-color: var(--color-mist);
-          box-shadow:
-            rgba(29, 29, 32, 0.06) 0 0 0 1px,
-            rgba(0, 0, 0, 0.08) 0 16px 28px -12px,
-            rgba(0, 0, 0, 0.05) 0 4px 8px -4px;
         }
         .lp-card-icon {
           width: 44px;
@@ -623,7 +621,7 @@ export default function LandingPage() {
           font-weight: 600;
           color: var(--color-primary);
         }
-        .lp-card:hover .lp-card-link svg { transform: translateX(3px); }
+        .lp-card-shell:hover .lp-card-link svg { transform: translateX(3px); }
         .lp-card-link svg { transition: transform 200ms ease; }
 
         /* ========================================================= HOW IT WORKS */
@@ -954,6 +952,7 @@ export default function LandingPage() {
 
           {/* Track / Quote widget */}
           <div className="lp-hero-widget" data-reveal data-delay="1">
+            <MagicCard radius={16} contentStyle={{ overflow: 'hidden' }}>
             <div className="lp-widget-tabs" role="tablist">
               <button
                 type="button"
@@ -1013,6 +1012,7 @@ export default function LandingPage() {
                 </Link>
               </div>
             </div>
+            </MagicCard>
           </div>
         </div>
       </section>
@@ -1055,29 +1055,37 @@ export default function LandingPage() {
             </p>
           </div>
           <div className="lp-cards-4">
-            <Link to="/devis-express" className="lp-card" data-reveal>
-              <div className="lp-card-icon"><Calculator size={22} strokeWidth={1.7} /></div>
-              <h3>Obtenir un devis</h3>
-              <p>Estimez le coût de votre envoi avant même de créer un compte.</p>
-              <span className="lp-card-link">Calculer <ArrowRight size={14} /></span>
+            <Link to="/devis-express" className="lp-card-shell" data-reveal>
+              <MagicCard radius={14} gradientSize={240} gradientColor="rgba(37, 68, 176, 0.06)" contentClassName="lp-card" style={{ width: '100%' }}>
+                <div className="lp-card-icon"><Calculator size={22} strokeWidth={1.7} /></div>
+                <h3>Obtenir un devis</h3>
+                <p>Estimez le coût de votre envoi avant même de créer un compte.</p>
+                <span className="lp-card-link">Calculer <ArrowRight size={14} /></span>
+              </MagicCard>
             </Link>
-            <Link to="/suivi" className="lp-card" data-reveal data-delay="1">
-              <div className="lp-card-icon"><Search size={22} strokeWidth={1.7} /></div>
-              <h3>Suivre un colis</h3>
-              <p>Localisez vos expéditions en temps réel, à toute heure du jour.</p>
-              <span className="lp-card-link">Suivre <ArrowRight size={14} /></span>
+            <Link to="/suivi" className="lp-card-shell" data-reveal data-delay="1">
+              <MagicCard radius={14} gradientSize={240} gradientColor="rgba(37, 68, 176, 0.06)" contentClassName="lp-card" style={{ width: '100%' }}>
+                <div className="lp-card-icon"><Search size={22} strokeWidth={1.7} /></div>
+                <h3>Suivre un colis</h3>
+                <p>Localisez vos expéditions en temps réel, à toute heure du jour.</p>
+                <span className="lp-card-link">Suivre <ArrowRight size={14} /></span>
+              </MagicCard>
             </Link>
-            <Link to="/demande-compte" className="lp-card" data-reveal data-delay="2">
-              <div className="lp-card-icon"><Building2 size={22} strokeWidth={1.7} /></div>
-              <h3>Ouvrir un compte</h3>
-              <p>Accédez aux tarifs négociés, à la flotte dédiée et au suivi consolidé.</p>
-              <span className="lp-card-link">Commencer <ArrowRight size={14} /></span>
+            <Link to="/demande-compte" className="lp-card-shell" data-reveal data-delay="2">
+              <MagicCard radius={14} gradientSize={240} gradientColor="rgba(37, 68, 176, 0.06)" contentClassName="lp-card" style={{ width: '100%' }}>
+                <div className="lp-card-icon"><Building2 size={22} strokeWidth={1.7} /></div>
+                <h3>Ouvrir un compte</h3>
+                <p>Accédez aux tarifs négociés, à la flotte dédiée et au suivi consolidé.</p>
+                <span className="lp-card-link">Commencer <ArrowRight size={14} /></span>
+              </MagicCard>
             </Link>
-            <Link to="/login" className="lp-card" data-reveal data-delay="3">
-              <div className="lp-card-icon"><LogIn size={22} strokeWidth={1.7} /></div>
-              <h3>Espace client</h3>
-              <p>Retrouvez vos expéditions, devis et factures au même endroit.</p>
-              <span className="lp-card-link">Se connecter <ArrowRight size={14} /></span>
+            <Link to="/login" className="lp-card-shell" data-reveal data-delay="3">
+              <MagicCard radius={14} gradientSize={240} gradientColor="rgba(37, 68, 176, 0.06)" contentClassName="lp-card" style={{ width: '100%' }}>
+                <div className="lp-card-icon"><LogIn size={22} strokeWidth={1.7} /></div>
+                <h3>Espace client</h3>
+                <p>Retrouvez vos expéditions, devis et factures au même endroit.</p>
+                <span className="lp-card-link">Se connecter <ArrowRight size={14} /></span>
+              </MagicCard>
             </Link>
           </div>
         </div>

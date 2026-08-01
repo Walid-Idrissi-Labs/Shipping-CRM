@@ -1,4 +1,4 @@
-export function DetailRow({ label, value, monospace = false }) {
+export function DetailRow({ label, value, monospace = false, children }) {
   return (
     <div>
       <div
@@ -17,7 +17,7 @@ export function DetailRow({ label, value, monospace = false }) {
         className={monospace ? 'font-mono-data' : ''}
         style={{ color: 'var(--color-graphite)', fontSize: 14 }}
       >
-        {value || '—'}
+        {children || value || '—'}
       </div>
     </div>
   );

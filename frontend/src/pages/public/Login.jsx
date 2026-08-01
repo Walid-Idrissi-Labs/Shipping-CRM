@@ -4,6 +4,7 @@ import { ChevronLeft, LogIn } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { FormField } from '../../components/ui/Form';
 import Globe from '../../components/ui/Globe';
+import MagicCard from '../../components/ui/MagicCard';
 
 const HOME_BY_ROLE = {
   prestataire: '/dashboard',
@@ -78,15 +79,10 @@ export default function Login() {
         }}
       >
         <div style={{ width: '100%', maxWidth: 440 }}>
-          <div
-            className="surface-canvas"
-            style={{
-              background: 'var(--color-paper-white)',
-              border: '1px solid var(--color-ash)',
-              borderRadius: 16,
-              padding: 32,
-              boxShadow: '0 24px 60px -24px rgba(37, 68, 176, 0.18)',
-            }}
+          <MagicCard
+            radius={16}
+            contentStyle={{ padding: 32 }}
+            style={{ boxShadow: '0 24px 60px -24px rgba(37, 68, 176, 0.18)' }}
           >
             <div style={{ textAlign: 'center', marginBottom: 28 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 22 }}>
@@ -184,7 +180,7 @@ export default function Login() {
               </div>
 
             </div>
-          </div>
+          </MagicCard>
         </div>
 
         <Link

@@ -12,6 +12,8 @@ const STATUS = {
   traitee: { label: 'Traitée', variant: 'success' },
   approuvee: { label: 'Approuvée', variant: 'success' },
   rejetee: { label: 'Rejetée', variant: 'danger' },
+  acceptee: { label: 'Acceptée', variant: 'success' },
+  refusee: { label: 'Refusée', variant: 'danger' },
 
   // Shipment lifecycle
   information_recue: { label: 'Information reçue', variant: 'neutral' },
