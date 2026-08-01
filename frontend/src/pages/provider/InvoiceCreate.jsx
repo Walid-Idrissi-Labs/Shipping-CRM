@@ -100,7 +100,7 @@ export default function InvoiceCreate() {
   const computedTtc = typeDestination === 'national'
     ? +(numericTaxable + computedTva).toFixed(2)
     : +(numericNonTaxable + numericTaxable + computedTva).toFixed(2);
-  const numeroLabel = `FA ${numeroN || numeroSequence}/${numeroYear}`;
+  const numeroLabel = `FE ${numeroN || numeroSequence}/${numeroYear}`;
 
   const toggleShipment = (id) => {
     if (clientMode === 'divers') {
@@ -197,7 +197,7 @@ export default function InvoiceCreate() {
     <div>
       <PageHeader
         title={numeroLoading ? 'Nouvelle Facture' : `Nouvelle Facture — ${numeroLabel}`}
-        subtitle="Numero auto-genere (FA n/year)"
+        subtitle="Numero auto-genere (FE n/year)"
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -327,7 +327,7 @@ export default function InvoiceCreate() {
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    FA
+                    FE
                   </span>
                   <input
                     type="number"

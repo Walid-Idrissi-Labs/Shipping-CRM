@@ -7,6 +7,7 @@ import { SuccessModalProvider } from './contexts/SuccessModalContext';
 import { LoadingProvider } from './contexts/LoadingContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import LoadingOverlay from './components/ui/LoadingOverlay';
+import DownloadOverlay from './components/ui/DownloadOverlay';
 import PublicLayout from './layouts/PublicLayout';
 
 // Public pages stay eager so the landing surface paints instantly.
@@ -34,6 +35,7 @@ const ShipmentDetail = lazy(() => import('./pages/provider/ShipmentDetail'));
 const Clients = lazy(() => import('./pages/provider/Clients'));
 const ClientCreate = lazy(() => import('./pages/provider/ClientCreate'));
 const ClientDetail = lazy(() => import('./pages/provider/ClientDetail'));
+const ClientActivity = lazy(() => import('./pages/provider/ClientActivity'));
 const Settings = lazy(() => import('./pages/provider/Settings'));
 const AccountRequests = lazy(() => import('./pages/provider/AccountRequests'));
 const QuoteRequests = lazy(() => import('./pages/provider/QuoteRequests'));
@@ -104,6 +106,7 @@ function App() {
                     <Route path="/dashboard/clients" element={<Clients />} />
                     <Route path="/dashboard/clients/nouveau" element={<ClientCreate />} />
                     <Route path="/dashboard/clients/:id" element={<ClientDetail />} />
+                    <Route path="/dashboard/activite-clients" element={<ClientActivity />} />
                     <Route path="/dashboard/demandes-compte" element={<AccountRequests />} />
                     <Route path="/dashboard/factures" element={<Invoices />} />
                     <Route path="/dashboard/factures/nouveau" element={<InvoiceCreate />} />
@@ -152,6 +155,7 @@ function App() {
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
               </Suspense>
+              <DownloadOverlay />
             </BrowserRouter>
           </AuthProvider>
           </LoadingProvider>

@@ -1,3 +1,7 @@
+# Force index.html to win over index.php for directory requests (i.e. "/")
+# so the React SPA loads there, not Laravel's dead welcome route.
+DirectoryIndex index.html index.php
+
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes
@@ -9,7 +13,7 @@
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
-    # Handle X-XSRF-Token Header
+    # Handle X-XSRF-Token Header (Sanctum SPA CSRF)
     RewriteCond %{HTTP:x-xsrf-token} .
     RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
 
@@ -18,8 +22,61 @@
     RewriteCond %{REQUEST_URI} (.+)/$
     RewriteRule ^ %1 [L,R=301]
 
-    # Send Requests To Front Controller...
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteRule ^ index.php [L]
+    # Serve real files/directories as-is: SPA build assets, logos, uploaded
+    # storage files, Laravel's own index.php, etc.
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Missing files under /storage or /assets must 404, never fall back to
+    # the SPA shell (a broken upload / stale hashed asset should look
+    # broken, not silently return the whole app as if it existed).
+    RewriteCond %{REQUEST_URI} ^/(storage|assets)/
+    RewriteRule ^ - [R=404,L]
+
+    # Laravel: API routes, Sanctum's CSRF cookie route, and the /up health
+    # check. Everything the backend owns.
+    RewriteRule ^(api|sanctum|up)(/.*)?$ index.php [L]
+
+    # Everything else belongs to the React SPA. index.html handles
+    # client-side routing (e.g. refreshing on /dashboard must load the app,
+    # not 404).
+    RewriteRule ^ index.html [L]
+</IfModule>
+
+# Defense in depth: never serve dotfiles. (.env itself never lives here —
+# it stays in laravel/, one level above this docroot — but this covers any
+# stray dotfile that ends up in public/ by mistake.)
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# Cache hashed build assets hard; index.html is deliberately NOT matched
+# here — it needs the opposite treatment, below.
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 1 year"
+    ExpiresByType application/javascript "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType font/woff2 "access plus 1 year"
+</IfModule>
+<IfModule mod_headers.c>
+    <FilesMatch "\.(js|css|svg|png|jpe?g|woff2?)$">
+        Header set Cache-Control "public, immutable"
+    </FilesMatch>
+</IfModule>
+
+# index.html references the current build's hashed asset filenames, so it
+# must never be cached: a browser silently serving a stale copy after a
+# redeploy is exactly what caused the "blank page until Ctrl+Shift+R" bug —
+# omitting cache headers here (the previous approach) is NOT the same as
+# "always fresh": with no explicit directive, browsers fall back to their
+# own heuristic caching. Force revalidation every time instead.
+<IfModule mod_headers.c>
+    <Files "index.html">
+        Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+        Header set Pragma "no-cache"
+    </Files>
 </IfModule>

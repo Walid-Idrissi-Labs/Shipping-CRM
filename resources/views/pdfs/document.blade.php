@@ -147,6 +147,30 @@ $cachePath = public_path('logos/cache3.png');
 <title>{{ $isAvoir ? 'Avoir' : 'Facture' }} {{ $docNumber }}</title>
 <style>
     @font-face {
+        font-family: 'Inter';
+        font-style: normal;
+        font-weight: 400;
+        src: url('{{ $fontDir }}/Inter-Regular.ttf') format('truetype');
+    }
+    @font-face {
+        font-family: 'Inter';
+        font-style: normal;
+        font-weight: 500;
+        src: url('{{ $fontDir }}/Inter-Medium.ttf') format('truetype');
+    }
+    @font-face {
+        font-family: 'Inter';
+        font-style: normal;
+        font-weight: 600;
+        src: url('{{ $fontDir }}/Inter-SemiBold.ttf') format('truetype');
+    }
+    @font-face {
+        font-family: 'Inter';
+        font-style: normal;
+        font-weight: 700;
+        src: url('{{ $fontDir }}/Inter-Bold.ttf') format('truetype');
+    }
+    @font-face {
         font-family: 'Fraunces';
         font-style: normal;
         font-weight: 400;
