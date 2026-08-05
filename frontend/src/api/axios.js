@@ -42,16 +42,35 @@ api.interceptors.response.use(
     if (response.config._overlay) hideLoading();
     return response;
   },
-  (error) => {
+  async (error) => {
     if (error.config?._overlay) hideLoading();
 
-    // 401: session gone. 419: CSRF token expired, which for a cookie-session
-    // SPA means the same thing. Callers that expect a legitimate 401 (the
-    // login form, the initial "am I logged in?" probe) opt out via
-    // `_skipAuthRedirect` so a logged-out visitor isn't told their session
-    // expired.
     const status = error.response?.status;
-    if ((status === 401 || status === 419) && !error.config?._skipAuthRedirect) {
+
+    // 419 is a CSRF token mismatch, NOT a dead session — the token can go
+    // stale on its own while the session stays perfectly valid. Refresh the
+    // cookie and replay the request once.
+    //
+    // This previously fell through to the 401 branch below and logged the
+    // user out mid-work, then stranded them: the /login page's own POST hit
+    // the same stale token, so every attempt showed "votre session a expiré"
+    // and there was no way back in short of clearing cookies.
+    if (status === 419 && !error.config?._csrfRetried) {
+      error.config._csrfRetried = true;
+      try {
+        await csrf();
+        return await api.request(error.config);
+      } catch {
+        // Refresh or replay failed too — fall through and reject below so the
+        // caller still sees a real error rather than hanging.
+      }
+    }
+
+    // 401: the server no longer recognises our session. Callers that expect a
+    // legitimate 401 (the login form, the initial "am I logged in?" probe,
+    // logout) opt out via `_skipAuthRedirect` so a logged-out visitor isn't
+    // told their session expired.
+    if (status === 401 && !error.config?._skipAuthRedirect) {
       onUnauthorized?.();
     }
 
