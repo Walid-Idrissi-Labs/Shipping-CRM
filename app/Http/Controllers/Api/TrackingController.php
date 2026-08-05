@@ -23,13 +23,16 @@ class TrackingController extends Controller
             ->sortByDesc('created_at')
             ->groupBy('statut');
 
+        // Anyone with a shipping number can call this without logging in, so it
+        // returns only what the public tracking page actually renders: status,
+        // dates and cities. Sender and recipient *names* used to be included --
+        // invisible on screen, but plainly there in the JSON for anyone reading
+        // the response, and enumerable across the 9-digit number range.
         return response()->json([
             'shipping_number' => $shipment->shipping_number,
             'current_status' => $shipment->statut_actuel,
             'current_sub_status' => $shipment->sous_statut_actuel,
-            'sender_name' => $shipment->sender_name,
             'sender_city' => $shipment->sender_city,
-            'recipient_name' => $shipment->recipient_name,
             'recipient_city' => $shipment->recipient_city,
             'created_at' => $shipment->created_at,
             'events' => $shipment->suiviStatuts,
