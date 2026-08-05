@@ -405,11 +405,12 @@ class ClientSideTest extends TestCase
 
         $response = $this->postJson('/api/client/change-password', [
             'old_password' => 'old_secret_1',
-            'new_password' => 'new_secret_999',
+            'new_password' => 'New_secret_999',
+            'new_password_confirmation' => 'New_secret_999',
         ]);
 
         $response->assertStatus(200);
-        $this->assertTrue(Hash::check('new_secret_999', $this->clientUser->fresh()->password_hash));
+        $this->assertTrue(Hash::check('New_secret_999', $this->clientUser->fresh()->password_hash));
     }
 
     public function test_client_password_change_requires_old_password(): void

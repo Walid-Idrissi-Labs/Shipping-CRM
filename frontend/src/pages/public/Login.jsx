@@ -69,6 +69,11 @@ export default function Login() {
         // fresh one and replayed this request. Nothing here is the user's to
         // fix, so don't hand them instructions — just let them try again.
         setError('Connexion impossible. Veuillez réessayer.');
+      } else if (status === 429) {
+        // Too many failed attempts on this account. The server's message already
+        // names the wait in seconds, so show it verbatim rather than a generic
+        // line — "réessayez" with no idea how long is worse than a number.
+        setError(err.response?.data?.message || 'Trop de tentatives. Merci de patienter un instant.');
       } else if (!err.response) {
         setError('Serveur injoignable. Vérifiez votre connexion et réessayez.');
       } else {

@@ -2,6 +2,7 @@ import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useContext } from 'react';
 import LoadingOverlay from '../components/ui/LoadingOverlay';
+import TempPasswordBanner from '../components/TempPasswordBanner';
 import LoadingContext from '../contexts/LoadingContext';
 import { LayoutDashboard, Package, Receipt, User, LogOut, Menu, X, FileText } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -303,6 +304,7 @@ export default function ClientLayout() {
         </header>
 
         <main className="app-page">
+          <TempPasswordBanner />
           <Outlet />
           {isLoading && <LoadingOverlay />}
         </main>

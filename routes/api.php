@@ -25,27 +25,33 @@ use App\Http\Controllers\Api\TrackingController;
 use App\Http\Controllers\Api\VehiculeController;
 use Illuminate\Support\Facades\Route;
 
-// Public auth
+// Public auth. The login endpoint throttles itself per account+IP inside the
+// controller so that only *failed* attempts count -- see AuthController.
 Route::post('/auth/login', [AuthController::class, 'login']);
 
 // Public tracking
-Route::get('/shipments/{number}/tracking', [TrackingController::class, 'publicTrack']);
+Route::middleware('throttle:public-tracking')->group(function () {
+    Route::get('/shipments/{number}/tracking', [TrackingController::class, 'publicTrack']);
+});
 
-// Public account request
-Route::post('/account-requests', [AccountRequestController::class, 'store']);
+// Public, unauthenticated write endpoints. Rate limits defined in AppServiceProvider.
+Route::middleware('throttle:public-forms')->group(function () {
+    // Public account request
+    Route::post('/account-requests', [AccountRequestController::class, 'store']);
 
-// Public quote request (creates a Demande de Devis, not a Quote)
-Route::post('/quote-requests', [QuoteRequestController::class, 'store']);
+    // Public quote request (creates a Demande de Devis, not a Quote)
+    Route::post('/quote-requests', [QuoteRequestController::class, 'store']);
 
-// Public expedition request (complete expedition form via token)
+    // Public expedition request (complete expedition form via token)
+    Route::post('/expedition-requests/complete/{token}', [ExpeditionRequestController::class, 'storePublic']);
+});
+
 Route::get('/expedition-requests/complete/{token}', [ExpeditionRequestController::class, 'showPublic']);
-Route::post('/expedition-requests/complete/{token}', [ExpeditionRequestController::class, 'storePublic']);
 
 // Authenticated routes
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);
-    Route::post('/auth/reset-password', [PasswordController::class, 'resetClientPassword']);
 
 // Employe-only
         Route::middleware('role:employe')->group(function () {
@@ -64,7 +70,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/provider/settings', [ProviderSettingController::class, 'show']);
         Route::patch('/provider/settings', [ProviderSettingController::class, 'update']);
         Route::post('/provider/logo', [ProviderSettingController::class, 'uploadLogo']);
-        Route::patch('/provider/change-password', [PasswordController::class, 'changeProviderPassword']);
+        Route::patch('/provider/change-password', [PasswordController::class, 'changeProviderPassword'])
+            ->middleware('throttle:password-change');
 
         Route::apiResource('clients', ClientController::class);
         Route::get('/clients/{client}/missions', [AffectationController::class, 'byClient']);
@@ -151,7 +158,8 @@ Route::post('/shipments/{shipment}/sous-etapes', [SousEtapeController::class, 's
         Route::get('/my/invoices/{facture}', [FactureController::class, 'show']);
         Route::get('/my/invoices/{facture}/pdf', [FactureController::class, 'pdf']);
         Route::patch('/client/profile', [ClientController::class, 'updateOwnProfile']);
-        Route::post('/client/change-password', [PasswordController::class, 'changeClientPassword']);
+        Route::post('/client/change-password', [PasswordController::class, 'changeClientPassword'])
+            ->middleware('throttle:password-change');
 
         Route::get('my/expeditions', [ClientShipmentController::class, 'index']);
         Route::post('my/expeditions', [ClientShipmentController::class, 'store']);

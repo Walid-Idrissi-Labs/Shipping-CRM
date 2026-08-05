@@ -55,7 +55,7 @@ class ProviderPasswordChangeTest extends TestCase
 
     public function test_provider_can_change_password_with_correct_old_password(): void
     {
-        $newPassword = 'new-secret-1';
+        $newPassword = 'New-secret-1';
 
         $response = $this->actingAs($this->providerUser, 'sanctum')->patchJson('/api/provider/change-password', [
             'old_password' => $this->providerOldPassword,

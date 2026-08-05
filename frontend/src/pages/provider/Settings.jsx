@@ -7,6 +7,7 @@ import { FormField, Section } from '../../components/ui/Form';
 import SaveStatusButton from '../../components/ui/SaveStatusButton';
 import PageLoader from '../../components/ui/PageLoader';
 import TimezonePreview from '../../components/ui/TimezonePreview';
+import PasswordRules from '../../components/ui/PasswordRules';
 import { useDirtyForm } from '../../hooks/useDirtyForm';
 
 const emptyForm = {
@@ -228,7 +229,7 @@ export default function Settings() {
               required
             />
           </FormField>
-          <FormField label="Nouveau mot de passe" required hint="8 caracteres minimum">
+          <FormField label="Nouveau mot de passe" required>
             <input
               type="password"
               name="new_password"
@@ -239,6 +240,7 @@ export default function Settings() {
               required
               minLength={8}
             />
+            <PasswordRules value={passwordForm.data.new_password} />
           </FormField>
           <FormField label="Confirmer le nouveau" required>
             <input

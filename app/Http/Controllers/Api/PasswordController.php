@@ -4,30 +4,23 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 
 class PasswordController extends Controller
 {
-    public function resetClientPassword(Request $request)
+    // Applied to every password a user chooses for themselves. These are exactly
+    // the rules the account pages have always *displayed* — the server only
+    // enforced min(8), so the checklist users were reading was decorative and a
+    // password failing it saved fine. Matching the server to the promise closes
+    // the gap without changing anything a user sees.
+    //
+    // Deliberately stops here: symbol requirements and forced rotation mostly
+    // push people toward "Password1!" on a sticky note. Kept in one place so
+    // both the provider and client endpoints cannot drift apart.
+    // Mirrored in frontend/src/components/ui/PasswordRules.jsx.
+    private function passwordRules(): array
     {
-        $user = $request->user();
-
-        if ($user->role !== 'client') {
-            return response()->json(['message' => 'Acces refuse.'], 403);
-        }
-
-        $validated = $request->validate([
-            'new_password' => ['required', 'string', Password::min(8)],
-        ]);
-
-        $user->update([
-            'password_hash' => Hash::make($validated['new_password']),
-            'first_login_completed' => true,
-        ]);
-
-        return response()->json(['message' => 'Mot de passe mis a jour.']);
+        return ['required', 'string', 'confirmed', Password::min(8)->mixedCase()->numbers()];
     }
 
     public function changeProviderPassword(Request $request)
@@ -38,20 +31,7 @@ class PasswordController extends Controller
             return response()->json(['message' => 'Acces refuse.'], 403);
         }
 
-        $validated = $request->validate([
-            'old_password' => ['required', 'string'],
-            'new_password' => ['required', 'string', Password::min(8), 'confirmed'],
-        ]);
-
-        if (! Hash::check($validated['old_password'], $user->password_hash)) {
-            return response()->json(['message' => 'Ancien mot de passe incorrect.'], 422);
-        }
-
-        $user->update([
-            'password_hash' => Hash::make($validated['new_password']),
-        ]);
-
-        return response()->json(['message' => 'Mot de passe mis a jour.']);
+        return $this->change($request, $user);
     }
 
     public function changeClientPassword(Request $request)
@@ -62,19 +42,32 @@ class PasswordController extends Controller
             return response()->json(['message' => 'Acces refuse.'], 403);
         }
 
-        $validated = $request->validate([
+        return $this->change($request, $user);
+    }
+
+    private function change(Request $request, $user)
+    {
+        $request->validate([
             'old_password' => ['required', 'string'],
-            'new_password' => ['required', 'string', Password::min(8)],
+            'new_password' => ['required', 'string'],
         ]);
 
-        if (! Hash::check($validated['old_password'], $user->password_hash)) {
+        // Deliberately checked BEFORE the strength rules. If someone mistypes
+        // their current password, "votre mot de passe actuel est incorrect" is
+        // the useful thing to tell them; complaining that their *new* password
+        // needs a capital letter sends them off fixing the wrong field.
+        //
+        // checkPassword() accepts the temporary onboarding password as well as
+        // one the user set themselves, so a client still on their temporary
+        // credential can trade it in here. This used to compare against
+        // password_hash alone, which is null for exactly those clients.
+        if (! $user->checkPassword($request->input('old_password'))) {
             return response()->json(['message' => 'Ancien mot de passe incorrect.'], 422);
         }
 
-        $user->update([
-            'password_hash' => Hash::make($validated['new_password']),
-            'first_login_completed' => true,
-        ]);
+        $validated = $request->validate(['new_password' => $this->passwordRules()]);
+
+        $user->setPassword($validated['new_password']);
 
         return response()->json(['message' => 'Mot de passe mis a jour.']);
     }

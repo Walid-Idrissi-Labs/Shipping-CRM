@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Lock, Eye, EyeOff, Check, LogOut } from 'lucide-react';
+import { User, Lock, Eye, EyeOff, LogOut } from 'lucide-react';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
@@ -8,6 +8,7 @@ import SaveStatusButton from '../../components/ui/SaveStatusButton';
 import { useDirtyForm } from '../../hooks/useDirtyForm';
 import { useToast } from '../../contexts/ToastContext';
 import { useAuth } from '../../contexts/AuthContext';
+import PasswordRules from '../../components/ui/PasswordRules';
 
 const emptyProfile = {
   full_name: '',
@@ -106,6 +107,10 @@ export default function MyAccount() {
       await api.post('/client/change-password', {
         old_password: passwordForm.data.old_password,
         new_password: passwordForm.data.new_password,
+        // The check above already caught a mismatch; sending the confirmation
+        // lets the server enforce it too, so a typo can never be saved as the
+        // real password if this page's check is ever bypassed.
+        new_password_confirmation: passwordForm.data.new_password_confirmation,
       });
       passwordForm.succeedSave(emptyPassword);
       toast.push('Mot de passe mis à jour', 'success');
@@ -377,26 +382,7 @@ export default function MyAccount() {
         </div>
       </div>
 
-      {passwordForm.data.new_password.length > 0 && pendingStrength(passwordForm.data.new_password) && (
-        <div
-          style={{
-            padding: 12,
-            background: 'var(--color-bone)',
-            borderRadius: 4,
-            fontSize: 12,
-            color: 'var(--color-iron)',
-          }}
-        >
-          <p style={{ marginBottom: 6, fontWeight: 500 }}>
-            Votre mot de passe doit contenir:
-          </p>
-          <div className="space-y-1">
-            <ChecklistItem ok={passwordForm.data.new_password.length >= 8} label="Au moins 8 caractères" />
-            <ChecklistItem ok={/[A-Z]/.test(passwordForm.data.new_password)} label="Une lettre majuscule" />
-            <ChecklistItem ok={/[0-9]/.test(passwordForm.data.new_password)} label="Un chiffre" />
-          </div>
-        </div>
-      )}
+      <PasswordRules value={passwordForm.data.new_password} />
     </div>
 
     <div
@@ -458,25 +444,4 @@ function FieldRow({ label, value, mono }) {
   );
 }
 
-function ChecklistItem({ ok, label }) {
-  return (
-    <div className="flex items-center gap-2">
-      <span
-        className="flex items-center justify-center shrink-0"
-        style={{
-          width: 16, height: 16, borderRadius: 9999,
-          background: ok ? 'var(--color-vivid-green)' : 'var(--color-ash)',
-          color: ok ? 'var(--color-paper-white)' : 'var(--color-steel)',
-          transition: 'background 150ms ease',
-        }}
-      >
-        {ok ? <Check size={11} /> : null}
-      </span>
-      <span style={{ color: ok ? 'var(--color-graphite)' : 'var(--color-steel)' }}>{label}</span>
-    </div>
-  );
-}
 
-function pendingStrength(pwd) {
-  return pwd.length < 8 || !/[A-Z]/.test(pwd) || !/[0-9]/.test(pwd);
-}

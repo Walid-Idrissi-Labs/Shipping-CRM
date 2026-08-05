@@ -9,24 +9,45 @@ use App\Models\User;
 use App\Services\ClientActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
+    // Keyed per account+IP rather than per IP, so one person failing to log in
+    // cannot lock out everyone else sharing their office connection.
+    private const MAX_ATTEMPTS = 5;
+
+    private const DECAY_SECONDS = 60;
+
     public function login(LoginRequest $request)
     {
         $identifier = $request->input('identifier');
         $password = $request->input('password');
 
+        $key = $this->throttleKey($request);
+
+        if (RateLimiter::tooManyAttempts($key, self::MAX_ATTEMPTS)) {
+            $seconds = RateLimiter::availableIn($key);
+
+            return response()->json([
+                'message' => "Trop de tentatives de connexion. Merci de patienter {$seconds} secondes.",
+                'retry_after' => $seconds,
+            ], 429);
+        }
+
         $user = $this->resolveUser($identifier);
 
-        if (! $user) {
+        if (! $user || ! $user->checkPassword($password)) {
+            // Only failures are counted, and the counter is cleared on success
+            // below — so someone who mistypes twice and then gets it right never
+            // meets the limit, while a script guessing passwords always does.
+            RateLimiter::hit($key, self::DECAY_SECONDS);
+
             return response()->json(['message' => 'Identifiants incorrects. Veuillez reessayer.'], 401);
         }
 
-        if (! $this->verifyPassword($user, $password)) {
-            return response()->json(['message' => 'Identifiants incorrects. Veuillez reessayer.'], 401);
-        }
+        RateLimiter::clear($key);
 
         $remember = $request->boolean('remember');
 
@@ -78,6 +99,11 @@ class AuthController extends Controller
         ]);
     }
 
+    private function throttleKey(Request $request): string
+    {
+        return 'login|'.Str::transliterate(Str::lower((string) $request->input('identifier'))).'|'.$request->ip();
+    }
+
     private function resolveUser(string $identifier): ?User
     {
         if (filter_var($identifier, FILTER_VALIDATE_EMAIL)) {
@@ -101,19 +127,6 @@ class AuthController extends Controller
         return User::where('email', $identifier)->first();
     }
 
-    private function verifyPassword(User $user, string $password): bool
-    {
-        if ($user->password_hash && Hash::check($password, $user->password_hash)) {
-            return true;
-        }
-
-        if ($user->origin_password_hash && Hash::check($password, $user->origin_password_hash)) {
-            return true;
-        }
-
-        return false;
-    }
-
     private function userResponse(User $user): array
     {
         $data = [
@@ -121,6 +134,9 @@ class AuthController extends Controller
             'role' => $user->role,
             'email' => $user->email,
             'first_login_completed' => $user->first_login_completed,
+            // Drives the "secure your account" prompt: true while the client is
+            // still signing in with the temporary password their provider issued.
+            'using_temp_password' => $user->isUsingTemporaryPassword(),
         ];
 
         if ($user->role === 'client' && $user->client) {
