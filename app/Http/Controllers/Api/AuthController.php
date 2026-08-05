@@ -28,7 +28,20 @@ class AuthController extends Controller
             return response()->json(['message' => 'Identifiants incorrects. Veuillez reessayer.'], 401);
         }
 
-        Auth::login($user, $request->boolean('remember'));
+        $remember = $request->boolean('remember');
+
+        // Without "remember me" the 2h SESSION_LIFETIME governs, and the SPA
+        // now redirects to /login when it lapses. With it, Laravel falls back
+        // to the remember cookie and mints a fresh session transparently — but
+        // its default lifetime is 576000 minutes (~400 days, see
+        // SessionGuard::$rememberDuration), which is far longer than this app
+        // wants. Cap it at a week. Auth::login() below resolves to this same
+        // cached 'web' guard instance, so the duration set here applies.
+        if ($remember) {
+            Auth::guard('web')->setRememberDuration(60 * 24 * 7);
+        }
+
+        Auth::login($user, $remember);
 
         if ($user->role === 'client' && ! $user->first_login_completed) {
             $user->update(['first_login_completed' => true]);

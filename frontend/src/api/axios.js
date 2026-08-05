@@ -25,6 +25,18 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// The SPA holds `user` in React state, so it keeps rendering the authenticated
+// shell long after the server-side session has died — every request 401s while
+// the UI still looks logged in, which reads to the user as "the app loaded but
+// there's no data" and only clears on a full page reload. AuthProvider
+// registers a handler here so a 401 anywhere tears down auth state once,
+// centrally, instead of each of the ~80 call sites having to notice.
+let onUnauthorized = null;
+
+export const setUnauthorizedHandler = (handler) => {
+  onUnauthorized = handler;
+};
+
 api.interceptors.response.use(
   (response) => {
     if (response.config._overlay) hideLoading();
@@ -32,6 +44,17 @@ api.interceptors.response.use(
   },
   (error) => {
     if (error.config?._overlay) hideLoading();
+
+    // 401: session gone. 419: CSRF token expired, which for a cookie-session
+    // SPA means the same thing. Callers that expect a legitimate 401 (the
+    // login form, the initial "am I logged in?" probe) opt out via
+    // `_skipAuthRedirect` so a logged-out visitor isn't told their session
+    // expired.
+    const status = error.response?.status;
+    if ((status === 401 || status === 419) && !error.config?._skipAuthRedirect) {
+      onUnauthorized?.();
+    }
+
     return Promise.reject(error);
   },
 );

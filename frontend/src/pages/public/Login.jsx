@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, Link, Navigate } from 'react-router-dom';
 import { ChevronLeft, LogIn } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth, EXPIRED_FLAG, RETURN_TO } from '../../contexts/AuthContext';
 import { FormField } from '../../components/ui/Form';
 import Globe from '../../components/ui/Globe';
 import MagicCard from '../../components/ui/MagicCard';
@@ -14,6 +14,21 @@ const HOME_BY_ROLE = {
 
 const homeFor = (role) => HOME_BY_ROLE[role] || '/client';
 
+const AREA_BY_ROLE = {
+  prestataire: '/dashboard',
+  employe: '/employe',
+  client: '/client',
+};
+
+// Send the user back where they were bounced from, but only if that page
+// belongs to the role they just signed in as.
+const destinationFor = (role) => {
+  const stored = sessionStorage.getItem(RETURN_TO);
+  sessionStorage.removeItem(RETURN_TO);
+  const area = AREA_BY_ROLE[role];
+  return stored && area && stored.startsWith(area) ? stored : homeFor(role);
+};
+
 export default function Login() {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -22,6 +37,13 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const { login, user } = useAuth();
   const navigate = useNavigate();
+
+  // Set by AuthProvider when a request 401s while the app still thought it was
+  // logged in — distinguishes "your session ran out" from "please sign in".
+  const [expired] = useState(() => sessionStorage.getItem(EXPIRED_FLAG) === '1');
+  useEffect(() => {
+    sessionStorage.removeItem(EXPIRED_FLAG);
+  }, []);
 
   // If already authenticated, redirect to the appropriate home
   if (user) {
@@ -34,7 +56,7 @@ export default function Login() {
     setLoading(true);
     try {
       const loggedUser = await login(identifier, password, remember);
-      navigate(homeFor(loggedUser.role));
+      navigate(destinationFor(loggedUser.role), { replace: true });
     } catch (err) {
       const status = err.response?.status;
       if (status === 401) {
@@ -96,6 +118,22 @@ export default function Login() {
               </div>
               <h1 className="public-serif" style={{ fontSize: 32 }}>Accédez à votre espace</h1>
             </div>
+
+            {expired && !error && (
+              <div
+                style={{
+                  background: 'var(--color-warning-container)',
+                  color: 'var(--color-warning)',
+                  padding: '10px 14px',
+                  borderRadius: 6,
+                  fontSize: 13,
+                  marginBottom: 16,
+                }}
+              >
+                Votre session a expiré pour cause d'inactivité. Veuillez vous reconnecter — vous
+                reviendrez à la page que vous consultiez.
+              </div>
+            )}
 
             {error && (
               <div
