@@ -13,6 +13,7 @@ const isReturnable = (path) => path.startsWith('/dashboard') || path.startsWith(
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -27,25 +28,56 @@ export function AuthProvider({ children }) {
   // lifetime would never be redirected again.
   const handlingExpiry = useRef(false);
 
+  // The handler runs from an axios interceptor, outside React's data flow, so
+  // it reads the current user through a ref rather than a stale closure.
+  const userRef = useRef(null);
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
   useEffect(() => {
     setUnauthorizedHandler(() => {
       if (handlingExpiry.current) return;
       handlingExpiry.current = true;
 
+      if (userRef.current) {
+        // We know who they are and they may be mid-form. Navigating to /login
+        // here would throw away everything they had typed, so ask for the
+        // password in place instead and leave the page exactly as it is.
+        setSessionExpired(true);
+        return;
+      }
+
+      // Nobody is signed in as far as the app knows (e.g. a reload landed on a
+      // protected route with a dead session) — there is no in-progress work to
+      // protect, so fall back to the login page. ProtectedRoute redirects on
+      // its own once `user` is null; no router access needed here, since
+      // AuthProvider sits outside BrowserRouter.
       const { pathname, search } = window.location;
       if (isReturnable(pathname)) {
         sessionStorage.setItem(RETURN_TO, pathname + search);
       }
       sessionStorage.setItem(EXPIRED_FLAG, '1');
-
-      // ProtectedRoute already redirects to /login whenever `user` is null,
-      // so clearing state here is all that's needed — no router access
-      // required (AuthProvider sits outside BrowserRouter).
       setUser(null);
     });
 
     return () => setUnauthorizedHandler(null);
   }, []);
+
+  // Re-auth from the in-place modal: same endpoint as a normal sign-in, but
+  // nothing about the page changes around it. remember:true so a user who has
+  // just been interrupted once isn't interrupted again.
+  const reauthenticate = async (identifier, password) => {
+    await csrf();
+    const { data } = await api.post(
+      '/auth/login',
+      { identifier, password, remember: true },
+      { _skipAuthRedirect: true },
+    );
+    setUser(data.user);
+    setSessionExpired(false);
+    handlingExpiry.current = false;
+  };
 
   const checkAuth = async () => {
     try {
@@ -85,6 +117,7 @@ export function AuthProvider({ children }) {
     } finally {
       sessionStorage.removeItem(EXPIRED_FLAG);
       sessionStorage.removeItem(RETURN_TO);
+      setSessionExpired(false);
       setUser(null);
       // Force a hard page reload to bypass any cached SPA state that may still hold the session.
       // This guarantees checkAuth() runs fresh on the loaded /login page.
@@ -95,8 +128,10 @@ export function AuthProvider({ children }) {
   const value = {
     user,
     loading,
+    sessionExpired,
     login,
     logout,
+    reauthenticate,
     refresh: checkAuth,
     isProvider: user?.role === 'prestataire',
     isClient: user?.role === 'client',

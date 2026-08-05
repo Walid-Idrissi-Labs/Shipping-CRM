@@ -6,6 +6,7 @@ import { DialogProvider } from './contexts/DialogContext';
 import { SuccessModalProvider } from './contexts/SuccessModalContext';
 import { LoadingProvider } from './contexts/LoadingContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import SessionExpiredModal from './components/SessionExpiredModal';
 import LoadingOverlay from './components/ui/LoadingOverlay';
 import DownloadOverlay from './components/ui/DownloadOverlay';
 import PublicLayout from './layouts/PublicLayout';
@@ -155,6 +156,7 @@ function App() {
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
               </Suspense>
+              <SessionExpiredModal />
               <DownloadOverlay />
             </BrowserRouter>
           </AuthProvider>

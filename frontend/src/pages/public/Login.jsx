@@ -32,7 +32,10 @@ const destinationFor = (role) => {
 export default function Login() {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
-  const [remember, setRemember] = useState(false);
+  // Checked by default: an unchecked box meant most people ran on the 2h
+  // session and got interrupted mid-work. Anyone on a shared machine can still
+  // untick it, which drops them back to the session lifetime alone.
+  const [remember, setRemember] = useState(true);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login, user } = useAuth();
