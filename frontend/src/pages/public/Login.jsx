@@ -62,11 +62,10 @@ export default function Login() {
       if (status === 401) {
         setError('Identifiants incorrects. Veuillez réessayer.');
       } else if (status === 419) {
-        // Reaching here means the axios interceptor already refreshed the CSRF
-        // cookie and replayed this request once, and it still failed — so
-        // "recharger la page" is useless advice (a reload does not replace a
-        // stale token). Point at the only thing that actually clears it.
-        setError("Connexion impossible : jeton de sécurité invalide. Videz les cookies du site (ou ouvrez une fenêtre de navigation privée) puis réessayez.");
+        // The interceptor has already cleared the stale token, re-fetched a
+        // fresh one and replayed this request. Nothing here is the user's to
+        // fix, so don't hand them instructions — just let them try again.
+        setError('Connexion impossible. Veuillez réessayer.');
       } else if (!err.response) {
         setError('Serveur injoignable. Vérifiez votre connexion et réessayez.');
       } else {

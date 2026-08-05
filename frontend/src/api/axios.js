@@ -58,6 +58,7 @@ api.interceptors.response.use(
     if (status === 419 && !error.config?._csrfRetried) {
       error.config._csrfRetried = true;
       try {
+        clearXsrfCookie();
         await csrf();
         return await api.request(error.config);
       } catch {
@@ -79,5 +80,21 @@ api.interceptors.response.use(
 );
 
 export const csrf = () => axios.get(CSRF_URL, { withCredentials: true });
+
+// A stale XSRF-TOKEN can sit in a different cookie scope than the one Laravel
+// writes to (host-only vs .domain). Axios sends whichever the browser lists
+// first, so simply minting a fresh token can keep losing to the stale copy and
+// wedge every write with a 419. Delete it from every scope it could live in
+// first. Safe to call unconditionally: the cookie is re-issued right after,
+// and it is not HttpOnly, so it is ours to clear.
+const clearXsrfCookie = () => {
+  const { hostname } = window.location;
+  const scopes = ['', `; domain=${hostname}`, `; domain=.${hostname}`];
+  const parent = hostname.split('.').slice(-2).join('.');
+  if (parent !== hostname) scopes.push(`; domain=.${parent}`);
+  scopes.forEach((scope) => {
+    document.cookie = `XSRF-TOKEN=; Max-Age=0; path=/${scope}`;
+  });
+};
 
 export default api;
