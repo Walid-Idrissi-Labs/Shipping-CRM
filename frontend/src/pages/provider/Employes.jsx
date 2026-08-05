@@ -7,9 +7,10 @@ import PageHeader from '../../components/ui/PageHeader';
 import { DataCard } from '../../components/ui/DataCard';
 import EmployeFormModal from '../../components/ui/EmployeFormModal';
 import PageLoader from '../../components/ui/PageLoader';
+import EmptyState from '../../components/ui/EmptyState';
 import Pagination from '../../components/ui/Pagination';
 import { useUrlPage } from '../../hooks/useUrlPage';
-import { Plus, Edit, Trash2, Search, User, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, User, X, AlertTriangle } from 'lucide-react';
 
 function formatDate(iso) {
   if (!iso) return '—';
@@ -27,6 +28,7 @@ export default function Employes() {
   const dialog = useDialog();
   const [employes, setEmployes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const showLoader = useMinLoading(loading);
   const [saving, setSaving] = useState(false);
   const [meta, setMeta] = useState({ lastPage: 1, total: 0, perPage: 25 });
@@ -50,6 +52,7 @@ export default function Employes() {
 
   const fetchEmployes = useCallback(async () => {
     setLoading(true);
+    setLoadError(false);
     try {
       const params = new URLSearchParams({ page });
       if (debouncedSearch) params.append('search', debouncedSearch);
@@ -58,8 +61,12 @@ export default function Employes() {
       setEmployes(data.data || []);
       setMeta({ lastPage: data.last_page || 1, total: data.total ?? 0, perPage: data.per_page || 25 });
       if (data.last_page && page > data.last_page) resetPage();
-    } catch (err) {
-      console.error('Failed to fetch employés:', err);
+    } catch {
+      // Previously the catch only logged: a failed request left the list
+      // at [] and rendered the "aucun employé" empty state, which is
+      // indistinguishable from genuinely having no employés.
+      setEmployes([]);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -185,6 +192,15 @@ export default function Employes() {
 
         {showLoader && employes.length === 0 ? (
           <PageLoader variant="table" embedded />
+        ) : loadError ? (
+          <EmptyState
+            icon={AlertTriangle}
+            tone="danger"
+            title="Chargement impossible"
+            description="Les employés n'ont pas pu être récupérés. Vérifiez votre connexion puis réessayez."
+            actionLabel="Réessayer"
+            onAction={fetchEmployes}
+          />
         ) : employes.length === 0 ? (
           <div style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--color-steel)' }}>
             <User size={40} style={{ margin: '0 auto 16px', color: 'var(--color-smoke)' }} />

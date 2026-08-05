@@ -1,6 +1,7 @@
 import { useMinLoading } from '../../hooks';
 import { useState, useEffect, useCallback } from 'react';
 import api from '../../api/axios';
+import { useToast } from '../../contexts/ToastContext';
 import PageHeader from '../../components/ui/PageHeader';
 import { DataCard } from '../../components/ui/DataCard';
 import StatusBadge from '../../components/ui/StatusBadge';
@@ -72,6 +73,7 @@ function StatusFlow({ item }) {
 }
 
 export default function EmployeTransactions() {
+  const { push: toast } = useToast();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const showLoader = useMinLoading(loading);
@@ -111,9 +113,14 @@ export default function EmployeTransactions() {
       const { data } = await api.get('/admin/employes?limit=100');
       setEmployes(data.data || []);
     } catch (err) {
+      // This only feeds the "Employé" filter dropdown, not the main list, so a
+      // failure here can't render a fake "no transactions" empty state — but the
+      // dropdown silently falling back to "Tous les employés" with no options is
+      // its own misleading empty state, so surface it instead of failing silently.
       console.error('Failed to fetch employés:', err);
+      toast('La liste des employés (filtre) n\'a pas pu être chargée.', 'error');
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     fetchTransactions();

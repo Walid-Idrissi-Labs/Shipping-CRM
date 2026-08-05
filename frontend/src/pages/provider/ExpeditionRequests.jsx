@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import {Package, Eye} from 'lucide-react';
+import {Package, Eye, AlertTriangle} from 'lucide-react';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
@@ -28,6 +28,7 @@ export default function ExpeditionRequests() {
   const statut = searchParams.get('statut') || '';
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [meta, setMeta] = useState({ lastPage: 1, total: 0, perPage: 25 });
   const { page, setPage, resetPage } = useUrlPage();
   const { column, direction, toggle, params: sortParams } = useColumnSort('created_at', 'desc');
@@ -39,13 +40,18 @@ export default function ExpeditionRequests() {
 
   const fetchRequests = async () => {
     setLoading(true);
+    setLoadError(false);
     try {
       const { data } = await api.get('/expedition-requests', { params: { search: q, statut, page, ...sortParams } });
       setRequests(data.data || []);
       setMeta({ lastPage: data.last_page || 1, total: data.total ?? 0, perPage: data.per_page || 25 });
       if (data.last_page && page > data.last_page) resetPage();
-    } catch (err) {
-      console.error(err);
+    } catch {
+      // Previously the catch only logged: a failed request left the list
+      // at [] and rendered the "aucune demande" empty state, which is
+      // indistinguishable from genuinely having no requests.
+      setRequests([]);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -103,6 +109,15 @@ export default function ExpeditionRequests() {
               </div>
             ))}
           </div>
+        ) : loadError ? (
+          <EmptyState
+            icon={AlertTriangle}
+            tone="danger"
+            title="Chargement impossible"
+            description="Les demandes n'ont pas pu etre recuperees. Verifiez votre connexion puis reessayez."
+            actionLabel="Reessayer"
+            onAction={fetchRequests}
+          />
         ) : requests.length === 0 ? (
           <EmptyState
             icon={Package}
