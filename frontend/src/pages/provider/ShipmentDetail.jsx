@@ -12,9 +12,10 @@ import { FormField } from '../../components/ui/Form';
 import { toLocalDatetimeInputValue } from '../../lib/format';
 import { useDialog } from '../../contexts/DialogContext';
 import { useToast } from '../../contexts/ToastContext';
+import EmptyState from '../../components/ui/EmptyState';
 import {
   Download, Trash2, Check, Circle, ExternalLink, ChevronDown,
-  Truck, User, MapPin, Calendar, ArrowRight, ChevronRight, CopyPlus,
+  Truck, User, MapPin, Calendar, ArrowRight, ChevronRight, CopyPlus, AlertTriangle,
 } from 'lucide-react';
 import Tooltip from '../../components/ui/Tooltip';
 
@@ -290,6 +291,7 @@ const [newEvent, setNewEvent] = useState({
      sousEtapeDescription: '',
    });
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const showLoader = useMinLoading(loading);
   const [labelHtml, setLabelHtml] = useState(null);
   const [labelLoading, setLabelLoading] = useState(true);
@@ -330,24 +332,34 @@ const [newEvent, setNewEvent] = useState({
 
   const fetchShipment = async () => {
     setLoading(true);
-    const { data } = await api.get(`/shipments/${id}`);
-    const s = data.shipment || data;
-    setShipment(s);
-    setIsBilled(Boolean(data.is_billed));
-    setEvents(s.suivi_statuts || data.suivi_statuts || []);
-    // Load sous_etapes from the API response
-    if (data.sous_etapes) {
-      setSousEtapes(data.sous_etapes);
+    setLoadError(false);
+    // This had no try/catch at all: a failed load threw before
+    // setLoading(false) was ever reached, leaving the page on its skeleton
+    // forever. A 404 still falls through to the "Expedition introuvable"
+    // branch below; anything transient gets a retry instead.
+    try {
+      const { data } = await api.get(`/shipments/${id}`);
+      const s = data.shipment || data;
+      setShipment(s);
+      setIsBilled(Boolean(data.is_billed));
+      setEvents(s.suivi_statuts || data.suivi_statuts || []);
+      // Load sous_etapes from the API response
+      if (data.sous_etapes) {
+        setSousEtapes(data.sous_etapes);
+      }
+      setAffectations(data.affectations || []);
+      setNewEvent((prev) => ({
+        ...prev,
+        statut: s.statut_actuel || '',
+        sous_statut: s.sous_statut_actuel || '',
+        addSousEtape: false,
+        sousEtapeDescription: '',
+      }));
+    } catch (err) {
+      if (err.response?.status !== 404) setLoadError(true);
+    } finally {
+      setLoading(false);
     }
-    setAffectations(data.affectations || []);
-    setNewEvent((prev) => ({
-      ...prev,
-      statut: s.statut_actuel || '',
-      sous_statut: s.sous_statut_actuel || '',
-      addSousEtape: false,
-      sousEtapeDescription: '',
-    }));
-    setLoading(false);
   };
 
   const fetchLabel = async () => {
@@ -386,35 +398,42 @@ const [newEvent, setNewEvent] = useState({
     const isRepeatable = ['en_cours', 'en_transit'].includes(newEvent.statut);
     const shouldCreateStatusEvent = isNewStatus || isRepeatable;
 
-    // 1. Create the status event if needed
-    if (shouldCreateStatusEvent) {
-      await api.post(`/shipments/${id}/tracking`, {
-        statut: newEvent.statut,
-        sous_statut: newEvent.sous_statut,
-        date_statut: newEvent.date_statut,
-        description: newEvent.description,
+    try {
+      // 1. Create the status event if needed
+      if (shouldCreateStatusEvent) {
+        await api.post(`/shipments/${id}/tracking`, {
+          statut: newEvent.statut,
+          sous_statut: newEvent.sous_statut,
+          date_statut: newEvent.date_statut,
+          description: newEvent.description,
+        });
+        // The response includes the created event
+      }
+
+      // 2. Create sous-etape if requested
+      if (newEvent.addSousEtape && newEvent.sousEtapeDescription.trim()) {
+        await api.post(`/shipments/${id}/sous-etapes`, {
+          statut: newEvent.statut,
+          description: newEvent.sousEtapeDescription.trim(),
+        });
+      }
+
+      // Reset form only once both writes have landed, so a failure leaves
+      // the operator's input intact to retry.
+      setNewEvent({
+        statut: '',
+        sous_statut: '',
+        date_statut: toLocalDatetimeInputValue(),
+        description: '',
+        addSousEtape: false,
+        sousEtapeDescription: '',
       });
-      // The response includes the created event
+    } catch (err) {
+      toast.push(err.response?.data?.message || "Erreur lors de l'ajout du statut.", 'error');
     }
 
-    // 2. Create sous-etape if requested
-    if (newEvent.addSousEtape && newEvent.sousEtapeDescription.trim()) {
-      await api.post(`/shipments/${id}/sous-etapes`, {
-        statut: newEvent.statut,
-        description: newEvent.sousEtapeDescription.trim(),
-      });
-    }
-
-    // Reset form
-    setNewEvent({
-      statut: '',
-      sous_statut: '',
-      date_statut: toLocalDatetimeInputValue(),
-      description: '',
-      addSousEtape: false,
-      sousEtapeDescription: '',
-    });
-
+    // Refetch either way: step 1 can succeed while step 2 fails, so the UI
+    // has to resync with whatever actually landed.
     fetchShipment();
     fetchLabel();
   };
@@ -447,7 +466,14 @@ const [newEvent, setNewEvent] = useState({
       variant: 'danger',
     });
     if (!ok) return;
-    await api.delete(`/tracking-events/${eventId}`);
+    try {
+      await api.delete(`/tracking-events/${eventId}`);
+    } catch (err) {
+      // Without this the delete just silently did nothing: the row stayed
+      // put and the operator got no clue why.
+      toast.push(err.response?.data?.message || 'Erreur lors de la suppression.', 'error');
+      return;
+    }
     toast.push('Evenement supprime', 'success');
     setEvents((prev) => {
       const filtered = prev.filter((e) => e.id !== eventId);
@@ -470,7 +496,12 @@ const [newEvent, setNewEvent] = useState({
       variant: 'danger',
     });
     if (!ok) return;
-    await api.delete(`/sous-etapes/${sousEtapeId}`);
+    try {
+      await api.delete(`/sous-etapes/${sousEtapeId}`);
+    } catch (err) {
+      toast.push(err.response?.data?.message || 'Erreur lors de la suppression.', 'error');
+      return;
+    }
     toast.push('Sous-etape supprimee', 'success');
     fetchShipment();
   };
@@ -491,6 +522,16 @@ const [newEvent, setNewEvent] = useState({
   };
 
   if (showLoader) return <PageLoader variant="detail" />;
+  if (loadError) return (
+    <EmptyState
+      icon={AlertTriangle}
+      tone="danger"
+      title="Chargement impossible"
+      description="L'expedition n'a pas pu etre recuperee. Verifiez votre connexion puis reessayez."
+      actionLabel="Reessayer"
+      onAction={fetchShipment}
+    />
+  );
   if (!shipment) return <div style={{ textAlign: 'center', padding: 48, color: 'var(--color-danger)' }}>Expedition introuvable</div>;
 
   return (

@@ -38,13 +38,19 @@ export default function AssignmentCreate() {
     }, []);
 
     const refreshVehiclesFor = async (driver) => {
-        const { data } = await api.get('/vehicles/available');
-        if (!driver) {
-            setVehicles(data.data || []);
-            return;
+        try {
+            const { data } = await api.get('/vehicles/available');
+            if (!driver) {
+                setVehicles(data.data || []);
+                return;
+            }
+            const types = (driver.types_vehicules || []).map((t) => t.type_vehicule);
+            setVehicles((data.data || []).filter((v) => types.includes(v.type_vehicule)));
+        } catch (err) {
+            // Failing silently left the vehicle dropdown stale after picking a
+            // driver, so an empty list looked like "no compatible vehicles".
+            toast.push(err.response?.data?.message || 'Impossible de charger les vehicules disponibles.', 'error');
         }
-        const types = (driver.types_vehicules || []).map((t) => t.type_vehicule);
-        setVehicles((data.data || []).filter((v) => types.includes(v.type_vehicule)));
     };
 
     const handleChange = (e) => {

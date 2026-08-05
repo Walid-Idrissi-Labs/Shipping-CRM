@@ -208,7 +208,14 @@ const [entries, setEntries] = useState([]);
       inputLabel: 'Tapez supprimer pour confirmer',
     });
     if (!ok) return;
-    await api.delete(`/clients/${id}`);
+    try {
+      await api.delete(`/clients/${id}`);
+    } catch (err) {
+      // A failed delete used to do nothing at all — after typing "supprimer"
+      // to confirm, the user was left on the page with no idea it had failed.
+      toast.push(err.response?.data?.message || 'Erreur lors de la suppression du client.', 'error');
+      return;
+    }
     toast.push('Client supprime', 'success');
     navigate('/dashboard/clients');
   };

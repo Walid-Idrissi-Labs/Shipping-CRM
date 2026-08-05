@@ -114,7 +114,12 @@ export default function QuoteRequests() {
       inputLabel: 'Tapez supprimer pour confirmer',
     });
     if (!ok) return;
-    await api.delete(`/quote-requests/${id}`);
+    try {
+      await api.delete(`/quote-requests/${id}`);
+    } catch (err) {
+      toast.push(err.response?.data?.message || 'Erreur lors de la suppression de la demande.', 'error');
+      return;
+    }
     toast.push('Demande supprimee', 'success');
     fetchRequests();
     refreshPendingCounts();

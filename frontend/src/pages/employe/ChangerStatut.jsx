@@ -215,13 +215,20 @@ export default function ChangerStatut() {
       variant: 'danger',
     });
     if (!ok) return;
-    await api.delete(`/tracking-events/${eventId}`);
-    toast('Événement supprimé', 'success');
-    const { data } = await api.get(`/employe/shipments/${shipment.id}`);
-    setShipment(data.shipment);
-    setEvents(data.suivi_statuts || []);
-    setSousEtapes(data.sous_etapes || {});
-    setUsedStatuses(new Set((data.suivi_statuts || []).map((e) => e.statut)));
+    // Success is reported only once the refresh has also landed: if either
+    // step fails the view is stale, so a single error is more honest than a
+    // "supprimé" toast next to a row that is still on screen.
+    try {
+      await api.delete(`/tracking-events/${eventId}`);
+      const { data } = await api.get(`/employe/shipments/${shipment.id}`);
+      setShipment(data.shipment);
+      setEvents(data.suivi_statuts || []);
+      setSousEtapes(data.sous_etapes || {});
+      setUsedStatuses(new Set((data.suivi_statuts || []).map((e) => e.statut)));
+      toast('Événement supprimé', 'success');
+    } catch (err) {
+      toast(err.response?.data?.message || 'Erreur lors de la suppression.', 'error');
+    }
   };
 
   const handleDeleteSousEtape = async (sousEtapeId) => {
@@ -233,10 +240,14 @@ export default function ChangerStatut() {
       variant: 'danger',
     });
     if (!ok) return;
-    await api.delete(`/sous-etapes/${sousEtapeId}`);
-    toast('Sous-étape supprimée', 'success');
-    const { data } = await api.get(`/employe/shipments/${shipment.id}`);
-    setSousEtapes(data.sous_etapes || {});
+    try {
+      await api.delete(`/sous-etapes/${sousEtapeId}`);
+      const { data } = await api.get(`/employe/shipments/${shipment.id}`);
+      setSousEtapes(data.sous_etapes || {});
+      toast('Sous-étape supprimée', 'success');
+    } catch (err) {
+      toast(err.response?.data?.message || 'Erreur lors de la suppression.', 'error');
+    }
   };
 
   const mergeHistory = (evts = [], sousEtps = {}) => {
