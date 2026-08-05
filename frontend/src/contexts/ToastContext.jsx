@@ -5,6 +5,13 @@ const ToastContext = createContext(null);
 
 let nextId = 1;
 
+// Every call site in the app calls `push(message, 'error')` with a bare type
+// string, but `push` read `opts.type` — which a string doesn't have — so the
+// type silently fell back to 'info' and *every* toast in the app rendered with
+// neutral styling: errors were never red, successes never green. Accept both
+// shapes so neither form can regress into that again.
+const normalizeOpts = (opts) => (typeof opts === 'string' ? { type: opts } : (opts || {}));
+
 const VARIANTS = {
   success: {
     Icon: CheckCircle2,
@@ -44,9 +51,10 @@ export function ToastProvider({ children }) {
   }, []);
 
   const push = useCallback((message, opts = {}) => {
+    const config = normalizeOpts(opts);
     const id = nextId++;
-    const type = opts.type || 'info';
-    const duration = opts.duration ?? 4000;
+    const type = config.type || 'info';
+    const duration = config.duration ?? 4000;
     setToasts((prev) => [...prev, { id, message, type }]);
     if (duration > 0) {
       setTimeout(() => dismiss(id), duration);
@@ -56,10 +64,10 @@ export function ToastProvider({ children }) {
 
   const value = {
     push,
-    success: (message, opts) => push(message, { ...opts, type: 'success' }),
-    error: (message, opts) => push(message, { ...opts, type: 'error' }),
-    warning: (message, opts) => push(message, { ...opts, type: 'warning' }),
-    info: (message, opts) => push(message, { ...opts, type: 'info' }),
+    success: (message, opts) => push(message, { ...normalizeOpts(opts), type: 'success' }),
+    error: (message, opts) => push(message, { ...normalizeOpts(opts), type: 'error' }),
+    warning: (message, opts) => push(message, { ...normalizeOpts(opts), type: 'warning' }),
+    info: (message, opts) => push(message, { ...normalizeOpts(opts), type: 'info' }),
     dismiss,
   };
 
