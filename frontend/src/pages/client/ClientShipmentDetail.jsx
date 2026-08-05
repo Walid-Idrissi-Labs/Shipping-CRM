@@ -122,7 +122,13 @@ export default function ClientShipmentDetail() {
           if (labelUrl) URL.revokeObjectURL(labelUrl);
           setLabelUrl(url);
         })
-        .catch(() => {});
+        .catch(() => {
+          // Unlike the provider view, fetchLabel here only runs once on mount
+          // (not re-triggered by tracking mutations), so a toast can't spam.
+          // The download button is already disabled via labelUrl staying null;
+          // this just tells the client why instead of leaving it unexplained.
+          toast.push("Le telechargement de l'etiquette n'est pas disponible pour le moment.", 'error');
+        });
     } catch {
       // This is a single card on an otherwise-loaded page, not a list: blanking
       // the whole page would be wrong here. Leaving labelHtml null already

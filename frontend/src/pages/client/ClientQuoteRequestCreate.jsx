@@ -53,7 +53,12 @@ export default function ClientQuoteRequestCreate() {
           client_country: c.country || '',
         }));
       })
-      .catch(() => {});
+      .catch(() => {
+        // Prefill failed: the sender fields stay blank with no indication it
+        // wasn't the client's fault. Reuse the same banner as submit errors
+        // so they know to fill these in themselves rather than assume a mistake.
+        setError('Impossible de pre-remplir vos informations depuis votre profil. Veuillez les renseigner manuellement.');
+      });
   }, []);
 
   const handleChange = (e) => {

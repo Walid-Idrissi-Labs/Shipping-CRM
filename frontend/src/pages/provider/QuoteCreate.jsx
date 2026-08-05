@@ -93,7 +93,14 @@ export default function QuoteCreate() {
         description_colis: r.description_colis || '',
       });
       setColis(prefillColis);
-    }).catch(() => {});
+    }).catch(() => {
+      // isDemande is derived from the query param alone, so the "from demande"
+      // layout (read-only summary cards) still renders even when this fails -
+      // just with every field empty and no clue why. Surface it in the same
+      // banner used for submit errors so the user knows to fill in manually
+      // instead of assuming the demande had no data.
+      setError('Impossible de charger la demande de devis. Veuillez remplir le formulaire manuellement.');
+    });
   }, [demandeId]);
 
   const handleChange = (e) => {

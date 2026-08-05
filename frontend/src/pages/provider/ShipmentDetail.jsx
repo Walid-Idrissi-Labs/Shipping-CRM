@@ -361,7 +361,13 @@ const [newEvent, setNewEvent] = useState({
           if (labelUrl) URL.revokeObjectURL(labelUrl);
           setLabelUrl(url);
         })
-        .catch(() => {});
+        .catch(() => {
+          // fetchLabel re-runs after every tracking mutation, so a toast here
+          // would fire repeatedly and become noise unrelated to what the user
+          // just did. labelUrl simply stays null/stale; the "Telecharger" menu
+          // item below is disabled whenever that's the case, so the failure is
+          // visible without an intrusive notification.
+        });
     } catch {
       // Reset instead of leaving a stale preview from a previous successful
       // fetch (this re-runs after every tracking update): the card below
@@ -816,6 +822,8 @@ const [newEvent, setNewEvent] = useState({
                   </button>
                   <button
                     onClick={downloadLabel}
+                    disabled={!labelUrl}
+                    title={labelUrl ? undefined : "Telechargement indisponible pour le moment"}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -826,9 +834,9 @@ const [newEvent, setNewEvent] = useState({
                       border: 'none',
                       borderRadius: 6,
                       textAlign: 'left',
-                      cursor: 'pointer',
+                      cursor: labelUrl ? 'pointer' : 'not-allowed',
                       fontSize: 13,
-                      color: 'var(--color-graphite)',
+                      color: labelUrl ? 'var(--color-graphite)' : 'var(--color-steel)',
                     }}
                   >
                     <Download size={14} /> Telecharger
