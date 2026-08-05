@@ -1,12 +1,15 @@
 import { useMinLoading, useFileDownload } from '../../hooks';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import {ArrowLeft, SquareArrowOutUpRight} from 'lucide-react';
+import {ArrowLeft, SquareArrowOutUpRight, AlertTriangle} from 'lucide-react';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import { DataCard, DetailRow } from '../../components/ui/DataCard';
 import PageLoader from '../../components/ui/PageLoader';
+import EmptyState from '../../components/ui/EmptyState';
+import Card from '../../components/ui/Card';
 import ClientLinkButton from '../../components/ui/ClientLinkButton';
+import { useToast } from '../../contexts/ToastContext';
 
 function formatMoney(value) {
   const n = Number(Math.abs(value || 0));
@@ -16,8 +19,10 @@ function formatMoney(value) {
 export default function AvoirDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
   const [avoir, setAvoir] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const showLoader = useMinLoading(loading);
   const downloadFile = useFileDownload();
 
@@ -27,11 +32,22 @@ export default function AvoirDetail() {
 
   const fetchAvoir = async () => {
     setLoading(true);
+    setLoadError(false);
     try {
       const { data } = await api.get(`/credit-notes/${id}`);
       setAvoir(data);
-    } catch {
-      navigate('/dashboard/factures?tab=avoirs');
+    } catch (err) {
+      if (err.response?.status === 404) {
+        // Genuinely gone: there's nothing to retry into, so explain why and
+        // send the user back to the list instead of stranding them here.
+        toast.push('Cet avoir est introuvable.', 'error');
+        navigate('/dashboard/factures?tab=avoirs');
+      } else {
+        // Transient failure (network/500): stay on the page and let the
+        // user retry, rather than bouncing them away from a page that
+        // might load fine a second later.
+        setLoadError(true);
+      }
     } finally {
       setLoading(false);
     }
@@ -48,12 +64,28 @@ export default function AvoirDetail() {
         a.click();
         URL.revokeObjectURL(url);
       }, "Génération de l'avoir...");
-    } catch {
-      navigate('/dashboard/factures?tab=avoirs');
+    } catch (err) {
+      // Was previously navigating away on a download failure, which
+      // evicted the user from an avoir they were successfully viewing.
+      toast.push(err.response?.data?.message || 'Erreur lors du téléchargement.', 'error');
     }
   };
 
   if (showLoader) return <PageLoader variant="detail" />;
+  if (loadError) {
+    return (
+      <Card style={{ padding: 0 }}>
+        <EmptyState
+          icon={AlertTriangle}
+          tone="danger"
+          title="Chargement impossible"
+          description="L'avoir n'a pas pu etre recupere. Verifiez votre connexion puis reessayez."
+          actionLabel="Reessayer"
+          onAction={fetchAvoir}
+        />
+      </Card>
+    );
+  }
   if (!avoir) return null;
 
   const avoirType = avoir.type_destination === 'national' ? 'National' : 'International';

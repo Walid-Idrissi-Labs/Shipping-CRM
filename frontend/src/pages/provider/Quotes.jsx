@@ -12,6 +12,7 @@ import SearchInput from '../../components/ui/SearchInput';
 import Pagination from '../../components/ui/Pagination';
 import { useColumnSort } from '../../hooks/useColumnSort';
 import { useUrlPage } from '../../hooks/useUrlPage';
+import { useToast } from '../../contexts/ToastContext';
 
 const statusOptions = [
   { value: '', label: 'Tous les statuts' },
@@ -27,6 +28,7 @@ function formatMoney(v) {
 
 export default function Quotes() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const q = searchParams.get('q') || '';
   const statut = searchParams.get('statut') || '';
@@ -84,7 +86,9 @@ export default function Quotes() {
       await api.patch(`/quotes/${id}/status`, { statut });
       fetchQuotes();
     } catch (err) {
-      console.error(err);
+      // Previously silent: the PATCH could fail while the row stayed
+      // unchanged, which reads as success to the user. Report it.
+      toast.push(err.response?.data?.message || 'Erreur lors de la mise a jour du statut.', 'error');
     }
   };
 

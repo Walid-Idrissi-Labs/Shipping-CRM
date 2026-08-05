@@ -1,13 +1,15 @@
 import { useMinLoading, useFileDownload } from '../../hooks';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Check, X, SquareArrowOutUpRight } from 'lucide-react';
+import { Check, X, SquareArrowOutUpRight, AlertTriangle } from 'lucide-react';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import { DataCard, DetailRow } from '../../components/ui/DataCard';
 import SwipeButton from '../../components/ui/SwipeButton';
 import ClientLinkButton from '../../components/ui/ClientLinkButton';
 import PageLoader from '../../components/ui/PageLoader';
+import EmptyState from '../../components/ui/EmptyState';
+import Card from '../../components/ui/Card';
 import { useToast } from '../../contexts/ToastContext';
 
 function formatMoney(value) {
@@ -21,6 +23,7 @@ export default function InvoiceDetail() {
   const toast = useToast();
   const [facture, setFacture] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const showLoader = useMinLoading(loading);
   const downloadFile = useFileDownload();
 
@@ -30,11 +33,22 @@ export default function InvoiceDetail() {
 
   const fetchInvoice = async () => {
     setLoading(true);
+    setLoadError(false);
     try {
       const { data } = await api.get(`/invoices/${id}`);
       setFacture(data);
-    } catch {
-      navigate('/dashboard/factures');
+    } catch (err) {
+      if (err.response?.status === 404) {
+        // Genuinely gone: there's nothing to retry into, so explain why and
+        // send the user back to the list instead of stranding them here.
+        toast.push('Cette facture est introuvable.', 'error');
+        navigate('/dashboard/factures');
+      } else {
+        // Transient failure (network/500): stay on the page and let the
+        // user retry, rather than bouncing them away from a page that
+        // might load fine a second later.
+        setLoadError(true);
+      }
     } finally {
       setLoading(false);
     }
@@ -77,6 +91,20 @@ export default function InvoiceDetail() {
   };
 
   if (showLoader) return <PageLoader variant="detail" />;
+  if (loadError) {
+    return (
+      <Card style={{ padding: 0 }}>
+        <EmptyState
+          icon={AlertTriangle}
+          tone="danger"
+          title="Chargement impossible"
+          description="La facture n'a pas pu etre recuperee. Verifiez votre connexion puis reessayez."
+          actionLabel="Reessayer"
+          onAction={fetchInvoice}
+        />
+      </Card>
+    );
+  }
   if (!facture) return null;
 
   const isPaid = facture.statut === 'payee';
