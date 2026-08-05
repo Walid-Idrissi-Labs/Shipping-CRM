@@ -92,10 +92,6 @@ class Phase5UIRedesignTest extends TestCase
         $response->assertStatus(200);
         $response->assertJsonStructure(['sequence', 'year', 'numero']);
 
-        $expected = "FE 1/{$this->provider->created_at->year}" === $response->json('numero')
-            ? $response->json('numero')
-            : $response->json('numero');
-
         $this->assertStringContainsString("FE ", $response->json('numero'));
         $this->assertSame(1, $response->json('sequence'));
     }

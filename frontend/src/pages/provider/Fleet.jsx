@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
+import EmptyState from '../../components/ui/EmptyState';
 import { Truck, User, AlertTriangle, Calendar, ArrowUpRight } from 'lucide-react';
 import PageLoader from '../../components/ui/PageLoader';
 import StatusBadge from '../../components/ui/StatusBadge';
@@ -23,7 +24,7 @@ const DRIVER_LABELS = {
 const fetchFleet = () => api.get('/dashboard/fleet').then((r) => r.data);
 
 export default function FleetDashboard() {
-  const { data, loading, error } = useApiFetch(fetchFleet, []);
+  const { data, loading, error, refetch } = useApiFetch(fetchFleet, []);
   const showLoader = useMinLoading(loading);
   const toast = useToast();
   const [vehicles, setVehicles] = useState([]);
@@ -51,8 +52,15 @@ export default function FleetDashboard() {
     return (
       <div>
         <PageHeader title="Flotte" subtitle="Tableau de bord de la flotte" />
-        <Card style={{ padding: 32, textAlign: 'center', color: 'var(--color-danger)' }}>
-          Erreur de chargement.
+        <Card style={{ padding: 0 }}>
+          <EmptyState
+            icon={AlertTriangle}
+            tone="danger"
+            title="Chargement impossible"
+            description="Les donnees de la flotte n'ont pas pu etre recuperees. Verifiez votre connexion puis reessayez."
+            actionLabel="Reessayer"
+            onAction={refetch}
+          />
         </Card>
       </div>
     );

@@ -162,8 +162,8 @@ export default function ClientQuotes() {
           value={tab}
           onChange={switchTab}
           tabs={[
-            { value: 'devis', label: 'Devis', icon: <FileCheck2 size={14} />, count: loading ? '…' : quotes.length },
-            { value: 'demandes', label: 'Demandes de devis', icon: <Send size={14} />, count: loading ? '…' : requests.length },
+            { value: 'devis', label: 'Devis', icon: <FileCheck2 size={14} />, count: loading || quotesLoadError ? '…' : quotes.length },
+            { value: 'demandes', label: 'Demandes de devis', icon: <Send size={14} />, count: loading || requestsLoadError ? '…' : requests.length },
           ]}
         />
       </div>
