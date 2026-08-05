@@ -352,22 +352,35 @@ const [entries, setEntries] = useState([]);
                 />
                 <div>
                   <DetailsLabel>Mot de passe original</DetailsLabel>
-                  <div className="flex" style={{ gap: 6 }}>
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      readOnly
-                      value={meta.origin_password || '—'}
-                      className="input font-mono-data"
-                      style={{ flex: 1 }}
-                    />
-                    <button type="button" onClick={() => setShowPassword((v) => !v)} className="btn btn-secondary" style={{ padding: '8px 12px' }} title={showPassword ? 'Masquer' : 'Afficher'}>
-                      {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                    </button>
-                    <button type="button" onClick={handleCopyPassword} className="btn btn-secondary" style={{ padding: '8px 12px' }} title="Copier">
-                      <Copy size={15} />
-                    </button>
-                  </div>
-                  {copied && <div style={{ fontSize: 12, color: 'var(--color-vivid-green-dark)', marginTop: 6 }}>Copie dans le presse-papier.</div>}
+                  {/* The temporary password is erased once the client chooses their
+                      own, so this is empty for any client who has secured their
+                      account. Showing an empty box with dead buttons would read as
+                      a bug; say what happened instead. */}
+                  {meta.origin_password ? (
+                    <>
+                      <div className="flex" style={{ gap: 6 }}>
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          readOnly
+                          value={meta.origin_password}
+                          className="input font-mono-data"
+                          style={{ flex: 1 }}
+                        />
+                        <button type="button" onClick={() => setShowPassword((v) => !v)} className="btn btn-secondary" style={{ padding: '8px 12px' }} title={showPassword ? 'Masquer' : 'Afficher'}>
+                          {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                        </button>
+                        <button type="button" onClick={handleCopyPassword} className="btn btn-secondary" style={{ padding: '8px 12px' }} title="Copier">
+                          <Copy size={15} />
+                        </button>
+                      </div>
+                      {copied && <div style={{ fontSize: 12, color: 'var(--color-vivid-green-dark)', marginTop: 6 }}>Copie dans le presse-papier.</div>}
+                    </>
+                  ) : (
+                    <p style={{ fontSize: 13, color: 'var(--color-steel)', margin: 0 }}>
+                      Le client a défini son propre mot de passe. Le mot de passe
+                      provisoire n’est plus valable.
+                    </p>
+                  )}
                 </div>
               </div>
 
