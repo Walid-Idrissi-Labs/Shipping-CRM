@@ -9,7 +9,7 @@ import PageLoader from '../../components/ui/PageLoader';
 import { FormField } from '../../components/ui/Form';
 import { useUrlPage } from '../../hooks/useUrlPage';
 import { formatRelativeTime, formatDateTime } from '../../lib/format';
-import { Activity, LogIn, Package, FileEdit, Receipt, User, SlidersHorizontal } from 'lucide-react';
+import { Activity, LogIn, Package, FileEdit, Receipt, User, SlidersHorizontal, AlertTriangle } from 'lucide-react';
 
 const typeOptions = [
   { value: '', label: 'Tous' },
@@ -46,6 +46,7 @@ function clientLabel(activity) {
 export default function ClientActivity() {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const showLoader = useMinLoading(loading);
   const [meta, setMeta] = useState({ lastPage: 1, total: 0, perPage: 25 });
   const { page, setPage, resetPage } = useUrlPage();
@@ -54,6 +55,7 @@ export default function ClientActivity() {
 
   const fetchActivities = useCallback(async () => {
     setLoading(true);
+    setLoadError(false);
     try {
       const { data } = await api.get('/client-activities', {
         params: { page, ...filters },
@@ -61,6 +63,12 @@ export default function ClientActivity() {
       setActivities(data.data || []);
       setMeta({ lastPage: data.last_page || 1, total: data.total ?? 0, perPage: data.per_page || 25 });
       if (data.last_page && page > data.last_page) resetPage();
+    } catch {
+      // Previously there was no catch at all: a failed request left the list
+      // at [] and rendered the "aucune activite" empty state, which is
+      // indistinguishable from genuinely having no activity.
+      setActivities([]);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -163,6 +171,15 @@ export default function ClientActivity() {
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         {showLoader ? (
           <PageLoader variant="table" embedded />
+        ) : loadError ? (
+          <EmptyState
+            icon={AlertTriangle}
+            tone="danger"
+            title="Chargement impossible"
+            description="L'activité des clients n'a pas pu être récupérée. Vérifiez votre connexion puis réessayez."
+            actionLabel="Réessayer"
+            onAction={fetchActivities}
+          />
         ) : activities.length === 0 ? (
           <EmptyState
             icon={Activity}

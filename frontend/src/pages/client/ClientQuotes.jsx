@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Check, X, Plus, FileText, Send, FileCheck2 } from 'lucide-react';
+import { Check, X, Plus, FileText, Send, FileCheck2, AlertTriangle } from 'lucide-react';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
@@ -38,6 +38,9 @@ export default function ClientQuotes() {
   const [quotes, setQuotes] = useState([]);
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  // Separate error flags per tab: one fetch failing must not misrepresent the other tab's data.
+  const [quotesLoadError, setQuotesLoadError] = useState(false);
+  const [requestsLoadError, setRequestsLoadError] = useState(false);
   const [meta, setMeta] = useState({ lastPage: 1, total: 0, perPage: 25 });
   const { page, setPage, resetPage } = useUrlPage();
   const dialog = useDialog();
@@ -77,11 +80,17 @@ export default function ClientQuotes() {
 
   const fetchQuotes = async () => {
     setLoading(true);
+    setQuotesLoadError(false);
     try {
       const { data } = await api.get('/my/quotes', { params: { search: q, statut, page } });
       setQuotes(data.data || []);
       setMeta({ lastPage: data.last_page || 1, total: data.total ?? 0, perPage: data.per_page || 25 });
       if (data.last_page && page > data.last_page) resetPage();
+    } catch {
+      // Without this, a failed request left quotes at [] and rendered the
+      // "aucun devis" empty state, indistinguishable from genuinely having none.
+      setQuotes([]);
+      setQuotesLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -89,11 +98,17 @@ export default function ClientQuotes() {
 
   const fetchRequests = async () => {
     setLoading(true);
+    setRequestsLoadError(false);
     try {
       const { data } = await api.get('/my/quote-requests', { params: { search: q, statut, page } });
       setRequests(data.data || []);
       setMeta({ lastPage: data.last_page || 1, total: data.total ?? 0, perPage: data.per_page || 25 });
       if (data.last_page && page > data.last_page) resetPage();
+    } catch {
+      // Same failure-vs-empty ambiguity as fetchQuotes, but tracked separately
+      // so a failure on one tab doesn't taint the other's state.
+      setRequests([]);
+      setRequestsLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -187,6 +202,15 @@ export default function ClientQuotes() {
                 </div>
               ))}
             </div>
+          ) : quotesLoadError ? (
+            <EmptyState
+              icon={AlertTriangle}
+              tone="danger"
+              title="Chargement impossible"
+              description="Vos devis n'ont pas pu etre recuperes. Verifiez votre connexion puis reessayez."
+              actionLabel="Reessayer"
+              onAction={fetchQuotes}
+            />
           ) : quotes.length === 0 ? (
             <EmptyState
               icon={FileText}
@@ -271,6 +295,15 @@ export default function ClientQuotes() {
                 </div>
               ))}
             </div>
+          ) : requestsLoadError ? (
+            <EmptyState
+              icon={AlertTriangle}
+              tone="danger"
+              title="Chargement impossible"
+              description="Vos demandes de devis n'ont pas pu etre recuperees. Verifiez votre connexion puis reessayez."
+              actionLabel="Reessayer"
+              onAction={fetchRequests}
+            />
           ) : requests.length === 0 ? (
             <EmptyState
               icon={Send}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import {Eye, UserCheck, UserX, Trash2} from 'lucide-react';
+import {Eye, UserCheck, UserX, Trash2, AlertTriangle} from 'lucide-react';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
@@ -22,6 +22,7 @@ export default function AccountRequests() {
   const { refresh: refreshPendingCounts } = usePendingCounts();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
   const [feedback, setFeedback] = useState('');
   const [meta, setMeta] = useState({ lastPage: 1, total: 0, perPage: 25 });
@@ -41,11 +42,18 @@ export default function AccountRequests() {
 
   const fetchRequests = async () => {
     setLoading(true);
+    setLoadError(false);
     try {
       const { data } = await api.get('/account-requests', { params: { page, ...sortParams } });
       setRequests(data.data || data || []);
       setMeta({ lastPage: data.last_page || 1, total: data.total ?? 0, perPage: data.per_page || 25 });
       if (data.last_page && page > data.last_page) resetPage();
+    } catch {
+      // Previously there was no catch at all: a failed request left the list
+      // at [] and rendered the "aucune demande" empty state, which is
+      // indistinguishable from genuinely having no requests.
+      setRequests([]);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -130,6 +138,15 @@ export default function AccountRequests() {
               </div>
             ))}
           </div>
+        ) : loadError ? (
+          <EmptyState
+            icon={AlertTriangle}
+            tone="danger"
+            title="Chargement impossible"
+            description="Les demandes de compte n'ont pas pu etre recuperees. Verifiez votre connexion puis reessayez."
+            actionLabel="Reessayer"
+            onAction={fetchRequests}
+          />
         ) : requests.length === 0 ? (
           <EmptyState
             icon={UserCheck}

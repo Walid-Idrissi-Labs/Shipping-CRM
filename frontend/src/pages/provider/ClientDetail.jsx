@@ -1,7 +1,7 @@
 import { useMinLoading } from '../../hooks';
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Copy, Eye, EyeOff, ShieldAlert, Trash2, MapPin, Truck, User, ChevronRight, Package, Receipt, CircleArrowOutUpRight, CircleArrowOutDownLeft, Edit2, X } from 'lucide-react';
+import { Copy, Eye, EyeOff, ShieldAlert, Trash2, MapPin, Truck, User, ChevronRight, Package, Receipt, CircleArrowOutUpRight, CircleArrowOutDownLeft, Edit2, X, AlertTriangle } from 'lucide-react';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import { DataCard, DetailRow } from '../../components/ui/DataCard';
@@ -58,10 +58,16 @@ export default function ClientDetail() {
   const [notFound, setNotFound] = useState(false);
   const [missions, setMissions] = useState([]);
   const [missionsLoading, setMissionsLoading] = useState(true);
+  const [missionsError, setMissionsError] = useState(false);
+  const [missionsKey, setMissionsKey] = useState(0);
   const [shipments, setShipments] = useState([]);
   const [shipmentsLoading, setShipmentsLoading] = useState(true);
+  const [shipmentsError, setShipmentsError] = useState(false);
+  const [shipmentsKey, setShipmentsKey] = useState(0);
 const [entries, setEntries] = useState([]);
   const [entriesLoading, setEntriesLoading] = useState(true);
+  const [entriesError, setEntriesError] = useState(false);
+  const [entriesKey, setEntriesKey] = useState(0);
   const clientForm = useDirtyForm(emptyClient);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -82,29 +88,78 @@ const [entries, setEntries] = useState([]);
     });
   }, [id]);
 
+  // setState only happens inside the promise callbacks below (never
+  // synchronously in the effect body) so react-hooks/set-state-in-effect
+  // stays quiet; retry re-runs this effect by bumping missionsKey instead
+  // of calling the fetch directly. The cancelled flag guards against a
+  // stale response landing after `id` (or a retry) has moved on.
+  //
+  // The panel state is reset in the *cleanup* rather than the effect body —
+  // cleanups are exempt from that lint rule, and without it these three
+  // panels would keep showing the previous client's rows under the new
+  // client's name whenever `id` changes without an unmount. That is
+  // reachable: the command palette jumps straight from one client page to
+  // another, and /clients/{id} resolves before these three do, so the page
+  // un-blurs while they are still in flight.
   useEffect(() => {
-    setMissionsLoading(true);
+    let cancelled = false;
     api.get(`/clients/${id}/missions`)
-      .then((res) => setMissions(res.data.data || []))
-      .catch(() => setMissions([]))
-      .finally(() => setMissionsLoading(false));
-  }, [id]);
+      .then((res) => { if (!cancelled) { setMissions(res.data.data || []); setMissionsError(false); } })
+      .catch(() => { if (!cancelled) setMissionsError(true); })
+      .finally(() => { if (!cancelled) setMissionsLoading(false); });
+    return () => {
+      cancelled = true;
+      setMissionsLoading(true);
+      setMissions([]);
+      setMissionsError(false);
+    };
+  }, [id, missionsKey]);
+
+  const retryMissions = () => {
+    setMissionsLoading(true);
+    setMissionsError(false);
+    setMissionsKey((k) => k + 1);
+  };
 
   useEffect(() => {
-    setShipmentsLoading(true);
+    let cancelled = false;
     api.get(`/clients/${id}/shipments`)
-      .then((res) => setShipments(res.data.data || []))
-      .catch(() => setShipments([]))
-      .finally(() => setShipmentsLoading(false));
-  }, [id]);
+      .then((res) => { if (!cancelled) { setShipments(res.data.data || []); setShipmentsError(false); } })
+      .catch(() => { if (!cancelled) setShipmentsError(true); })
+      .finally(() => { if (!cancelled) setShipmentsLoading(false); });
+    return () => {
+      cancelled = true;
+      setShipmentsLoading(true);
+      setShipments([]);
+      setShipmentsError(false);
+    };
+  }, [id, shipmentsKey]);
+
+  const retryShipments = () => {
+    setShipmentsLoading(true);
+    setShipmentsError(false);
+    setShipmentsKey((k) => k + 1);
+  };
 
   useEffect(() => {
-    setEntriesLoading(true);
+    let cancelled = false;
     api.get(`/clients/${id}/invoices-entries`)
-      .then((res) => setEntries(res.data.data || []))
-      .catch(() => setEntries([]))
-      .finally(() => setEntriesLoading(false));
-  }, [id]);
+      .then((res) => { if (!cancelled) { setEntries(res.data.data || []); setEntriesError(false); } })
+      .catch(() => { if (!cancelled) setEntriesError(true); })
+      .finally(() => { if (!cancelled) setEntriesLoading(false); });
+    return () => {
+      cancelled = true;
+      setEntriesLoading(true);
+      setEntries([]);
+      setEntriesError(false);
+    };
+  }, [id, entriesKey]);
+
+  const retryEntries = () => {
+    setEntriesLoading(true);
+    setEntriesError(false);
+    setEntriesKey((k) => k + 1);
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -331,14 +386,14 @@ const [entries, setEntries] = useState([]);
         </DataCard>
       </form>
 
-      <ShipmentsSection shipments={shipments} loading={shipmentsLoading} navigate={navigate} clientQuery={client.full_name} />
-      <InvoicesSection entries={entries} loading={entriesLoading} navigate={navigate} clientQuery={client.full_name} />
-      <MissionsSection missions={missions} loading={missionsLoading} navigate={navigate} clientQuery={client.full_name} />
+      <ShipmentsSection shipments={shipments} loading={shipmentsLoading} error={shipmentsError} onRetry={retryShipments} navigate={navigate} clientQuery={client.full_name} />
+      <InvoicesSection entries={entries} loading={entriesLoading} error={entriesError} onRetry={retryEntries} navigate={navigate} clientQuery={client.full_name} />
+      <MissionsSection missions={missions} loading={missionsLoading} error={missionsError} onRetry={retryMissions} navigate={navigate} clientQuery={client.full_name} />
     </div>
   );
 }
 
-function MissionsSection({ missions, loading, navigate, clientQuery }) {
+function MissionsSection({ missions, loading, error, onRetry, navigate, clientQuery }) {
   const linkTo = clientQuery
     ? `/dashboard/flotte/affectations?q=${encodeURIComponent(clientQuery)}`
     : '/dashboard/flotte/affectations';
@@ -360,6 +415,15 @@ function MissionsSection({ missions, loading, navigate, clientQuery }) {
     >
       {loading ? (
         <div style={{ padding: 24, display: 'flex', justifyContent: 'center' }}><OrbitLoader /></div>
+      ) : error ? (
+        <EmptyState
+          icon={AlertTriangle}
+          tone="danger"
+          title="Chargement impossible"
+          description="Les missions n'ont pas pu etre recuperees. Verifiez votre connexion puis reessayez."
+          actionLabel="Reessayer"
+          onAction={onRetry}
+        />
       ) : missions.length === 0 ? (
         <EmptyState
           icon={MapPin}
@@ -437,7 +501,7 @@ function MissionsSection({ missions, loading, navigate, clientQuery }) {
   );
 }
 
-function ShipmentsSection({ shipments, loading, navigate, clientQuery }) {
+function ShipmentsSection({ shipments, loading, error, onRetry, navigate, clientQuery }) {
   const linkTo = clientQuery
     ? `/dashboard/expeditions?q=${encodeURIComponent(clientQuery)}`
     : '/dashboard/expeditions';
@@ -459,6 +523,15 @@ function ShipmentsSection({ shipments, loading, navigate, clientQuery }) {
     >
       {loading ? (
         <div style={{ padding: 24, display: 'flex', justifyContent: 'center' }}><OrbitLoader /></div>
+      ) : error ? (
+        <EmptyState
+          icon={AlertTriangle}
+          tone="danger"
+          title="Chargement impossible"
+          description="Les expeditions n'ont pas pu etre recuperees. Verifiez votre connexion puis reessayez."
+          actionLabel="Reessayer"
+          onAction={onRetry}
+        />
       ) : shipments.length === 0 ? (
         <EmptyState
           icon={Package}
@@ -534,7 +607,7 @@ function ShipmentsSection({ shipments, loading, navigate, clientQuery }) {
   );
 }
 
-function InvoicesSection({ entries, loading, navigate, clientQuery }) {
+function InvoicesSection({ entries, loading, error, onRetry, navigate, clientQuery }) {
   const linkTo = clientQuery
     ? `/dashboard/factures?tab=factures&q=${encodeURIComponent(clientQuery)}`
     : '/dashboard/factures';
@@ -556,6 +629,15 @@ function InvoicesSection({ entries, loading, navigate, clientQuery }) {
     >
       {loading ? (
         <div style={{ padding: 24, display: 'flex', justifyContent: 'center' }}><OrbitLoader /></div>
+      ) : error ? (
+        <EmptyState
+          icon={AlertTriangle}
+          tone="danger"
+          title="Chargement impossible"
+          description="Les factures n'ont pas pu etre recuperees. Verifiez votre connexion puis reessayez."
+          actionLabel="Reessayer"
+          onAction={onRetry}
+        />
       ) : entries.length === 0 ? (
         <EmptyState
           icon={Receipt}

@@ -123,6 +123,13 @@ export default function ClientShipmentDetail() {
           setLabelUrl(url);
         })
         .catch(() => {});
+    } catch {
+      // This is a single card on an otherwise-loaded page, not a list: blanking
+      // the whole page would be wrong here. Leaving labelHtml null already
+      // falls through to the "Impossible de charger l'etiquette" branch below,
+      // so we just avoid an unhandled rejection and add a toast for visibility.
+      setLabelHtml(null);
+      toast.push("Impossible de charger l'apercu de l'etiquette.", 'error');
     } finally {
       setLabelLoading(false);
     }

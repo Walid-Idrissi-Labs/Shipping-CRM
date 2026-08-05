@@ -16,7 +16,7 @@ import { formatMoney } from '../../lib/format';
 import { useDialog } from '../../contexts/DialogContext';
 import { useToast } from '../../contexts/ToastContext';
 import PageLoader from '../../components/ui/PageLoader';
-import { Check, X, FileDown, Trash2, Receipt } from 'lucide-react';
+import { Check, X, FileDown, Trash2, Receipt, AlertTriangle } from 'lucide-react';
 
 const factureStatusOptions = [
   { value: '', label: 'Tous' },
@@ -45,6 +45,8 @@ export default function Invoices() {
   const [factures, setFactures] = useState([]);
   const [avoirs, setAvoirs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [factureLoadError, setFactureLoadError] = useState(false);
+  const [avoirLoadError, setAvoirLoadError] = useState(false);
   const showLoader = useMinLoading(loading);
   const [meta, setMeta] = useState({ lastPage: 1, total: 0, perPage: 25 });
   const { page, setPage, resetPage } = useUrlPage();
@@ -90,6 +92,7 @@ export default function Invoices() {
 
   const fetchFactures = useCallback(async () => {
     setLoading(true);
+    setFactureLoadError(false);
     try {
       const { data } = await api.get('/invoices', {
         params: { search: q, statut, type_destination: typeDest, page, ...sortParams },
@@ -97,6 +100,13 @@ export default function Invoices() {
       setFactures(data.data || []);
       setMeta({ lastPage: data.last_page || 1, total: data.total ?? 0, perPage: data.per_page || 25 });
       if (data.last_page && page > data.last_page) resetPage();
+    } catch {
+      // Previously there was no catch at all: a failed request left the list
+      // at [] and rendered the "aucune facture" empty state, which is
+      // indistinguishable from genuinely having no invoices. Kept separate
+      // from the avoirs error state so a failure in one tab doesn't blank the other.
+      setFactures([]);
+      setFactureLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -105,11 +115,19 @@ export default function Invoices() {
 
   const fetchAvoirs = useCallback(async () => {
     setLoading(true);
+    setAvoirLoadError(false);
     try {
       const { data } = await api.get('/credit-notes', { params: { page, ...sortParams } });
       setAvoirs(data.data || []);
       setMeta({ lastPage: data.last_page || 1, total: data.total ?? 0, perPage: data.per_page || 25 });
       if (data.last_page && page > data.last_page) resetPage();
+    } catch {
+      // Previously there was no catch at all: a failed request left the list
+      // at [] and rendered the "aucun avoir" empty state, which is
+      // indistinguishable from genuinely having no credit notes. Kept separate
+      // from the factures error state so a failure in one tab doesn't blank the other.
+      setAvoirs([]);
+      setAvoirLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -274,6 +292,15 @@ export default function Invoices() {
           <Card style={{ padding: 0, overflow: 'hidden' }}>
             {showLoader ? (
               <PageLoader variant="table" embedded />
+            ) : factureLoadError ? (
+              <EmptyState
+                icon={AlertTriangle}
+                tone="danger"
+                title="Chargement impossible"
+                description="Les factures n'ont pas pu être récupérées. Vérifiez votre connexion puis réessayez."
+                actionLabel="Réessayer"
+                onAction={fetchFactures}
+              />
             ) : factures.length === 0 ? (
               <EmptyState icon={Receipt} title="Aucune facture" description="Aucune facture ne correspond à votre recherche." />
             ) : (
@@ -337,6 +364,15 @@ export default function Invoices() {
         <Card style={{ padding: 0, overflow: 'hidden' }}>
           {showLoader ? (
             <PageLoader variant="table" embedded />
+          ) : avoirLoadError ? (
+            <EmptyState
+              icon={AlertTriangle}
+              tone="danger"
+              title="Chargement impossible"
+              description="Les avoirs n'ont pas pu être récupérés. Vérifiez votre connexion puis réessayez."
+              actionLabel="Réessayer"
+              onAction={fetchAvoirs}
+            />
           ) : avoirs.length === 0 ? (
             <EmptyState icon={Receipt} title="Aucun avoir" description="Aucun avoir n'a encore été émis." />
           ) : (

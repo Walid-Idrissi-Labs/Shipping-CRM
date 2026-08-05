@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { FileText, Trash2, Eye, X, XCircle, Mail, Phone, MapPin, Package, Clock, Globe } from 'lucide-react';
+import { FileText, Trash2, Eye, X, XCircle, Mail, Phone, MapPin, Package, Clock, Globe, AlertTriangle } from 'lucide-react';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
@@ -50,6 +50,7 @@ export default function QuoteRequests() {
   const statut = searchParams.get('statut') || '';
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [detailRequest, setDetailRequest] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const dialog = useDialog();
@@ -66,11 +67,18 @@ export default function QuoteRequests() {
 
   const fetchRequests = async () => {
     setLoading(true);
+    setLoadError(false);
     try {
       const { data } = await api.get('/quote-requests', { params: { search: q, statut, page, ...sortParams } });
       setRequests(data.data || []);
       setMeta({ lastPage: data.last_page || 1, total: data.total ?? 0, perPage: data.per_page || 25 });
       if (data.last_page && page > data.last_page) resetPage();
+    } catch {
+      // Previously there was no catch at all: a failed request left the list
+      // at [] and rendered the "aucune demande" empty state, which is
+      // indistinguishable from genuinely having no requests.
+      setRequests([]);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -210,6 +218,15 @@ export default function QuoteRequests() {
               <div key={i} style={{ marginBottom: 12 }}><Skeleton height={20} width="55%" /></div>
             ))}
           </div>
+        ) : loadError ? (
+          <EmptyState
+            icon={AlertTriangle}
+            tone="danger"
+            title="Chargement impossible"
+            description="Les demandes de devis n'ont pas pu etre recuperees. Verifiez votre connexion puis reessayez."
+            actionLabel="Reessayer"
+            onAction={fetchRequests}
+          />
         ) : requests.length === 0 ? (
           <EmptyState icon={FileText} title="Aucune demande" description="Aucun resultat ne correspond." />
         ) : (

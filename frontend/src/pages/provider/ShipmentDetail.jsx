@@ -362,6 +362,12 @@ const [newEvent, setNewEvent] = useState({
           setLabelUrl(url);
         })
         .catch(() => {});
+    } catch {
+      // Reset instead of leaving a stale preview from a previous successful
+      // fetch (this re-runs after every tracking update): the card below
+      // already renders "Impossible de charger l'etiquette." when labelHtml
+      // is falsy, so that's the only signal needed here.
+      setLabelHtml(null);
     } finally {
       setLabelLoading(false);
     }

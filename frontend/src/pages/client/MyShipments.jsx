@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, PackagePlus, CircleArrowOutUpRight, CircleArrowOutDownLeft } from 'lucide-react';
+import { Plus, PackagePlus, CircleArrowOutUpRight, CircleArrowOutDownLeft, AlertTriangle } from 'lucide-react';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
@@ -28,6 +28,7 @@ export default function MyShipments() {
   const statut = searchParams.get('statut') || '';
   const [shipments, setShipments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [meta, setMeta] = useState({ lastPage: 1, total: 0, perPage: 25 });
   const { page, setPage, resetPage } = useUrlPage();
   const { column, direction, toggle, params: sortParams } = useColumnSort('created_at', 'desc');
@@ -39,11 +40,18 @@ export default function MyShipments() {
 
   const fetchShipments = async () => {
     setLoading(true);
+    setLoadError(false);
     try {
       const { data } = await api.get('/my/shipments', { params: { search: q, statut, page, ...sortParams } });
       setShipments(data.data || []);
       setMeta({ lastPage: data.last_page || 1, total: data.total ?? 0, perPage: data.per_page || 25 });
       if (data.last_page && page > data.last_page) resetPage();
+    } catch {
+      // Without this, a failed request left shipments at [] and rendered the
+      // "aucune expedition" empty state, indistinguishable from a customer
+      // genuinely having no shipments.
+      setShipments([]);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -112,6 +120,15 @@ export default function MyShipments() {
               </div>
             ))}
           </div>
+        ) : loadError ? (
+          <EmptyState
+            icon={AlertTriangle}
+            tone="danger"
+            title="Chargement impossible"
+            description="Vos expeditions n'ont pas pu etre recuperees. Verifiez votre connexion puis reessayez."
+            actionLabel="Reessayer"
+            onAction={fetchShipments}
+          />
         ) : shipments.length === 0 ? (
           <EmptyState
             icon={Plus}

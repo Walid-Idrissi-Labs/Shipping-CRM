@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Check, X, FilePenLine } from 'lucide-react';
+import { Plus, Check, X, FilePenLine, AlertTriangle } from 'lucide-react';
 import api from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
@@ -32,6 +32,7 @@ export default function Quotes() {
   const statut = searchParams.get('statut') || '';
   const [quotes, setQuotes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [meta, setMeta] = useState({ lastPage: 1, total: 0, perPage: 25 });
   const { page, setPage, resetPage } = useUrlPage();
   const { column, direction, toggle, params: sortParams } = useColumnSort('created_at', 'desc');
@@ -43,11 +44,18 @@ export default function Quotes() {
 
   const fetchQuotes = async () => {
     setLoading(true);
+    setLoadError(false);
     try {
       const { data } = await api.get('/quotes', { params: { search: q, statut, page, ...sortParams } });
       setQuotes(data.data || []);
       setMeta({ lastPage: data.last_page || 1, total: data.total ?? 0, perPage: data.per_page || 25 });
       if (data.last_page && page > data.last_page) resetPage();
+    } catch {
+      // Previously there was no catch at all: a failed request left the list
+      // at [] and rendered the "aucun devis" empty state, which is
+      // indistinguishable from genuinely having no quotes.
+      setQuotes([]);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -108,6 +116,15 @@ export default function Quotes() {
               </div>
             ))}
           </div>
+        ) : loadError ? (
+          <EmptyState
+            icon={AlertTriangle}
+            tone="danger"
+            title="Chargement impossible"
+            description="Les devis n'ont pas pu etre recuperes. Verifiez votre connexion puis reessayez."
+            actionLabel="Reessayer"
+            onAction={fetchQuotes}
+          />
         ) : quotes.length === 0 ? (
           <EmptyState
             icon={Plus}
