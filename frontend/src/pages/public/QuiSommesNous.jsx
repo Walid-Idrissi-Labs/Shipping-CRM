@@ -400,9 +400,9 @@ export default function QuiSommesNous() {
               La logistique, <em>accessible</em> à tous.
             </h1>
             <p className="ab-hero-lead">
-              DPEX est née d'une ambition simple : rendre les services d'expédition et de
-              logistique accessibles, efficaces et économiques — pour les entreprises comme
-              pour les particuliers, à l'échelle nationale et internationale.
+              Expédier une marchandise ne devrait pas coûter aussi cher, ni demander autant de
+              démarches. DPEX s'en occupe, pour les entreprises comme pour les particuliers,
+              au Maroc et à l'international.
             </p>
             <div className="ab-hero-actions">
               <Link to="/devis-express" className="lp-btn lp-btn-primary">
@@ -446,18 +446,17 @@ export default function QuiSommesNous() {
           <div className="ab-split-copy" data-reveal>
             <span className="ab-eyebrow">Présentation</span>
             <h2 className="ab-section-title" style={{ marginBottom: 22 }}>
-              Un partenaire logistique pour chaque envoi
+              Un partenaire pour vos envois
             </h2>
             <p>
-              <strong>DPEX S.A.R.L.</strong> est une entreprise de transport et de logistique
-              qui propose des solutions adaptées à tous types d'envois, qu'il s'agisse
-              d'importation ou d'exportation.
+              Créée en <strong>2018</strong>, <strong>DPEX S.A.R.L.</strong> est une entreprise
+              de transport et de logistique. Nous traitons tous types d'envois, à l'import
+              comme à l'export.
             </p>
             <p>
-              Nous personnalisons notre service selon les besoins spécifiques de chaque client
-              et nous engageons à <strong>simplifier vos opérations logistiques</strong> et à
-              garantir un acheminement sécurisé de vos marchandises, en vous accompagnant sur
-              l'ensemble de vos besoins de transport national et international.
+              Nous adaptons le service à ce que vous expédiez. Le reste, c'est notre affaire :
+              <strong>trouver le bon transporteur</strong> et suivre vos marchandises
+              jusqu'à la livraison, au Maroc comme à l'étranger.
             </p>
           </div>
 
@@ -466,21 +465,21 @@ export default function QuiSommesNous() {
               <div className="ab-mode-ico"><Plane size={24} strokeWidth={1.6} /></div>
               <div>
                 <h4>Aérien</h4>
-                <p>La rapidité pour vos envois urgents, partout dans le monde.</p>
+                <p>Pour ce qui doit partir vite, partout dans le monde.</p>
               </div>
             </div>
             <div className="ab-mode">
               <div className="ab-mode-ico"><Truck size={24} strokeWidth={1.6} /></div>
               <div>
                 <h4>Routier</h4>
-                <p>Un maillage national fiable, du ramassage à la livraison.</p>
+                <p>Enlèvement et livraison partout au Maroc.</p>
               </div>
             </div>
             <div className="ab-mode">
               <div className="ab-mode-ico"><Ship size={24} strokeWidth={1.6} /></div>
               <div>
                 <h4>Maritime</h4>
-                <p>La solution économique pour vos volumes importants.</p>
+                <p>Le moins cher dès que le volume monte.</p>
               </div>
             </div>
           </div>
@@ -495,14 +494,14 @@ export default function QuiSommesNous() {
               <div className="ab-pillar-ico"><Target size={24} strokeWidth={1.7} /></div>
               <h3>Notre objectif</h3>
               <p className="ab-pillar-quote">
-                « Vous permettre d'accéder aux solutions d'expédition les plus avantageuses
-                pour vos envois nationaux et internationaux. »
+                « Vous trouver le meilleur prix pour chaque envoi, au Maroc comme à
+                l'étranger. »
               </p>
               <ul>
-                <li>Rechercher les meilleures offres du marché</li>
-                <li>Proposer des tarifs compétitifs</li>
-                <li>Offrir des devis transparents incluant tous les frais</li>
-                <li>Fournir un accompagnement personnalisé, import comme export</li>
+                <li>Comparer les offres du marché à votre place</li>
+                <li>Négocier les tarifs auprès des transporteurs</li>
+                <li>Des devis où tous les frais sont déjà comptés</li>
+                <li>Un interlocuteur qui suit votre dossier, import comme export</li>
               </ul>
             </div>
 
@@ -510,14 +509,14 @@ export default function QuiSommesNous() {
               <div className="ab-pillar-ico"><Layers size={24} strokeWidth={1.7} /></div>
               <h3>Notre stratégie</h3>
               <p className="ab-pillar-quote">
-                « Rassembler au sein d'une même plateforme les solutions des principaux acteurs
-                du transport express national et international. »
+                « Réunir sur une seule plateforme les offres des grands transporteurs express,
+                au national comme à l'international. »
               </p>
               <ul>
-                <li>Un accès simplifié à plus de 220 destinations</li>
-                <li>Un partenariat avec des transporteurs reconnus</li>
-                <li>Des coûts et des délais optimisés à chaque envoi</li>
-                <li>Un service complet de porte-à-porte, à l'enlèvement comme à la livraison</li>
+                <li>Plus de 220 destinations depuis la même plateforme</li>
+                <li>Des accords signés avec des transporteurs reconnus</li>
+                <li>Le meilleur compromis prix/délai à chaque envoi</li>
+                <li>Du porte-à-porte : on enlève chez vous, on livre chez le destinataire</li>
               </ul>
             </div>
           </div>
@@ -529,34 +528,34 @@ export default function QuiSommesNous() {
         <div className="lp-container">
           <div className="ab-section-head is-center" data-reveal>
             <span className="ab-eyebrow">Pourquoi choisir DPEX</span>
-            <h2 className="ab-section-title">Trois raisons de nous faire confiance</h2>
+            <h2 className="ab-section-title">Ce que vous y gagnez</h2>
           </div>
           <div className="ab-why-grid">
             <div className="ab-why-card" data-reveal>
               <div className="ab-why-ico"><PiggyBank size={24} strokeWidth={1.7} /></div>
               <div className="ab-why-metric">−70 %</div>
-              <h3>Économies significatives</h3>
+              <h3>Vous payez moins cher</h3>
               <p>
-                Grâce à des accords négociés avec les grands transporteurs, jusqu'à −70 % sur
-                vos envois internationaux et jusqu'à −50 % sur vos envois nationaux au Maroc.
+                Nos accords avec les grands transporteurs vous font gagner jusqu'à 70 % sur
+                l'international et jusqu'à 50 % sur vos envois au Maroc.
               </p>
             </div>
             <div className="ab-why-card" data-reveal data-delay="1">
               <div className="ab-why-ico"><ShieldCheck size={24} strokeWidth={1.7} /></div>
               <div className="ab-why-metric">Fiabilité</div>
-              <h3>Service fiable et professionnel</h3>
+              <h3>Des transporteurs qui tiennent</h3>
               <p>
-                Nous nous appuyons sur des transporteurs express reconnus à l'international,
-                choisis pour leur fiabilité et leur expertise logistique.
+                Nous passons par les grands transporteurs express internationaux, ceux qui ont
+                déjà le réseau et l'expérience du terrain.
               </p>
             </div>
             <div className="ab-why-card" data-reveal data-delay="2">
               <div className="ab-why-ico"><Timer size={24} strokeWidth={1.7} /></div>
               <div className="ab-why-metric">Instantané</div>
-              <h3>Gain de temps considérable</h3>
+              <h3>Vous ne comparez plus</h3>
               <p>
-                Fini les comparaisons manuelles : recevez immédiatement les meilleures options
-                disponibles, adaptées à votre besoin, votre budget et votre destination.
+                Indiquez votre destination et votre budget, les options disponibles s'affichent
+                dans la foulée. Plus besoin d'appeler les transporteurs un par un.
               </p>
             </div>
           </div>
@@ -568,28 +567,28 @@ export default function QuiSommesNous() {
         <div className="lp-container">
           <div className="ab-section-head is-center" data-reveal>
             <span className="ab-eyebrow">Nos valeurs</span>
-            <h2 className="ab-section-title">Ce qui nous fait avancer</h2>
+            <h2 className="ab-section-title">Comment nous travaillons</h2>
           </div>
           <div className="ab-values-grid">
             <div className="ab-value" data-reveal>
               <div className="ab-value-ico"><Handshake size={26} strokeWidth={1.6} /></div>
               <h4>Proximité</h4>
-              <p>Un interlocuteur à votre écoute, proche de vos réalités.</p>
+              <p>Un interlocuteur qui connaît votre dossier.</p>
             </div>
             <div className="ab-value" data-reveal data-delay="1">
               <div className="ab-value-ico"><Zap size={26} strokeWidth={1.6} /></div>
               <h4>Réactivité</h4>
-              <p>Des réponses rapides et des solutions sans attente.</p>
+              <p>On répond vite, surtout quand un envoi coince.</p>
             </div>
             <div className="ab-value" data-reveal data-delay="2">
               <div className="ab-value-ico"><Award size={26} strokeWidth={1.6} /></div>
-              <h4>Excellence</h4>
-              <p>Une qualité de service irréprochable, à chaque étape.</p>
+              <h4>Rigueur</h4>
+              <p>On vérifie les détails avant que le colis parte.</p>
             </div>
             <div className="ab-value" data-reveal data-delay="3">
               <div className="ab-value-ico"><Heart size={26} strokeWidth={1.6} /></div>
               <h4>Confiance</h4>
-              <p>L'engagement de nos équipes au service de vos envois.</p>
+              <p>On vous dit où en est votre envoi, bonne nouvelle ou pas.</p>
             </div>
           </div>
         </div>
@@ -598,10 +597,10 @@ export default function QuiSommesNous() {
       {/* ============================== CTA ============================== */}
       <section className="ab-cta">
         <div className="lp-container" data-reveal>
-          <h2>Envie d'en savoir plus ?</h2>
+          <h2>Un envoi à préparer ?</h2>
           <p>
-            Demandez un devis en quelques minutes ou échangez directement avec notre équipe —
-            nous vous accompagnons sur tous vos besoins d'expédition.
+            Faites votre demande de devis en ligne. Et si vous préférez en discuter d'abord,
+            notre équipe est joignable.
           </p>
           <div className="ab-cta-actions">
             <Link to="/devis-express" className="lp-btn lp-btn-primary">
