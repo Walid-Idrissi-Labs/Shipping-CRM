@@ -189,17 +189,45 @@ export default function ProviderDashboard() {
   const [stats, setStats] = useState(null);
   const [shipments, setShipments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
+  const [reloadKey, setReloadKey] = useState(0);
+
+  // These requests used to end in `.catch(() => ({ data: {} }))`, which turned
+  // any backend failure into a dashboard full of zeroes that looked exactly
+  // like real (empty) data. A dead session is handled globally now
+  // (401 -> /login); anything else has to be visible rather than silently
+  // rendered as "nothing here".
   useEffect(() => {
+    let cancelled = false;
+
     Promise.all([
-      api.get('/dashboard/provider').catch(() => ({ data: {} })),
-      api.get('/shipments?limit=10').catch(() => ({ data: { data: [] } })),
-    ]).then(([s, sh]) => {
-      setStats(s.data);
-      setShipments(sh.data.data || []);
-      setLoading(false);
-    });
-  }, []);
+      api.get('/dashboard/provider'),
+      api.get('/shipments?limit=10'),
+    ])
+      .then(([s, sh]) => {
+        if (cancelled) return;
+        setStats(s.data);
+        setShipments(sh.data.data || []);
+        setLoadError(false);
+      })
+      .catch(() => {
+        if (!cancelled) setLoadError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [reloadKey]);
+
+  const retry = () => {
+    setLoading(true);
+    setLoadError(false);
+    setReloadKey((k) => k + 1);
+  };
 
   const fleet = stats?.fleet_summary || {};
   const revenue = Number(stats?.revenue_this_month || 0);
@@ -257,6 +285,18 @@ export default function ProviderDashboard() {
         title="Vue d'ensemble"
         subtitle="Activite recente et point d'entree rapide vers les actions courantes."
       />
+
+      {loadError && (
+        <Card style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <AlertTriangle size={18} style={{ color: 'var(--color-danger)', flexShrink: 0 }} />
+          <span style={{ fontSize: 13, flex: 1 }}>
+            Impossible de charger les donnees du tableau de bord.
+          </span>
+          <button type="button" className="btn btn-secondary" onClick={retry}>
+            Reessayer
+          </button>
+        </Card>
+      )}
 
       {/* Row 1: 4 metric cards */}
       <div
