@@ -32,4 +32,9 @@ MAINTENANCE.md
 cookies.txt
 
 **/cache*.png
-**/cache*.jpgshipping_crm
+**/cache*.jpg
+
+# Stray local SQLite database that some tooling drops at the repo root.
+# It was previously glued onto the line above with no newline, so neither
+# pattern matched and all three files kept showing up as untracked.
+shipping_crm
