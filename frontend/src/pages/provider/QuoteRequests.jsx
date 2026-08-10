@@ -16,6 +16,7 @@ import { useDialog } from '../../contexts/DialogContext';
 import { useToast } from '../../contexts/ToastContext';
 import { usePendingCounts } from '../../contexts/PendingCountsContext';
 import {getCountryName} from '../../components/ui/CountrySelect';
+import SubmissionOrigin from '../../components/ui/SubmissionOrigin';
 
 function calculateTotals(colis) {
   if (!colis?.length) return { totalWeight: 0, totalVolume: 0, totalPieces: 0 };
@@ -630,6 +631,11 @@ export default function QuoteRequests() {
                         )}
                       </div>
                     </div>
+
+                    <SubmissionOrigin
+                      origin={detailRequest.origin}
+                      onChange={() => openDetail(detailRequest.id)}
+                    />
                   </div>
                 )}
               </div>

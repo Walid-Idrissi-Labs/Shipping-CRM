@@ -2,15 +2,18 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Concerns\CapturesSubmissionOrigin;
 use App\Http\Controllers\Controller;
 use App\Models\AccountRequest;
 use App\Models\Client;
+use App\Services\SubmissionOrigin;
 use App\Traits\AppliesSorting;
 use Illuminate\Http\Request;
 
 class AccountRequestController extends Controller
 {
     use AppliesSorting;
+    use CapturesSubmissionOrigin;
 
     public function index(Request $request)
     {
@@ -31,15 +34,24 @@ class AccountRequestController extends Controller
         return response()->json($query->paginate(25));
     }
 
-    public function show(AccountRequest $accountRequest)
+    public function show(Request $request, AccountRequest $accountRequest, SubmissionOrigin $origin)
     {
         $accountRequest->load('client');
 
-        return response()->json($accountRequest);
+        return response()->json(array_merge($accountRequest->toArray(), [
+            'origin' => $origin->describe(
+                $accountRequest->ip_address,
+                $accountRequest->ip_forwarded_for,
+                $accountRequest->bot_signal,
+                $request,
+            ),
+        ]));
     }
 
     public function store(Request $request)
     {
+        $this->rejectAutomatedSubmission($request);
+
         $validated = $request->validate([
             'full_name' => ['required', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255'],
@@ -51,7 +63,11 @@ class AccountRequestController extends Controller
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $accountRequest = AccountRequest::create(array_merge($validated, ['statut' => 'en_attente']));
+        $accountRequest = AccountRequest::create(array_merge(
+            $validated,
+            ['statut' => 'en_attente'],
+            $this->originAttributes($request),
+        ));
 
         return response()->json($accountRequest, 201);
     }

@@ -8,6 +8,7 @@ import SaveStatusButton from '../../components/ui/SaveStatusButton';
 import PageLoader from '../../components/ui/PageLoader';
 import PasswordRules from '../../components/ui/PasswordRules';
 import { useDirtyForm } from '../../hooks/useDirtyForm';
+import BlockedIpsCard from '../../components/ui/BlockedIpsCard';
 
 const emptyForm = {
   company_name: '', address: '', postal_code: '', city: '', country: 'Maroc',
@@ -182,6 +183,8 @@ export default function Settings() {
           </div>
         </DataCard>
       </form>
+
+      <BlockedIpsCard />
 
       <DataCard title="Changer le Mot de Passe" description="Modifiez votre mot de passe de connexion.">
         <Flash m={pwdMessage} />

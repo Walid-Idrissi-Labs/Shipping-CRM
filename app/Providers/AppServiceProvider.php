@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\BlockedIp;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -50,9 +51,17 @@ class AppServiceProvider extends ServiceProvider
 
         // Public parcel tracking. A real person checks a handful of numbers;
         // this exists to make scraping the whole 9-digit range impractical.
-        RateLimiter::for('public-tracking', fn (Request $request) => Limit::perMinute(30)
-            ->by($request->ip())
-            ->response($this->tooManyResponse()));
+        //
+        // A blocked address is squeezed rather than shut out. Blocking is aimed
+        // at form spam, and tracking is the one public feature a real customer
+        // genuinely needs: Moroccan carriers put thousands of subscribers behind
+        // a single address, so a block that lands slightly wrong should slow a
+        // stranger down, not strand a client who just wants to find their
+        // parcel. Three a minute is unusable for scraping and barely noticeable
+        // to someone checking one number.
+        RateLimiter::for('public-tracking', fn (Request $request) => Limit::perMinute(
+            BlockedIp::isBlocked($request->ip()) ? 3 : 30
+        )->by($request->ip())->response($this->tooManyResponse()));
 
         // Backstop across all authenticated API traffic: high enough that busy
         // dashboard use never approaches it.

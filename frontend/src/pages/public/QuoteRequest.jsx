@@ -1,9 +1,11 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Send, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { FormField, Section } from '../../components/ui/Form';
 import { MultiColisForm } from '../../components/MultiColisForm';
 import CountrySelect from '../../components/ui/CountrySelect';
+import HoneypotField from '../../components/ui/HoneypotField';
+import { useHumanCheck } from '../../hooks/useHumanCheck';
 import api, { csrf } from '../../api/axios';
 
 const step1Initial = {
@@ -24,6 +26,17 @@ export default function QuoteRequest() {
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // Mounted on step 1, read at submit on step 2, so the elapsed time covers the
+  // whole two-step journey rather than just the last screen.
+  const { humanCheckFields, honeypotProps } = useHumanCheck();
+
+  // The banner sits at the top of a tall form; without this a refused
+  // submission looks to the visitor like nothing happened at all, and they
+  // click Submit again rather than read why.
+  const errorRef = useRef(null);
+  useEffect(() => {
+    if (error) errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [error]);
   const [direction, setDirection] = useState(1);
   const containerRef = useRef(null);
   const navigate = useNavigate();
@@ -130,6 +143,10 @@ export default function QuoteRequest() {
     const cleanPayload = Object.fromEntries(
       Object.entries(payload).map(([k, v]) => [k, v === '' ? null : v])
     );
+
+    // Added after the empty-string pass on purpose: an untouched honeypot is an
+    // empty string and must stay one, since null would read as "not sent".
+    Object.assign(cleanPayload, humanCheckFields());
 
     try {
       // Prime CSRF cookie, then POST via api instance (withCredentials + JSON)
@@ -256,9 +273,10 @@ export default function QuoteRequest() {
                 overflow: 'hidden',
               }}
             >
+              <HoneypotField {...honeypotProps} />
               <div>
                 {error && (
-                  <div style={{ background: 'var(--color-danger-container)', color: 'var(--color-danger)', padding: '10px 24px', fontSize: 13, borderBottom: '1px solid var(--color-ash)' }}>
+                  <div ref={errorRef} role="alert" style={{ background: 'var(--color-danger-container)', color: 'var(--color-danger)', padding: '10px 24px', fontSize: 13, borderBottom: '1px solid var(--color-ash)' }}>
                     {error}
                   </div>
                 )}
@@ -402,7 +420,7 @@ export default function QuoteRequest() {
             >
               <div>
                 {error && (
-                  <div style={{ background: 'var(--color-danger-container)', color: 'var(--color-danger)', padding: '10px 24px', fontSize: 13, borderBottom: '1px solid var(--color-ash)' }}>
+                  <div ref={errorRef} role="alert" style={{ background: 'var(--color-danger-container)', color: 'var(--color-danger)', padding: '10px 24px', fontSize: 13, borderBottom: '1px solid var(--color-ash)' }}>
                     {error}
                   </div>
                 )}

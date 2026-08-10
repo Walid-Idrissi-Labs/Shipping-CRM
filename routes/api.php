@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AdminEmployeeController;
 use App\Http\Controllers\Api\AffectationController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AvoirController;
+use App\Http\Controllers\Api\BlockedIpController;
 use App\Http\Controllers\Api\ChauffeurController;
 use App\Http\Controllers\Api\ClientActivityController;
 use App\Http\Controllers\Api\ClientController;
@@ -35,7 +36,9 @@ Route::middleware('throttle:public-tracking')->group(function () {
 });
 
 // Public, unauthenticated write endpoints. Rate limits defined in AppServiceProvider.
-Route::middleware('throttle:public-forms')->group(function () {
+// blocked.ip runs first so a blocked address is turned away before it can eat
+// into the shared throttle counters.
+Route::middleware(['blocked.ip', 'throttle:public-forms'])->group(function () {
     // Public account request
     Route::post('/account-requests', [AccountRequestController::class, 'store']);
 
@@ -72,6 +75,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/provider/logo', [ProviderSettingController::class, 'uploadLogo']);
         Route::patch('/provider/change-password', [PasswordController::class, 'changeProviderPassword'])
             ->middleware('throttle:password-change');
+
+        Route::get('/provider/blocked-ips', [BlockedIpController::class, 'index']);
+        Route::post('/provider/blocked-ips', [BlockedIpController::class, 'store']);
+        Route::delete('/provider/blocked-ips/{blockedIp}', [BlockedIpController::class, 'destroy']);
 
         Route::apiResource('clients', ClientController::class);
         Route::get('/clients/{client}/missions', [AffectationController::class, 'byClient']);

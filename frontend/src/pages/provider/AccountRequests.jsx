@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {Eye, UserCheck, UserX, Trash2, AlertTriangle} from 'lucide-react';
 import api from '../../api/axios';
@@ -14,6 +14,7 @@ import { useUrlPage } from '../../hooks/useUrlPage';
 import { useDialog } from '../../contexts/DialogContext';
 import { useToast } from '../../contexts/ToastContext';
 import { usePendingCounts } from '../../contexts/PendingCountsContext';
+import SubmissionOrigin from '../../components/ui/SubmissionOrigin';
 
 export default function AccountRequests() {
   const navigate = useNavigate();
@@ -24,6 +25,8 @@ export default function AccountRequests() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
+  const [detail, setDetail] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [meta, setMeta] = useState({ lastPage: 1, total: 0, perPage: 25 });
   const { page, setPage, resetPage } = useUrlPage();
@@ -104,8 +107,33 @@ export default function AccountRequests() {
     }
   };
 
+  // The row data the list already holds renders straight away; only the origin
+  // block needs the detail endpoint, because resolving a location can mean an
+  // outbound call the first time an address is seen. Fetching on expand rather
+  // than for every row in the list keeps that to one lookup per demande the
+  // provider actually opens.
+  const loadDetail = async (id) => {
+    setDetailLoading(true);
+    try {
+      const { data } = await api.get(`/account-requests/${id}`);
+      setDetail(data);
+    } catch {
+      toast.push("Impossible de charger l'origine de cette demande.", 'error');
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
   const toggleExpand = (id) => {
-    setExpandedId((current) => (current === id ? null : id));
+    if (expandedId === id) {
+      setExpandedId(null);
+      setDetail(null);
+      return;
+    }
+
+    setExpandedId(id);
+    setDetail(null);
+    loadDetail(id);
   };
 
   return (
@@ -167,8 +195,10 @@ export default function AccountRequests() {
             </thead>
              <tbody>
                {requests.map((r) => (
-                <>
-                  <tr key={r.id}>
+                // The key belongs on the fragment, not the first row inside it:
+                // a row and its expansion are two siblings from one iteration.
+                <Fragment key={r.id}>
+                  <tr>
                     <td style={{ fontWeight: 500, color: 'var(--color-graphite)' }}>{r.full_name}</td>
                     <td>{r.email || '—'}</td>
                     <td>{r.phone || '—'}</td>
@@ -198,7 +228,7 @@ export default function AccountRequests() {
                     </td>
                   </tr>
                   {expandedId === r.id && (
-                    <tr key={`${r.id}-exp`} style={{ background: 'var(--color-bone)' }}>
+                    <tr style={{ background: 'var(--color-bone)' }}>
                       <td colSpan={6} style={{ padding: 20 }}>
                         <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: '12px 24px', fontSize: 13 }}>
                           <Field label="Nom complet" value={r.full_name} />
@@ -233,11 +263,21 @@ export default function AccountRequests() {
                               </Link>
                             </div>
                           )}
+
+                          <div className="md:col-span-2">
+                            {detailLoading && !detail ? (
+                              <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--color-ash)' }}>
+                                <Skeleton height={16} width="40%" />
+                              </div>
+                            ) : (
+                              <SubmissionOrigin origin={detail?.origin} onChange={() => loadDetail(r.id)} />
+                            )}
+                          </div>
                         </div>
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               ))}
             </tbody>
           </table>

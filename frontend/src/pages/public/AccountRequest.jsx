@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Send, Check } from 'lucide-react';
 import { FormField, Section } from '../../components/ui/Form';
+import HoneypotField from '../../components/ui/HoneypotField';
+import { useHumanCheck } from '../../hooks/useHumanCheck';
 import api, { csrf } from '../../api/axios';
 
 const MAX_NOTES = 500;
@@ -15,6 +17,15 @@ export default function AccountRequest() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { humanCheckFields, honeypotProps } = useHumanCheck();
+
+  // The error banner sits at the top of a long form, so on a failed submit the
+  // visitor was left staring at an unchanged Submit button with the explanation
+  // scrolled out of sight -- and clicking again, and again. Bring it to them.
+  const errorRef = useRef(null);
+  useEffect(() => {
+    if (error) errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [error]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -31,7 +42,7 @@ export default function AccountRequest() {
     setError('');
     try {
       await csrf();
-      await api.post('/account-requests', form);
+      await api.post('/account-requests', { ...form, ...humanCheckFields() });
       setSuccess(true);
       setForm(initial);
     } catch (err) {
@@ -105,8 +116,12 @@ export default function AccountRequest() {
             padding: 32,
           }}
         >
+          <HoneypotField {...honeypotProps} />
+
           {error && (
             <div
+              ref={errorRef}
+              role="alert"
               style={{
                 background: 'var(--color-danger-container)',
                 color: 'var(--color-danger)',

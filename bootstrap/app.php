@@ -14,8 +14,19 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Our subclass reads the proxy list from config/security.php rather than
+        // from a boot-time static, so the setting survives `config:cache`.
+        // It has to stay where the framework put it in the global stack: every
+        // IP-based check downstream, throttling included, reads the address this
+        // middleware resolves.
+        $middleware->replace(
+            \Illuminate\Http\Middleware\TrustProxies::class,
+            \App\Http\Middleware\TrustProxies::class,
+        );
+
         $middleware->alias([
             'role' => \App\Http\Middleware\EnsureRole::class,
+            'blocked.ip' => \App\Http\Middleware\BlockBlockedIps::class,
         ]);
 
         // PreventApiCaching kept outermost (first) so it always has the final

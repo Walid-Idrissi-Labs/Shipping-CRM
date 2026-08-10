@@ -15,10 +15,16 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
     'recipient_country', 'recipient_phone', 'recipient_email',
     'poids', 'longueur', 'largeur', 'hauteur', 'nb_pieces',
     'type_colis', 'type_service', 'description_colis',
-    'valeur_declaree', 'devise_valeur', 'statut'
+    'valeur_declaree', 'devise_valeur', 'statut',
+    'ip_address', 'ip_forwarded_for', 'bot_signal',
 ])]
 class QuoteRequest extends Model
 {
+    // Kept out of the default serialisation so a visitor's address cannot ride
+    // along in a list payload or a client-facing endpoint by accident. The
+    // provider's detail view reads these deliberately, via SubmissionOrigin.
+    protected $hidden = ['ip_address', 'ip_forwarded_for', 'bot_signal'];
+
     public function provider()
     {
         return $this->belongsTo(Provider::class);

@@ -2,17 +2,20 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Concerns\CapturesSubmissionOrigin;
 use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\Colis;
 use App\Models\Provider;
 use App\Models\QuoteRequest;
+use App\Services\SubmissionOrigin;
 use App\Traits\AppliesSorting;
 use Illuminate\Http\Request;
 
 class QuoteRequestController extends Controller
 {
     use AppliesSorting;
+    use CapturesSubmissionOrigin;
 
     public function index(Request $request)
     {
@@ -104,6 +107,8 @@ class QuoteRequestController extends Controller
 
     public function store(Request $request)
     {
+        $this->rejectAutomatedSubmission($request);
+
         $validated = $request->validate($this->rules());
 
         $this->validateColis($request);
@@ -130,7 +135,7 @@ class QuoteRequestController extends Controller
         $data = array_merge($validated, [
             'provider_id' => $provider->id,
             'statut' => 'en_attente',
-        ]);
+        ], $this->originAttributes($request));
 
         if (! empty($validated['client_id'])) {
             $client = Client::findOrFail($validated['client_id']);
@@ -179,11 +184,23 @@ class QuoteRequestController extends Controller
         return response()->json(['message' => 'Demande de devis envoyee.', 'quote_request' => $quoteRequest->load('colis')], 201);
     }
 
-    public function show(Request $request, QuoteRequest $quoteRequest)
+    public function show(Request $request, QuoteRequest $quoteRequest, SubmissionOrigin $origin)
     {
         $this->authorizeAccess($request, $quoteRequest);
 
-        return response()->json($quoteRequest->load(['quote', 'client', 'colis']));
+        $quoteRequest->load(['quote', 'client', 'colis']);
+
+        // The geolocation lookup happens here rather than at submission time --
+        // opening a demande is where a slow third-party API costs a spinner
+        // instead of a lost prospect. See IpGeolocator.
+        return response()->json(array_merge($quoteRequest->toArray(), [
+            'origin' => $origin->describe(
+                $quoteRequest->ip_address,
+                $quoteRequest->ip_forwarded_for,
+                $quoteRequest->bot_signal,
+                $request,
+            ),
+        ]));
     }
 
     public function markAsTreated(Request $request, QuoteRequest $quoteRequest)
