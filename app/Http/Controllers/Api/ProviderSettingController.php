@@ -38,8 +38,6 @@ class ProviderSettingController extends Controller
             'login_email' => $provider->user->email,
             'per_page_expeditions' => $provider->per_page_expeditions ?? 25,
             'per_page_factures' => $provider->per_page_factures ?? 25,
-            'timezone' => $provider->timezone ?? 'Africa/Casablanca',
-            'server_time' => now()->toIso8601String(),
         ]);
     }
 
@@ -70,7 +68,6 @@ class ProviderSettingController extends Controller
             'login_email' => ['required', 'email', 'max:255', 'unique:users,email,'.$request->user()->id],
             'per_page_expeditions' => ['nullable', 'integer', 'min:5', 'max:100'],
             'per_page_factures' => ['nullable', 'integer', 'min:5', 'max:100'],
-            'timezone' => ['nullable', 'timezone:all'],
         ]);
 
         $provider->update([
@@ -94,7 +91,6 @@ class ProviderSettingController extends Controller
             'bank_agence' => $validated['bank_agence'] ?? null,
             'per_page_expeditions' => $validated['per_page_expeditions'] ?? $provider->per_page_expeditions ?? 25,
             'per_page_factures' => $validated['per_page_factures'] ?? $provider->per_page_factures ?? 25,
-            'timezone' => $validated['timezone'] ?? $provider->timezone ?? 'Africa/Casablanca',
         ]);
 
         $request->user()->update(['email' => $validated['login_email']]);

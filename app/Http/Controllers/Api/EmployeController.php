@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Concerns\ValidatesFutureDate;
 use App\Http\Controllers\Controller;
 use App\Models\Shipment;
 use App\Models\EmployeeShipment;
@@ -10,8 +9,6 @@ use Illuminate\Http\Request;
 
 class EmployeController extends Controller
 {
-    use ValidatesFutureDate;
-
     public function findByNumber(Request $request)
     {
         $validated = $request->validate([
@@ -60,12 +57,12 @@ class EmployeController extends Controller
             abort(403, 'Acces refuse.');
         }
 
-        $timezone = $shipment->provider->timezone ?: 'Africa/Casablanca';
-
+        // The date is deliberately unbounded: a status can be backdated to when it
+        // actually happened, or scheduled ahead (a pickup booked for tomorrow).
         $validated = $request->validate([
             'statut' => ['required', 'in:information_recue,ramasse,en_transit,en_cours,livre'],
             'sous_statut' => ['nullable', 'in:en_cours_de_livraison,tentative_de_livraison,on_hold,retour'],
-            'date_statut' => ['required', 'date', $this->notInFutureRule($timezone)],
+            'date_statut' => ['required', 'date'],
             'description' => ['nullable', 'string', 'max:60'],
         ]);
 

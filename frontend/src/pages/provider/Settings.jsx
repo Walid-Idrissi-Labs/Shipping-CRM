@@ -6,7 +6,6 @@ import { DataCard } from '../../components/ui/DataCard';
 import { FormField, Section } from '../../components/ui/Form';
 import SaveStatusButton from '../../components/ui/SaveStatusButton';
 import PageLoader from '../../components/ui/PageLoader';
-import TimezonePreview from '../../components/ui/TimezonePreview';
 import PasswordRules from '../../components/ui/PasswordRules';
 import { useDirtyForm } from '../../hooks/useDirtyForm';
 
@@ -14,16 +13,8 @@ const emptyForm = {
   company_name: '', address: '', postal_code: '', city: '', country: 'Maroc',
   phone: '', email: '', website: '', ice: '', rc: '', if_: '', cnss: '', patente: '', login_email: '',
   bank_name: '', bank_rib: '', bank_swift: '', bank_account_name: '', bank_agence: '',
-  per_page_expeditions: 25, per_page_factures: 25, timezone: 'Africa/Casablanca'
+  per_page_expeditions: 25, per_page_factures: 25
 };
-
-const TIMEZONE_OPTIONS = [
-  { value: 'Africa/Casablanca', label: 'Casablanca — Maroc (UTC+1)' },
-  { value: 'Europe/Paris', label: 'Paris — France (UTC+1/+2)' },
-  { value: 'Europe/Madrid', label: 'Madrid — Espagne (UTC+1/+2)' },
-  { value: 'Europe/London', label: 'Londres — Royaume-Uni (UTC+0/+1)' },
-  { value: 'UTC', label: 'UTC' },
-];
 
 const emptyPassword = { old_password: '', new_password: '', new_password_confirmation: '' };
 
@@ -47,7 +38,6 @@ export default function Settings() {
   const showLoader = useMinLoading(loading);
   const [message, setMessage] = useState(null);
   const [pwdMessage, setPwdMessage] = useState(null);
-  const [serverTime, setServerTime] = useState(null);
 
   const settingsForm = useDirtyForm(emptyForm);
   const passwordForm = useDirtyForm(emptyPassword);
@@ -56,7 +46,6 @@ export default function Settings() {
     api.get('/provider/settings').then((res) => {
       const merged = { ...emptyForm, ...res.data };
       settingsForm.reset(merged);
-      setServerTime(res.data.server_time);
       setLoading(false);
     });
   }, []);
@@ -185,27 +174,6 @@ export default function Settings() {
                   className="input"
                 />
               </FormField>
-            </div>
-          </Section>
-
-          <Section
-            title="Fuseau horaire"
-            description="Utilisé pour valider les dates de statut d'expédition et éviter les rejets liés au décalage horaire avec le serveur."
-          >
-            <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: 16, alignItems: 'start' }}>
-              <FormField label="Fuseau horaire de l'entreprise">
-                <select
-                  name="timezone"
-                  value={settingsForm.data.timezone || 'Africa/Casablanca'}
-                  onChange={handleFieldChange}
-                  className="select"
-                >
-                  {TIMEZONE_OPTIONS.map((tz) => (
-                    <option key={tz.value} value={tz.value}>{tz.label}</option>
-                  ))}
-                </select>
-              </FormField>
-              <TimezonePreview serverTimeIso={serverTime} timezone={settingsForm.data.timezone || 'Africa/Casablanca'} />
             </div>
           </Section>
 

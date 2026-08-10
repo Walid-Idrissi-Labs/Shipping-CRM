@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import CommandPalette from '../components/CommandPalette';
+import HeaderClock from '../components/ui/HeaderClock';
 
 const EXPANDED_WIDTH = 240;
 
@@ -436,6 +437,8 @@ function ProviderLayoutInner() {
             >
               <Menu size={20} />
             </button>
+
+            <HeaderClock />
 
             <div className="flex items-center" style={{ marginLeft: 'auto', gap: 8 }}>
               <button
