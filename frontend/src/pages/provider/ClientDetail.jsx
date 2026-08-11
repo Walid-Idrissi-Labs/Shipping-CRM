@@ -631,6 +631,10 @@ function InvoicesSection({ entries, loading, error, onRetry, navigate, clientQue
   const linkTo = clientQuery
     ? `/dashboard/factures?tab=factures&q=${encodeURIComponent(clientQuery)}`
     : '/dashboard/factures';
+  const netTtc = entries.reduce((sum, e) => {
+    const sign = e.kind === 'avoir' ? -1 : 1;
+    return sum + sign * Math.abs(Number(e.ttc || 0));
+  }, 0);
   return (
     <DataCard
       title="Factures du Client"
@@ -665,6 +669,7 @@ function InvoicesSection({ entries, loading, error, onRetry, navigate, clientQue
           description="Aucune facture ni aucun avoir n'a ete emis pour ce client pour le moment."
         />
       ) : (
+        <>
         <div className="overflow-x-auto">
           <table className="table-clean">
             <thead>
@@ -725,6 +730,19 @@ function InvoicesSection({ entries, loading, error, onRetry, navigate, clientQue
             </tbody>
           </table>
         </div>
+        <div
+          className="flex items-center justify-between"
+          style={{
+            paddingTop: 14, marginTop: 6,
+            borderTop: '1px solid var(--color-ash)',
+          }}
+        >
+          <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--color-graphite)' }}>Total net TTC</div>
+          <div style={{ fontSize: 24, fontWeight: 600, color: 'var(--color-primary)', letterSpacing: '-0.01em' }}>
+            {formatMoney(netTtc)}
+          </div>
+        </div>
+        </>
       )}
     </DataCard>
   );

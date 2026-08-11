@@ -34,6 +34,21 @@ changes** (the production `.env` is never uploaded, so its edits leave no trace 
 
 ---
 
+## 2026-08-11 (5) — Client detail: total on the factures list
+
+Tag: `prod-2026-08-11-5`
+
+The provider's client detail page now shows a net total under the "Factures du Client"
+list, in the same box, right below the table. It sums TTC across all factures and avoirs
+shown for that client, netting avoirs as negative — matching the visual pattern already
+used for "Total TTC" on the invoice detail page (top border divider, bold amount in the
+brand color).
+
+Frontend-only change (`frontend/src/pages/provider/ClientDetail.jsx`). No migrations, no
+`.env` changes.
+
+---
+
 ## 2026-08-11 (4) — Réclamations refresh themselves
 
 Tag: `prod-2026-08-11-4`
