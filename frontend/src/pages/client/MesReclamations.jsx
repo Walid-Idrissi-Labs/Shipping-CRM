@@ -298,7 +298,7 @@ export default function MesReclamations() {
                 onChange={(e) => setField('sujet', e.target.value)}
                 className="input"
                 maxLength={150}
-                placeholder="Ex. : Colis endommagé à la livraison"
+                placeholder="Résumez votre demande en quelques mots"
                 aria-label="Sujet de la demande"
                 required
               />

@@ -34,6 +34,20 @@ changes** (the production `.env` is never uploaded, so its edits leave no trace 
 
 ---
 
+## 2026-08-11 (3) — Neutral réclamation form placeholder
+
+Tag: `prod-2026-08-11-3`
+
+The "Sujet" field on the client réclamation/remarque form (`/client/reclamations`) had a
+placeholder giving a damaged-package example (`"Ex. : Colis endommagé à la livraison"`),
+which read as alarming rather than instructional. Changed to a neutral prompt
+(`"Résumez votre demande en quelques mots"`) describing what to put in the field instead of
+suggesting something went wrong.
+
+No migrations. No production `.env` changes.
+
+---
+
 ## 2026-08-11 (2) — Remarques & Réclamations
 
 Tag: `prod-2026-08-11-2`
