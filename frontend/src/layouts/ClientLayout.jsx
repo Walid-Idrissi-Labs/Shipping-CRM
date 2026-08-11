@@ -4,8 +4,9 @@ import { useContext } from 'react';
 import LoadingOverlay from '../components/ui/LoadingOverlay';
 import TempPasswordBanner from '../components/TempPasswordBanner';
 import LoadingContext from '../contexts/LoadingContext';
-import { LayoutDashboard, Package, Receipt, User, LogOut, Menu, X, FileText } from 'lucide-react';
+import { LayoutDashboard, Package, Receipt, User, LogOut, Menu, X, FileText, MessageSquareWarning } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import api from '../api/axios';
 
 const EXPANDED_WIDTH = 240;
 
@@ -14,6 +15,7 @@ const navGroups = [
   { parent: { path: '/client/mes-expeditions', label: 'Mes Expéditions', short: 'Expéditions', icon: Package } },
   { parent: { path: '/client/devis', label: 'Devis', short: 'Devis', icon: FileText } },
   { parent: { path: '/client/mes-factures', label: 'Mes Factures', short: 'Factures', icon: Receipt } },
+  { parent: { path: '/client/reclamations', label: 'Réclamations', short: 'Réclamations', icon: MessageSquareWarning } },
   { parent: { path: '/client/mon-compte', label: 'Mon Compte', short: 'Compte', icon: User } },
 ];
 
@@ -22,7 +24,7 @@ function isTabActive(path, pathname) {
   return pathname === path || pathname.startsWith(path + '/');
 }
 
-function Sidebar({ user, onLogout, location, onNavigate, width = EXPANDED_WIDTH }) {
+function Sidebar({ user, onLogout, location, onNavigate, unreadReclamations = 0, width = EXPANDED_WIDTH }) {
   return (
     <aside
       className="flex flex-col sidebar-tinted"
@@ -65,6 +67,7 @@ function Sidebar({ user, onLogout, location, onNavigate, width = EXPANDED_WIDTH 
         {navGroups.map((group) => {
           const Icon = group.parent.icon;
           const active = isTabActive(group.parent.path, location.pathname);
+          const unread = group.parent.path === '/client/reclamations' ? unreadReclamations : 0;
           return (
             <Link
               key={group.parent.path}
@@ -89,6 +92,14 @@ function Sidebar({ user, onLogout, location, onNavigate, width = EXPANDED_WIDTH 
             >
               <Icon size={18} strokeWidth={active ? 2.2 : 1.7} style={{ flexShrink: 0 }} />
               <span>{group.parent.label}</span>
+              {unread > 0 && (
+                <span
+                  className="client-nav-badge"
+                  aria-label={`${unread} réponse${unread > 1 ? 's' : ''} non lue${unread > 1 ? 's' : ''}`}
+                >
+                  {unread}
+                </span>
+              )}
             </Link>
           );
         })}
@@ -154,6 +165,23 @@ export default function ClientLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [unreadReclamations, setUnreadReclamations] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    // Refetched on every navigation rather than polled: a reply lands while the
+    // client is elsewhere in the app, and the next page they open is soon
+    // enough to tell them. The provider sidebar clears its outline the same way.
+    api.get('/my/reclamations/unread-count')
+      .then(({ data }) => { if (!cancelled) setUnreadReclamations(data?.count || 0); })
+      .catch(() => {
+        // A badge is not worth interrupting anyone over: leave the previous
+        // count in place and try again on the next navigation.
+      });
+
+    return () => { cancelled = true; };
+  }, [location.pathname]);
 
   useEffect(() => {
     if (!mobileOpen) return undefined;
@@ -184,6 +212,7 @@ export default function ClientLayout() {
           onLogout={handleLogout}
           location={location}
           onNavigate={() => {}}
+          unreadReclamations={unreadReclamations}
         />
       </div>
 
@@ -203,6 +232,7 @@ export default function ClientLayout() {
             onLogout={handleLogout}
             location={location}
             onNavigate={() => setMobileOpen(false)}
+            unreadReclamations={unreadReclamations}
             width="100%"
           />
         </div>
@@ -289,13 +319,25 @@ export default function ClientLayout() {
               .map((group) => {
               const Icon = group.parent.icon;
               const active = isTabActive(group.parent.path, location.pathname);
+              const unread = group.parent.path === '/client/reclamations' ? unreadReclamations : 0;
               return (
                 <Link
                   key={group.parent.path}
                   to={group.parent.path}
                   className={`client-tab${active ? ' is-active' : ''}`}
                 >
-                  <Icon size={20} strokeWidth={active ? 2.2 : 1.7} />
+                  <span className="client-tab-icon">
+                    <Icon size={20} strokeWidth={active ? 2.2 : 1.7} />
+                    {/* A dot, not a number: the tab bar scrolls on a narrow
+                        phone and a count would widen the one tab most likely
+                        to already be off-screen. */}
+                    {unread > 0 && (
+                      <span
+                        className="client-tab-dot"
+                        aria-label={`${unread} réponse${unread > 1 ? 's' : ''} non lue${unread > 1 ? 's' : ''}`}
+                      />
+                    )}
+                  </span>
                   <span>{group.parent.short}</span>
                 </Link>
               );

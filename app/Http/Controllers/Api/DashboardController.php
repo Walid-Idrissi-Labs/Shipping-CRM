@@ -10,6 +10,7 @@ use App\Models\ClientActivity;
 use App\Models\ExpeditionRequest;
 use App\Models\Facture;
 use App\Models\QuoteRequest;
+use App\Models\Reclamation;
 use App\Models\Shipment;
 use App\Models\Vehicule;
 use Illuminate\Http\Request;
@@ -207,6 +208,18 @@ class DashboardController extends Controller
             'account_requests' => AccountRequest::where('statut', 'en_attente')->count(),
             'expedition_requests' => ExpeditionRequest::where('provider_id', $providerId)
                 ->where('statut', 'en_attente')
+                ->count(),
+
+            // Unlike the demandes above, a reclamation is not "pending" because
+            // of its status -- a thread already en_traitement can still be
+            // waiting on us. What marks it is a client message newer than our
+            // read mark, which is exactly what the inbox badge should mean.
+            'reclamations' => Reclamation::where('provider_id', $providerId)
+                ->where('statut', '!=', 'resolue')
+                ->whereHas('messages', function ($q) {
+                    $q->where('author_role', 'client')
+                        ->whereRaw('reclamation_messages.id > coalesce(reclamations.provider_read_message_id, 0)');
+                })
                 ->count(),
         ]);
     }

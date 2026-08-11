@@ -34,6 +34,39 @@ changes** (the production `.env` is never uploaded, so its edits leave no trace 
 
 ---
 
+## 2026-08-11 (2) — Remarques & Réclamations
+
+Tag: `prod-2026-08-11-2`
+
+Clients en compte can now open a remarque or a réclamation and hold a conversation with us
+about it, instead of it arriving by phone or WhatsApp with no trace.
+
+- New client section (`/client/reclamations`): list, an inline create form, and the thread.
+  A thread has a reference (`REC-2026-0001`), a type (remarque or réclamation), and can
+  optionally be attached to one of the client's own expéditions or factures.
+- New provider section (`/dashboard/reclamations`): inbox with status tabs, thread view with
+  the client panel, the linked document, and the Ouverte / En traitement / Résolue control.
+- Only a client can open a thread. Replying is either side. A team reply moves `ouverte` to
+  `en_traitement`; a client reply to a `resolue` thread reopens it to `en_traitement`.
+- Unread is tracked per side by message id (not timestamp — whole-second timestamps make a
+  message written in the same second as the read mark look "not new"). Provider gets the
+  usual green sidebar outline via `pending-counts`; client gets a count badge in the sidebar
+  and a dot on the mobile tab bar.
+- Text only — no attachments. Throttles are deliberately loose (6 new threads/hour, 20
+  messages/min per user); these are known, paying clients.
+
+**⚠️ Order matters on this one:** run the SQL below **before** uploading the files.
+`GET /api/dashboard/pending-counts` now counts réclamations and fires on every provider
+navigation — code live against a missing table would 500 the whole provider dashboard.
+
+**Migrations run in phpMyAdmin:**
+- `2026_08_11_000001_create_reclamations_tables` — creates `reclamations` and
+  `reclamation_messages`
+
+No production `.env` changes.
+
+---
+
 ## 2026-08-11 — Simplify account-request delete confirmations
 
 Tag: `prod-2026-08-11`

@@ -2332,6 +2332,47 @@ a:hover {
 }
 .client-tab svg { flex-shrink: 0; }
 
+/* List pages show a table on desktop and a stacked card list on phones.
+   Both breakpoints live here rather than as `hidden md:block` / `md:hidden`
+   utilities, because the card stack needs its own `display` for layout and an
+   inline style always beats a utility class -- which silently left the cards
+   visible next to the table on desktop. */
+.list-table-wrap { display: none; }
+.list-card-stack { display: grid; gap: 10px; padding: 12px; }
+@media (min-width: 768px) {
+  .list-table-wrap { display: block; }
+  .list-card-stack { display: none; }
+}
+.client-tab-icon { position: relative; display: inline-flex; }
+.client-tab-dot {
+  position: absolute;
+  top: -2px;
+  right: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-paper-white);
+}
+
+/* Unread replies on a client sidebar entry. Counted rather than dotted here:
+   the sidebar has the room the mobile tab bar does not. */
+.client-nav-badge {
+  margin-left: auto;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9999px;
+  background: var(--color-primary);
+  color: var(--color-paper-white);
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-variant-numeric: tabular-nums;
+}
+
 /* Provider top-bar clock */
 .header-clock {
   display: flex;

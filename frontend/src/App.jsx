@@ -55,6 +55,8 @@ const AssignmentCreate = lazy(() => import('./pages/provider/AssignmentCreate'))
 const AssignmentDetail = lazy(() => import('./pages/provider/AssignmentDetail'));
 const ExpeditionRequests = lazy(() => import('./pages/provider/ExpeditionRequests'));
 const ExpeditionRequestDetail = lazy(() => import('./pages/provider/ExpeditionRequestDetail'));
+const Reclamations = lazy(() => import('./pages/provider/Reclamations'));
+const ReclamationDetail = lazy(() => import('./pages/provider/ReclamationDetail'));
 const ClientDashboard = lazy(() => import('./pages/client/ClientDashboard'));
 const MyShipments = lazy(() => import('./pages/client/MyShipments'));
 const MyInvoices = lazy(() => import('./pages/client/MyInvoices'));
@@ -65,6 +67,8 @@ const ClientShipmentCreate = lazy(() => import('./pages/client/ClientShipmentCre
 const ClientQuoteRequestCreate = lazy(() => import('./pages/client/ClientQuoteRequestCreate'));
 const ClientShipmentDetail = lazy(() => import('./pages/client/ClientShipmentDetail'));
 const ClientInvoiceDetail = lazy(() => import('./pages/client/ClientInvoiceDetail'));
+const MesReclamations = lazy(() => import('./pages/client/MesReclamations'));
+const ClientReclamationDetail = lazy(() => import('./pages/client/ClientReclamationDetail'));
 const ChangerStatut = lazy(() => import('./pages/employe/ChangerStatut'));
 const MonHistorique = lazy(() => import('./pages/employe/MonHistorique'));
 const Employes = lazy(() => import('./pages/provider/Employes'));
@@ -104,6 +108,8 @@ function App() {
                     <Route path="/dashboard/expeditions/:id" element={<ShipmentDetail />} />
                     <Route path="/dashboard/demandes-expedition" element={<ExpeditionRequests />} />
                     <Route path="/dashboard/demandes-expedition/:id" element={<ExpeditionRequestDetail />} />
+                    <Route path="/dashboard/reclamations" element={<Reclamations />} />
+                    <Route path="/dashboard/reclamations/:id" element={<ReclamationDetail />} />
                     <Route path="/dashboard/clients" element={<Clients />} />
                     <Route path="/dashboard/clients/nouveau" element={<ClientCreate />} />
                     <Route path="/dashboard/clients/:id" element={<ClientDetail />} />
@@ -141,6 +147,8 @@ function App() {
                     <Route path="/client/devis" element={<ClientQuotes />} />
                     <Route path="/client/devis/:id" element={<ClientQuoteDetail />} />
                     <Route path="/client/demande-devis/nouveau" element={<ClientQuoteRequestCreate />} />
+                    <Route path="/client/reclamations" element={<MesReclamations />} />
+                    <Route path="/client/reclamations/:id" element={<ClientReclamationDetail />} />
                     <Route path="/client/mon-compte" element={<MyAccount />} />
                   </Route>
                 </Route>

@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Package, Users, Receipt, Truck, Settings, LogOut,
   Menu, X, UserPlus, ClipboardList, Search, RefreshCw,
   FileEdit, Undo2, Car, UserCog, CalendarRange, ScreenShare,
-  User, History, Activity,
+  User, History, Activity, MessageSquareWarning,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import CommandPalette from '../components/CommandPalette';
@@ -23,6 +23,9 @@ const PENDING_COUNT_PATHS = {
   '/dashboard/demandes-devis': 'quote_requests',
   '/dashboard/demandes-compte': 'account_requests',
   '/dashboard/demandes-expedition': 'expedition_requests',
+  // Unlike the demandes above, this one clears by reading the conversation
+  // rather than by accepting or refusing anything -- see pendingCounts().
+  '/dashboard/reclamations': 'reclamations',
 };
 
 const navGroups = [
@@ -53,6 +56,10 @@ const navGroups = [
   },
   {
     parent: { path: '/dashboard/demandes-compte', label: 'Demandes Compte', icon: UserPlus },
+    children: [],
+  },
+  {
+    parent: { path: '/dashboard/reclamations', label: 'Réclamations', icon: MessageSquareWarning },
     children: [],
   },
   {

@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\ClientActivityController;
 use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\ClientQuoteController;
 use App\Http\Controllers\Api\ClientQuoteRequestController;
+use App\Http\Controllers\Api\ClientReclamationController;
 use App\Http\Controllers\Api\ClientShipmentController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\EmployeController;
@@ -20,6 +21,7 @@ use App\Http\Controllers\Api\PasswordController;
 use App\Http\Controllers\Api\ProviderSettingController;
 use App\Http\Controllers\Api\QuoteController;
 use App\Http\Controllers\Api\QuoteRequestController;
+use App\Http\Controllers\Api\ReclamationController;
 use App\Http\Controllers\Api\ShipmentController;
 use App\Http\Controllers\Api\SousEtapeController;
 use App\Http\Controllers\Api\TrackingController;
@@ -142,6 +144,12 @@ Route::apiResource('expedition-requests', ExpeditionRequestController::class)->o
 Route::post('/expedition-requests/{expeditionRequest}/accept', [ExpeditionRequestController::class, 'accept']);
 Route::post('/expedition-requests/{expeditionRequest}/reject', [ExpeditionRequestController::class, 'reject']);
 
+Route::get('/reclamations', [ReclamationController::class, 'index']);
+Route::get('/reclamations/{reclamation}', [ReclamationController::class, 'show']);
+Route::post('/reclamations/{reclamation}/messages', [ReclamationController::class, 'storeMessage'])
+    ->middleware('throttle:reclamation-message');
+Route::patch('/reclamations/{reclamation}/status', [ReclamationController::class, 'updateStatus']);
+
 Route::post('/shipments/{shipment}/sous-etapes', [SousEtapeController::class, 'store']);
         Route::delete('/sous-etapes/{sous_etape}', [SousEtapeController::class, 'destroy']);
 
@@ -183,6 +191,18 @@ Route::post('/shipments/{shipment}/sous-etapes', [SousEtapeController::class, 's
         Route::get('my/quote-requests', [ClientQuoteRequestController::class, 'index']);
         Route::post('my/quote-requests', [ClientQuoteRequestController::class, 'store']);
         Route::get('my/quote-requests/{quote_request}', [ClientQuoteRequestController::class, 'show']);
+
+        // Literal segments before the {reclamation} route: Laravel matches in
+        // registration order, so /my/reclamations/subjects would otherwise bind
+        // "subjects" as the id and 404 on the model lookup.
+        Route::get('my/reclamations', [ClientReclamationController::class, 'index']);
+        Route::get('my/reclamations/unread-count', [ClientReclamationController::class, 'unreadCount']);
+        Route::get('my/reclamations/subjects', [ClientReclamationController::class, 'subjects']);
+        Route::post('my/reclamations', [ClientReclamationController::class, 'store'])
+            ->middleware('throttle:reclamation-new');
+        Route::get('my/reclamations/{reclamation}', [ClientReclamationController::class, 'show']);
+        Route::post('my/reclamations/{reclamation}/messages', [ClientReclamationController::class, 'storeMessage'])
+            ->middleware('throttle:reclamation-message');
     });
 });
 

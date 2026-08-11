@@ -63,6 +63,19 @@ class AppServiceProvider extends ServiceProvider
             BlockedIp::isBlocked($request->ip()) ? 3 : 30
         )->by($request->ip())->response($this->tooManyResponse()));
 
+        // Remarques & reclamations. These are clients en compte, already known
+        // and already paying, so the limits are set to catch a runaway script
+        // and nothing else: opening six threads in an hour, or sending twenty
+        // messages in a minute, is past anything a person does while actually
+        // describing a problem.
+        RateLimiter::for('reclamation-new', fn (Request $request) => Limit::perHour(6)
+            ->by($request->user()?->id ?: $request->ip())
+            ->response($this->tooManyResponse()));
+
+        RateLimiter::for('reclamation-message', fn (Request $request) => Limit::perMinute(20)
+            ->by($request->user()?->id ?: $request->ip())
+            ->response($this->tooManyResponse()));
+
         // Backstop across all authenticated API traffic: high enough that busy
         // dashboard use never approaches it.
         RateLimiter::for('api', fn (Request $request) => Limit::perMinute(300)

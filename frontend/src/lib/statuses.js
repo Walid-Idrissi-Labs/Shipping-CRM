@@ -41,6 +41,14 @@ const STATUS = {
   actif: { label: 'Actif', variant: 'success' },
   en_conge: { label: 'En congé', variant: 'info' },
 
+  // Remarques & reclamations
+  // Deliberately not reusing `en_cours` above: that key belongs to the shipment
+  // lifecycle and is amber there, while a reclamation being worked on is
+  // informational, not a warning.
+  ouverte: { label: 'Ouverte', variant: 'warning' },
+  en_traitement: { label: 'En traitement', variant: 'info' },
+  resolue: { label: 'Résolue', variant: 'success' },
+
   // Missions / assignments
   planifiee: { label: 'Planifiée', variant: 'info' },
   terminee: { label: 'Terminée', variant: 'success' },
