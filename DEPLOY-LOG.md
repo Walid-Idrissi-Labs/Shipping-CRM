@@ -34,6 +34,18 @@ changes** (the production `.env` is never uploaded, so its edits leave no trace 
 
 ---
 
+## 2026-08-11 — Simplify account-request delete confirmations
+
+Tag: `prod-2026-08-11`
+
+The "Rejeter" and "Supprimer définitivement" confirmations on a demande de compte
+(`AccountRequests.jsx`) no longer require typing "supprimer" — both are now a plain
+title/description with Confirm/Cancel buttons.
+
+No migrations. No production `.env` changes.
+
+---
+
 ## 2026-08-10 — IP origin tracking, blocking, and bot traps on public forms
 
 Tag: `prod-2026-08-10`

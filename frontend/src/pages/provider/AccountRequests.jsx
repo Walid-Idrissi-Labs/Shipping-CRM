@@ -71,9 +71,6 @@ export default function AccountRequests() {
       confirmText: 'Rejeter',
       cancelText: 'Annuler',
       variant: 'danger',
-      safetyGate: true,
-      requiredInput: 'supprimer',
-      inputLabel: 'Tapez supprimer pour confirmer',
     });
     if (!ok) return;
     try {
@@ -93,9 +90,6 @@ export default function AccountRequests() {
       confirmText: 'Supprimer',
       cancelText: 'Annuler',
       variant: 'danger',
-      safetyGate: true,
-      requiredInput: 'supprimer',
-      inputLabel: 'Tapez supprimer pour confirmer',
     });
     if (!ok) return;
     try {
