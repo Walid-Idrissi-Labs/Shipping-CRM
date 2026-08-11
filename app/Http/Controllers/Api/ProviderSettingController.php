@@ -38,6 +38,7 @@ class ProviderSettingController extends Controller
             'login_email' => $provider->user->email,
             'per_page_expeditions' => $provider->per_page_expeditions ?? 25,
             'per_page_factures' => $provider->per_page_factures ?? 25,
+            'unpaid_alert_threshold' => (float) ($provider->unpaid_alert_threshold ?? 5000),
         ]);
     }
 
@@ -68,6 +69,7 @@ class ProviderSettingController extends Controller
             'login_email' => ['required', 'email', 'max:255', 'unique:users,email,'.$request->user()->id],
             'per_page_expeditions' => ['nullable', 'integer', 'min:5', 'max:100'],
             'per_page_factures' => ['nullable', 'integer', 'min:5', 'max:100'],
+            'unpaid_alert_threshold' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
         ]);
 
         $provider->update([
@@ -91,6 +93,7 @@ class ProviderSettingController extends Controller
             'bank_agence' => $validated['bank_agence'] ?? null,
             'per_page_expeditions' => $validated['per_page_expeditions'] ?? $provider->per_page_expeditions ?? 25,
             'per_page_factures' => $validated['per_page_factures'] ?? $provider->per_page_factures ?? 25,
+            'unpaid_alert_threshold' => $validated['unpaid_alert_threshold'] ?? $provider->unpaid_alert_threshold ?? 5000,
         ]);
 
         $request->user()->update(['email' => $validated['login_email']]);

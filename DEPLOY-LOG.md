@@ -34,6 +34,40 @@ changes** (the production `.env` is never uploaded, so its edits leave no trace 
 
 ---
 
+## 2026-08-11 (6) — Solde impayé column on the client list, alert threshold setting
+
+Tag: `prod-2026-08-11-6`
+
+Two related changes to how a provider tracks unpaid client balances:
+
+- On the client detail page's "Factures du Client" total (shipped in round 5 as "Total net
+  TTC"), the total now correctly counts only unpaid (`impayee`) entries, netting any avoirs
+  tied to an unpaid facture. Relabeled "Total net TTC impayé". Frontend-only
+  (`ClientDetail.jsx`).
+- The provider's client list page: the "Ville" column is gone, replaced by a sortable
+  "Solde impayé" column showing each client's net unpaid TTC balance (unpaid factures minus
+  avoirs tied to unpaid factures), computed server-side in one aggregate query per page —
+  no N+1. Color-coded: green at exactly 0, red above a configurable per-provider threshold,
+  amber in between. The threshold is a new setting under Réglages → Facturation → "Seuil
+  d'alerte solde impayé", defaulting to 5000 MAD.
+
+**Migration run in phpMyAdmin:**
+```sql
+alter table `providers` add `unpaid_alert_threshold` decimal(10, 2) not null default '5000';
+```
+Tracking insert (batch number derived from `SELECT MAX(batch) FROM migrations;` at deploy
+time, not from the local Docker verification run):
+```sql
+INSERT INTO migrations (migration, batch) VALUES ('2026_08_11_000002_add_unpaid_alert_threshold_to_providers_table', N);
+```
+Verified against a disposable local MySQL 8.0 (Docker) brought up to production's current
+migration baseline before applying — `SHOW COLUMNS` confirmed `decimal(10,2) default
+5000.00` lands exactly as intended.
+
+No production `.env` changes.
+
+---
+
 ## 2026-08-11 (5) — Client detail: total on the factures list
 
 Tag: `prod-2026-08-11-5`

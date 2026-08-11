@@ -11,6 +11,19 @@ import SearchInput from '../../components/ui/SearchInput';
 import Pagination from '../../components/ui/Pagination';
 import { useColumnSort } from '../../hooks/useColumnSort';
 import { useUrlPage } from '../../hooks/useUrlPage';
+import { formatMoney } from '../../lib/format';
+
+const DEFAULT_UNPAID_THRESHOLD = 5000;
+
+/**
+ * Feu tricolore du solde impaye, dans le langage de couleurs des pills :
+ * vert a zero, rouge au-dela du seuil parametre, ambre entre les deux.
+ */
+function balanceVariant(amount, threshold) {
+  if (amount <= 0) return 'success';
+  if (amount > threshold) return 'danger';
+  return 'warning';
+}
 
 export default function Clients() {
   const navigate = useNavigate();
@@ -20,6 +33,7 @@ export default function Clients() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [meta, setMeta] = useState({ lastPage: 1, total: 0, perPage: 25 });
+  const [threshold, setThreshold] = useState(DEFAULT_UNPAID_THRESHOLD);
   const { page, setPage, resetPage } = useUrlPage();
   const { column, direction, toggle, params: sortParams } = useColumnSort('created_at', 'desc');
 
@@ -35,6 +49,7 @@ export default function Clients() {
       const { data } = await api.get('/clients', { params: { search: q, page, ...sortParams } });
       setClients(data.data || []);
       setMeta({ lastPage: data.last_page || 1, total: data.total ?? 0, perPage: data.per_page || 25 });
+      if (data.unpaid_alert_threshold != null) setThreshold(Number(data.unpaid_alert_threshold));
       if (data.last_page && page > data.last_page) resetPage();
     } catch {
       // Previously there was no catch at all: a failed request left the list
@@ -113,7 +128,7 @@ export default function Clients() {
                 <SortHeader label="Entreprise" col="company_name" currentCol={column} direction={direction} onClick={toggle} />
                 <SortHeader label="Email" col="email" currentCol={column} direction={direction} onClick={toggle} />
                 <SortHeader label="Telephone" col="phone" currentCol={column} direction={direction} onClick={toggle} />
-                <SortHeader label="Ville" col="city" currentCol={column} direction={direction} onClick={toggle} />
+                <SortHeader label="Solde impayé" col="impayee_ttc" currentCol={column} direction={direction} onClick={toggle} align="right" />
               </tr>
             </thead>
             <tbody>
@@ -128,7 +143,11 @@ export default function Clients() {
                   <td>{c.company_name || '-'}</td>
                   <td>{c.email || '—'}</td>
                   <td>{c.phone || '—'}</td>
-                  <td>{c.city || '—'}</td>
+                  <td style={{ textAlign: 'right' }}>
+                    <span className={`pill-left pill-left-${balanceVariant(Number(c.impayee_ttc || 0), threshold)} font-mono-data`}>
+                      {formatMoney(c.impayee_ttc || 0)}
+                    </span>
+                  </td>
                 </tr>
               ))}
             </tbody>

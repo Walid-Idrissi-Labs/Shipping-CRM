@@ -9,7 +9,8 @@ use Illuminate\Database\Eloquent\Model;
     'user_id', 'company_name', 'address', 'postal_code', 'city', 'country',
     'phone', 'website', 'email', 'ice', 'rc', 'if_', 'cnss', 'patente',
     'bank_name', 'bank_rib', 'bank_swift', 'bank_account_name', 'bank_agence',
-    'logo_invoice_url', 'per_page_expeditions', 'per_page_factures'
+    'logo_invoice_url', 'per_page_expeditions', 'per_page_factures',
+    'unpaid_alert_threshold'
 ])]
 class Provider extends Model
 {
@@ -61,6 +62,9 @@ class Provider extends Model
     protected function casts(): array
     {
         return [
+            // decimal columns come back as strings on MySQL and floats on
+            // sqlite; cast so the API always emits a number.
+            'unpaid_alert_threshold' => 'float',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];

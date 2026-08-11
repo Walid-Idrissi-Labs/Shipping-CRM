@@ -14,7 +14,8 @@ const emptyForm = {
   company_name: '', address: '', postal_code: '', city: '', country: 'Maroc',
   phone: '', email: '', website: '', ice: '', rc: '', if_: '', cnss: '', patente: '', login_email: '',
   bank_name: '', bank_rib: '', bank_swift: '', bank_account_name: '', bank_agence: '',
-  per_page_expeditions: 25, per_page_factures: 25
+  per_page_expeditions: 25, per_page_factures: 25,
+  unpaid_alert_threshold: 5000
 };
 
 const emptyPassword = { old_password: '', new_password: '', new_password_confirmation: '' };
@@ -146,6 +147,22 @@ export default function Settings() {
               </FormField>
               <FormField label="RIB / N° de compte"><input name="bank_rib" value={settingsForm.data.bank_rib || ''} onChange={handleFieldChange} className="input" placeholder="24 chiffres" /></FormField>
               <FormField label="SWIFT / BIC"><input name="bank_swift" value={settingsForm.data.bank_swift || ''} onChange={handleFieldChange} className="input" placeholder="Optionnel" /></FormField>
+            </div>
+          </Section>
+
+          <Section title="Facturation" description="Au-delà de ce montant, le solde impayé d'un client s'affiche en rouge dans la liste des clients.">
+            <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16, maxWidth: 480 }}>
+              <FormField label="Seuil d'alerte solde impayé" hint="En MAD (TTC)">
+                <input
+                  name="unpaid_alert_threshold"
+                  type="number"
+                  min={0}
+                  step={100}
+                  value={settingsForm.data.unpaid_alert_threshold ?? 5000}
+                  onChange={handleFieldChange}
+                  className="input"
+                />
+              </FormField>
             </div>
           </Section>
 

@@ -36,6 +36,11 @@ class Client extends Model
         return $this->hasMany(Facture::class);
     }
 
+    public function avoirs()
+    {
+        return $this->hasMany(Avoir::class);
+    }
+
     public function activities()
     {
         return $this->hasMany(ClientActivity::class);
@@ -44,6 +49,9 @@ class Client extends Model
     protected function casts(): array
     {
         return [
+            // Colonne calculee par ClientController@index (solde impaye net) :
+            // MySQL renverrait une chaine, sqlite un float.
+            'impayee_ttc' => 'float',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];

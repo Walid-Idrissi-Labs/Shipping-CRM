@@ -22,7 +22,25 @@ class ClientController extends Controller
     public function index(Request $request)
     {
         $provider = $request->user()->provider;
-        $query = Client::query()->where('provider_id', $provider->id);
+        $query = Client::query()
+            ->select('clients.*')
+            ->where('provider_id', $provider->id);
+
+        // Solde impaye net, calcule en base (une seule requete pour toute la
+        // page) : somme des factures impayees moins les avoirs rattaches a une
+        // facture impayee. Meme semantique que le total affiche sur la fiche
+        // client (ClientDetail.jsx -> netTtcImpaye), ou l'avoir compte en
+        // negatif contre sa facture parente. ABS() car les avoirs sont stockes
+        // avec un TTC negatif (FiscalCalculator::computeNegative).
+        $query->selectRaw(
+            '(SELECT COALESCE(SUM(f.ttc), 0) FROM factures f'
+            .' WHERE f.client_id = clients.id AND f.statut = ?)'
+            .' - (SELECT COALESCE(SUM(ABS(a.ttc)), 0) FROM avoirs a'
+            .' INNER JOIN factures pf ON pf.id = a.facture_id'
+            .' WHERE pf.client_id = clients.id AND pf.statut = ?)'
+            .' as impayee_ttc',
+            ['impayee', 'impayee']
+        );
 
         if ($search = $request->input('search')) {
             $q = '%' . mb_strtolower($search) . '%';
@@ -37,7 +55,7 @@ class ClientController extends Controller
         $this->applySort(
             $query,
             $request,
-            ['account_number', 'full_name', 'company_name', 'email', 'phone', 'city', 'created_at'],
+            ['account_number', 'full_name', 'company_name', 'email', 'phone', 'impayee_ttc', 'created_at'],
             'created_at',
             'desc'
         );
@@ -45,7 +63,11 @@ class ClientController extends Controller
         // Les selecteurs (facturation, devis) chargent la liste complete via ?limit=1000.
         $limit = min(1000, max(5, (int) $request->input('limit', 25) ?: 25));
 
-        return response()->json($query->paginate($limit));
+        // Le seuil accompagne la liste : la colonne "Solde impaye" est coloree
+        // cote client sans avoir a rappeler /provider/settings.
+        return response()->json(array_merge($query->paginate($limit)->toArray(), [
+            'unpaid_alert_threshold' => (float) ($provider->unpaid_alert_threshold ?? 5000),
+        ]));
     }
 
     public function store(Request $request)

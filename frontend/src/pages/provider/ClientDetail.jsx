@@ -631,10 +631,12 @@ function InvoicesSection({ entries, loading, error, onRetry, navigate, clientQue
   const linkTo = clientQuery
     ? `/dashboard/factures?tab=factures&q=${encodeURIComponent(clientQuery)}`
     : '/dashboard/factures';
-  const netTtc = entries.reduce((sum, e) => {
-    const sign = e.kind === 'avoir' ? -1 : 1;
-    return sum + sign * Math.abs(Number(e.ttc || 0));
-  }, 0);
+  const netTtcImpaye = entries
+    .filter((e) => e.statut === 'impayee')
+    .reduce((sum, e) => {
+      const sign = e.kind === 'avoir' ? -1 : 1;
+      return sum + sign * Math.abs(Number(e.ttc || 0));
+    }, 0);
   return (
     <DataCard
       title="Factures du Client"
@@ -737,9 +739,9 @@ function InvoicesSection({ entries, loading, error, onRetry, navigate, clientQue
             borderTop: '1px solid var(--color-ash)',
           }}
         >
-          <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--color-graphite)' }}>Total net TTC</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--color-graphite)' }}>Total net TTC impayé</div>
           <div style={{ fontSize: 24, fontWeight: 600, color: 'var(--color-primary)', letterSpacing: '-0.01em' }}>
-            {formatMoney(netTtc)}
+            {formatMoney(netTtcImpaye)}
           </div>
         </div>
         </>
