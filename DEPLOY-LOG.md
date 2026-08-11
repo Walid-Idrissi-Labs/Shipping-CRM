@@ -34,6 +34,34 @@ changes** (the production `.env` is never uploaded, so its edits leave no trace 
 
 ---
 
+## 2026-08-11 (4) — Réclamations refresh themselves
+
+Tag: `prod-2026-08-11-4`
+
+A réclamation conversation now updates on its own while it is open, so a reply appears
+without the other person reloading the page. Polling, not WebSockets — nothing new runs on
+the server, it is the same `GET` the page already made.
+
+- Both conversation pages (client and provider) refresh on a tiered cadence: **30s** while a
+  message is under 2 minutes old, **2 min** up to 10 minutes, **5 min** after that. Fast only
+  during a live exchange, which costs a few dozen extra requests per conversation rather than
+  per day.
+- **Refresh stops entirely while the tab is hidden** and catches up the moment it comes back.
+  This is not only about load: opening a conversation marks it read, so refreshing in a
+  background tab would mark replies read for someone who is not looking at them and the
+  unread badge would never appear.
+- The client unread badge and the provider pending-count outline also refresh every 2 minutes,
+  so someone parked on one page still finds out that the other side wrote.
+- Fixed along the way: sending a reply used to blank the whole conversation behind the loading
+  screen for over a second. It now updates in place, and a new message fades in.
+- A background refresh that fails is now silent — previously any failed load of a conversation
+  redirected back to the list, which on a refresh would have thrown someone off the page
+  mid-reply over a brief network blip.
+
+Frontend only. No migrations. No production `.env` changes.
+
+---
+
 ## 2026-08-11 (3) — Neutral réclamation form placeholder
 
 Tag: `prod-2026-08-11-3`

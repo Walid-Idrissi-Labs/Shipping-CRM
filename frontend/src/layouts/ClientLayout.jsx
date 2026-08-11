@@ -5,10 +5,15 @@ import LoadingOverlay from '../components/ui/LoadingOverlay';
 import TempPasswordBanner from '../components/TempPasswordBanner';
 import LoadingContext from '../contexts/LoadingContext';
 import { LayoutDashboard, Package, Receipt, User, LogOut, Menu, X, FileText, MessageSquareWarning } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import api from '../api/axios';
+import { useVisiblePoll } from '../hooks';
 
 const EXPANDED_WIDTH = 240;
+
+// Slower than the conversation view on purpose: this only has to catch someone
+// who is elsewhere in the app, and it runs on every client page.
+const UNREAD_POLL_MS = 120_000;
 
 const navGroups = [
   { parent: { path: '/client', label: 'Tableau de Bord', short: 'Accueil', icon: LayoutDashboard } },
@@ -167,21 +172,23 @@ export default function ClientLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [unreadReclamations, setUnreadReclamations] = useState(0);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    // Refetched on every navigation rather than polled: a reply lands while the
-    // client is elsewhere in the app, and the next page they open is soon
-    // enough to tell them. The provider sidebar clears its outline the same way.
+  const refreshUnread = useCallback(() => {
     api.get('/my/reclamations/unread-count')
-      .then(({ data }) => { if (!cancelled) setUnreadReclamations(data?.count || 0); })
+      .then(({ data }) => setUnreadReclamations(data?.count || 0))
       .catch(() => {
         // A badge is not worth interrupting anyone over: leave the previous
-        // count in place and try again on the next navigation.
+        // count in place and try again on the next tick.
       });
+  }, []);
 
-    return () => { cancelled = true; };
-  }, [location.pathname]);
+  // On every navigation, plus a slow poll so a client sitting still on one page
+  // still learns that we answered. One COUNT query, and it stops entirely while
+  // the tab is hidden.
+  useEffect(() => {
+    refreshUnread();
+  }, [location.pathname, refreshUnread]);
+
+  useVisiblePoll(refreshUnread, UNREAD_POLL_MS);
 
   useEffect(() => {
     if (!mobileOpen) return undefined;

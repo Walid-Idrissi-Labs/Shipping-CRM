@@ -11,10 +11,15 @@ import {
   User, History, Activity, MessageSquareWarning,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useVisiblePoll } from '../hooks';
 import CommandPalette from '../components/CommandPalette';
 import HeaderClock from '../components/ui/HeaderClock';
 
 const EXPANDED_WIDTH = 240;
+
+// Same reasoning as the client badge: slow enough to be invisible on the
+// hosting, fast enough that someone parked on one page still finds out.
+const PENDING_POLL_MS = 120_000;
 
 // Paths whose untreated-demande count drives the green sidebar outline.
 // Cleared only when a demande is actually accepted/refused (see
@@ -341,6 +346,11 @@ function ProviderLayoutInner() {
     // demande is treated on its own page (accept flows navigate away).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
+
+  // Plus a slow poll, so a réclamation arriving while someone sits on the
+  // dashboard raises its outline without waiting for the next click. Paused
+  // while the tab is hidden.
+  useVisiblePoll(refreshPendingCounts, PENDING_POLL_MS);
 
   useEffect(() => {
     const handler = (e) => {

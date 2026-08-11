@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/set-state-in-effect -- house data-fetch pattern: the effect calls fetchThread(), which flips `loading` synchronously, same as every detail page in this repo */
-import { useMinLoading } from '../../hooks';
-import { useEffect, useState } from 'react';
+import { useMinLoading, useVisiblePoll, threadPollInterval } from '../../hooks';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Send, Headset, Check, CheckCircle2, ExternalLink, Paperclip, AlertTriangle, MessageSquareText } from 'lucide-react';
 import api from '../../api/axios';
@@ -24,7 +24,7 @@ const STATUS_OPTIONS = [
 // Same correspondence rendering as the client side (local copy on purpose —
 // to be deduplicated once the feature settles): hairline-separated blocks,
 // team replies in brand blue, client messages neutral.
-function ThreadMessages({ messages }) {
+function ThreadMessages({ messages, newIds }) {
   if (!messages.length) {
     return (
       <div style={{ fontSize: 14, color: 'var(--color-steel)', padding: '16px 0' }}>
@@ -39,6 +39,7 @@ function ThreadMessages({ messages }) {
         return (
           <article
             key={m.id}
+            className={newIds?.has(m.id) ? 'animate-fade-in' : undefined}
             style={{
               display: 'flex',
               gap: 12,
@@ -101,24 +102,56 @@ export default function ReclamationDetail() {
   const [corpsError, setCorpsError] = useState('');
   const [sending, setSending] = useState(false);
   const [statusLoading, setStatusLoading] = useState(false);
+  const [newMessageIds, setNewMessageIds] = useState(() => new Set());
 
-  const fetchThread = async () => {
-    setLoading(true);
+  // Ids already on screen, so a message that arrives from a background refresh
+  // can be told apart from one that was always there and faded in.
+  const seenMessageIds = useRef(null);
+
+  const applyThread = (data) => {
+    const ids = (data.messages || []).map((m) => m.id);
+    if (seenMessageIds.current) {
+      const fresh = ids.filter((messageId) => !seenMessageIds.current.has(messageId));
+      if (fresh.length) setNewMessageIds(new Set(fresh));
+    }
+    seenMessageIds.current = new Set(ids);
+    setThread(data);
+  };
+
+  // `silent` is what the poll uses: no page loader, and no navigating away on
+  // failure — a momentary network blip must not throw someone off the page
+  // while they are half-way through writing a reply.
+  const fetchThread = async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
     try {
       const { data } = await api.get(`/reclamations/${id}`);
-      setThread(data);
+      applyThread(data);
     } catch {
-      toast.push('Réclamation introuvable.', 'error');
-      navigate('/dashboard/reclamations');
+      if (!silent) {
+        toast.push('Réclamation introuvable.', 'error');
+        navigate('/dashboard/reclamations');
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
+    seenMessageIds.current = null;
     fetchThread();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  // Fast while an exchange is live, slower as it goes quiet, paused when the
+  // tab is hidden. Suspended during a send or a status change so a poll cannot
+  // land on top of the refetch those already perform.
+  // No useCallback needed: the hook holds the callback in a ref, so a fresh
+  // closure each render never restarts the timer.
+  useVisiblePoll(
+    () => fetchThread({ silent: true }),
+    threadPollInterval(thread?.last_message_at),
+    { enabled: !!thread && !sending && !statusLoading },
+  );
 
   const canSend = corps.trim().length > 0 && !sending;
 
@@ -130,8 +163,10 @@ export default function ReclamationDetail() {
       await api.post(`/reclamations/${id}/messages`, { corps: corps.trim() });
       setCorps('');
       // Refetch instead of appending: replying to a conversation résolue
-      // reopens it server-side, and the statut must follow.
-      await fetchThread();
+      // reopens it server-side, and the statut must follow. Silent, or sending
+      // a reply would blank the conversation behind the page loader for over a
+      // second — the opposite of feeling live.
+      await fetchThread({ silent: true });
     } catch (err) {
       setCorpsError(err.response?.data?.errors?.corps?.[0] || '');
       toast.push(err.response?.data?.message || "Erreur lors de l'envoi de la réponse.", 'error');
@@ -217,7 +252,7 @@ export default function ReclamationDetail() {
       <div className="grid grid-cols-1 lg:grid-cols-3" style={{ gap: 16, alignItems: 'start' }}>
         <div className="lg:col-span-2">
           <Card style={{ padding: '8px 24px 20px' }}>
-            <ThreadMessages messages={thread.messages || []} />
+            <ThreadMessages messages={thread.messages || []} newIds={newMessageIds} />
 
             <div style={{ borderTop: '1px solid var(--color-ash)', paddingTop: 16, marginTop: 8 }}>
               {isResolue && (
