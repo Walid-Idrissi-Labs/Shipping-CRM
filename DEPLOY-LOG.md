@@ -34,6 +34,19 @@ changes** (the production `.env` is never uploaded, so its edits leave no trace 
 
 ---
 
+## 2026-08-11 (7) — Solde impayé: plain colored text instead of pills
+
+Tag: `prod-2026-08-11-7`
+
+Small visual tweak to round (6): the "Solde impayé" column on the client list rendered
+amounts as pill badges — dropped in favor of plain right-aligned colored text (same
+green/amber/red logic), matching the plainer accent-colored-text pattern already used
+elsewhere in the app (e.g. facture amounts on the client detail page) rather than a pill.
+
+Frontend-only (`Clients.jsx`). No migrations, no `.env` changes.
+
+---
+
 ## 2026-08-11 (6) — Solde impayé column on the client list, alert threshold setting
 
 Tag: `prod-2026-08-11-6`

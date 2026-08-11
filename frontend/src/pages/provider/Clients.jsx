@@ -16,13 +16,13 @@ import { formatMoney } from '../../lib/format';
 const DEFAULT_UNPAID_THRESHOLD = 5000;
 
 /**
- * Feu tricolore du solde impaye, dans le langage de couleurs des pills :
- * vert a zero, rouge au-dela du seuil parametre, ambre entre les deux.
+ * Feu tricolore du solde impaye : vert a zero, rouge au-dela du seuil
+ * parametre, ambre entre les deux.
  */
-function balanceVariant(amount, threshold) {
-  if (amount <= 0) return 'success';
-  if (amount > threshold) return 'danger';
-  return 'warning';
+function balanceColor(amount, threshold) {
+  if (amount <= 0) return 'var(--color-vivid-green-dark)';
+  if (amount > threshold) return 'var(--color-danger)';
+  return 'var(--color-warning)';
 }
 
 export default function Clients() {
@@ -143,10 +143,11 @@ export default function Clients() {
                   <td>{c.company_name || '-'}</td>
                   <td>{c.email || '—'}</td>
                   <td>{c.phone || '—'}</td>
-                  <td style={{ textAlign: 'right' }}>
-                    <span className={`pill-left pill-left-${balanceVariant(Number(c.impayee_ttc || 0), threshold)} font-mono-data`}>
-                      {formatMoney(c.impayee_ttc || 0)}
-                    </span>
+                  <td
+                    className="font-mono-data"
+                    style={{ textAlign: 'right', fontWeight: 600, color: balanceColor(Number(c.impayee_ttc || 0), threshold) }}
+                  >
+                    {formatMoney(c.impayee_ttc || 0)}
                   </td>
                 </tr>
               ))}
