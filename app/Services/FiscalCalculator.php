@@ -14,11 +14,14 @@ class FiscalCalculator
      - National: non_taxable = 0 (verrouillé). tva = taxable * 0.10. ttc = taxable * 1.10.
      - International: non_taxable = saisi. tva = taxable * 0.20. ttc = non_taxable + (taxable * 1.20).
      *
-     * Les bases (non_taxable, taxable) sont arrondies au centime AVANT d'en deriver
-     * la TVA et le TTC. C'est ce qui garantit l'invariant fiscal
-     * ttc = non_taxable + taxable + tva sur les valeurs stockees : une saisie a
-     * 3 decimales (86,825) donnerait sinon un total qui ne correspond pas aux
-     * lignes imprimees sur la facture (86,83 + 17,37 + 330,81 = 435,01, pas 435,00).
+     * La TVA et le TTC sont derives de la base SAISIE, pas de la base arrondie :
+     * pour 86,825 le TTC vaut 330,81 + 86,825 * 1,20 = 435,00, et non 435,01 qu'on
+     * obtiendrait en arrondissant la base a 86,83 d'abord (un centime de trop
+     * facture au client). Seul l'affichage de la base est arrondi.
+     *
+     * L'arrondi passe par self::round2() et non par round() : voir la note qui
+     * accompagne cette methode, c'est ce qui fait coller le total enregistre a
+     * celui annonce par l'ecran de creation.
      *
      * Retourne [taux_tva, non_taxable, taxable, tva, ttc].
      */
@@ -55,22 +58,59 @@ class FiscalCalculator
 
     private static function national(float $taxable): array
     {
-        $taxable = round(max(0, $taxable), 2);
+        $taxable = max(0, $taxable);
         $taux = self::TVA_NATIONAL;
-        $tva = round($taxable * ($taux / 100), 2);
-        $ttc = round($taxable + $tva, 2);
+        $tva = self::round2($taxable * ($taux / 100));
+        $ttc = self::round2($taxable + $tva);
 
-        return [$taux, 0.0, $taxable, $tva, $ttc];
+        return [$taux, 0.0, self::round2($taxable), $tva, $ttc];
     }
 
     private static function international(float $taxable, float $nonTaxable): array
     {
-        $taxable = round(max(0, $taxable), 2);
-        $nonTaxable = round(max(0, $nonTaxable), 2);
+        $taxable = max(0, $taxable);
+        $nonTaxable = max(0, $nonTaxable);
         $taux = self::TVA_INTERNATIONAL;
-        $tva = round($taxable * ($taux / 100), 2);
-        $ttc = round($nonTaxable + $taxable + $tva, 2);
+        $tva = self::round2($taxable * ($taux / 100));
+        $ttc = self::round2($nonTaxable + $taxable + $tva);
 
-        return [$taux, $nonTaxable, $taxable, $tva, $ttc];
+        return [$taux, self::round2($nonTaxable), self::round2($taxable), $tva, $ttc];
+    }
+
+    /**
+     * Arrondi au centime identique a Number.prototype.toFixed(2) en JavaScript.
+     *
+     * Pourquoi pas round() : les deux n'arrondissent pas la meme valeur. La somme
+     * 330,81 + 86,825 + 17,37 vaut en flottant 435,004999999999995..., un poil SOUS
+     * la limite. toFixed() arrondit cette valeur binaire exacte et donne donc 435,00,
+     * alors que round() "recale" d'abord le nombre sur son ecriture decimale courte
+     * (435,005) puis arrondit vers le haut : 435,01. D'ou l'ecart d'un centime entre
+     * l'ecran de creation (JS) et la facture enregistree (PHP).
+     *
+     * sprintf('%.2f') ne suffit pas non plus : sur une egalite binaire exacte
+     * (23,295 + 2,33 = 25,625, representable exactement) il arrondit au pair, 25,62,
+     * la ou toFixed() s'ecarte de zero, 25,63.
+     *
+     * On reproduit donc la regle de toFixed() : arrondir le developpement decimal
+     * exact du double, en s'ecartant de zero en cas d'egalite parfaite. sprintf
+     * '%.53F' donne ce developpement exact (53 est le maximum de PHP, largement au
+     * dela de l'ulp d'un montant de facture, donc aucune troncature significative).
+     */
+    private static function round2(float $value): float
+    {
+        if (! is_finite($value)) {
+            return 0.0;
+        }
+
+        [$int, $frac] = explode('.', sprintf('%.53F', abs($value)), 2);
+        $rest = substr($frac, 2);
+        $cents = ((int) $int) * 100 + ((int) substr($frac, 0, 2));
+
+        // $rest >= "500...0" : on s'ecarte de zero (egalite comprise).
+        if (strcmp($rest, str_pad('5', strlen($rest), '0')) >= 0) {
+            $cents++;
+        }
+
+        return $value < 0 ? -($cents / 100) : $cents / 100;
     }
 }

@@ -48,14 +48,14 @@ export default function AvoirCreate() {
   }, [selectedId]);
 
   const isInternational = selectedFacture?.type_destination === 'international';
-  // Meme ordre de calcul que FiscalCalculator cote serveur (bases arrondies au
-  // centime avant d'en deriver TVA et TTC), pour que l'apercu colle a l'avoir cree.
+  // Meme calcul que FiscalCalculator cote serveur, pour que l'apercu colle a
+  // l'avoir cree. On envoie les bases *raw* : l'arrondi n'est que de l'affichage.
   const {
     taux,
-    nonTaxable: numericNonTaxable,
-    taxable: numericTaxable,
     tva: computedTva,
     ttc: computedTtc,
+    rawTaxable,
+    rawNonTaxable,
   } = computeFiscal(
     isInternational ? 'international' : 'national',
     taxable || 0,
@@ -70,8 +70,8 @@ export default function AvoirCreate() {
       const payload = {
         facture_id: parseInt(selectedId, 10),
         type_destination: selectedFacture?.type_destination,
-        taxable: numericTaxable,
-        non_taxable: isInternational ? numericNonTaxable : 0,
+        taxable: rawTaxable,
+        non_taxable: isInternational ? rawNonTaxable : 0,
       };
       const { data } = await api.post('/credit-notes', payload);
       const createdId = data.avoir?.id || data.credit_note?.id || data.id;

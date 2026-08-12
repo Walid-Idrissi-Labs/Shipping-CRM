@@ -94,15 +94,18 @@ export default function InvoiceCreate() {
     }
   }, [typeDestination]);
 
-  // Meme ordre de calcul que FiscalCalculator cote serveur : bases arrondies au
-  // centime d'abord, TVA et TTC derives ensuite. L'apercu affiche donc exactement
-  // ce qui sera enregistre, et les trois lignes s'additionnent bien au total.
+  // Meme calcul que FiscalCalculator cote serveur : l'apercu affiche donc
+  // exactement les montants qui seront enregistres. Les valeurs *raw* (non
+  // arrondies) sont celles qu'on envoie au serveur — c'est la base saisie qui fait
+  // foi pour le calcul, l'arrondi n'est que de l'affichage.
   const {
     taux,
     nonTaxable: numericNonTaxable,
     taxable: numericTaxable,
     tva: computedTva,
     ttc: computedTtc,
+    rawTaxable,
+    rawNonTaxable,
   } = computeFiscal(typeDestination, taxable || 0, nonTaxable || 0);
   const numeroLabel = `FE ${numeroN || numeroSequence}/${numeroYear}`;
 
@@ -120,8 +123,8 @@ export default function InvoiceCreate() {
     date_facture: dateFacture,
     date_echeance: dateEcheance,
     numero_n: Number.parseInt(numeroN || numeroSequence, 10),
-    taxable: numericTaxable,
-    non_taxable: typeDestination === 'national' ? 0 : numericNonTaxable,
+    taxable: rawTaxable,
+    non_taxable: typeDestination === 'national' ? 0 : rawNonTaxable,
     expedition_ids: selectedShipments,
     ...(clientMode === 'compte'
       ? { client_id: parseInt(clientId, 10) }

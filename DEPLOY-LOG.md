@@ -34,7 +34,50 @@ changes** (the production `.env` is never uploaded, so its edits leave no trace 
 
 ---
 
-## 2026-08-12 — Arrondi fiscal: les lignes d'une facture s'additionnent enfin au total
+## 2026-08-12 (2) — Arrondi fiscal: le total enregistré est celui de l'écran de création
+
+Tag: `prod-2026-08-12-2`
+
+**Corrige et remplace la manche (1) ci-dessous**, dont le diagnostic était faux. À déployer
+même si (1) est déjà en ligne.
+
+Le vrai mécanisme de l'écart d'un centime : les deux côtés calculaient déjà la **même**
+somme (330,81 + 86,825 + 17,37 = 435,004999999999995 en flottant), mais ne l'arrondissaient
+pas pareil. `toFixed(2)` en JS arrondit la valeur binaire exacte → 435,00 ; `round()` en PHP
+« recale » d'abord le nombre sur son écriture décimale courte (435,005) puis arrondit vers le
+haut → 435,01. L'écran de création annonçait donc 435,00 et la base enregistrait 435,01.
+
+La manche (1) avait attribué ça à l'ordre des opérations et arrondissait la base taxable
+avant d'en dériver la TVA — ce qui donnait bien deux écrans cohérents, mais à 435,01, soit un
+centime de trop facturé au client. C'est le total de l'écran de création qui est le bon :
+330,81 + 86,825 × 1,20 = 435,00 exactement.
+
+Correctif : la TVA et le TTC repartent de la base **saisie** (l'arrondi de la base n'est que
+de l'affichage), et `FiscalCalculator::round2()` reproduit la règle de `toFixed(2)` — arrondi
+du développement décimal exact du double, en s'écartant de zéro sur une égalité parfaite.
+`sprintf('%.2f')` ne convenait pas : sur une égalité binaire exacte (23,295 + 2,33 = 25,625,
+représentable tel quel) il arrondit au pair, 25,62, là où l'écran de création donne 25,63.
+
+Vérifié sur 53 601 cas (dont toutes les égalités exactes) : 0 écart entre PHP et le calcul
+JS d'origine. `tests/Unit/FiscalCalculatorTest.php` fige la règle, et
+`tests/Feature/InvoiceRoundingTest.php` vérifie le trajet complet POST → base → page de
+détail (il échouait avant ce correctif).
+
+Backend (`FiscalCalculator.php`) + frontend (`lib/fiscal.js`, écrans facture et avoir).
+Pas de migration, pas de changement `.env`.
+
+**À retenir sur la lecture des montants :** avec une base saisie à 3 décimales, les lignes
+imprimées (330,81 + 86,83 + 17,37) peuvent totaliser un centime de plus que le total (435,00).
+C'est voulu : le total suit la base réellement saisie, seul son affichage est arrondi. Saisir
+des bases à 2 décimales fait disparaître le cas. La requête SQL de la manche (1) qui cherchait
+les lignes ne s'additionnant pas au total n'a donc plus lieu d'être — elle remonterait des
+factures parfaitement normales.
+
+---
+
+## 2026-08-12 (1) — Arrondi fiscal: les lignes d'une facture s'additionnent enfin au total
+
+> ⚠️ Diagnostic erroné, corrigé par la manche (2) ci-dessus. Conservé pour la trace.
 
 Tag: `prod-2026-08-12`
 
