@@ -7,6 +7,7 @@ import { DataCard } from '../../components/ui/DataCard';
 import { FormField } from '../../components/ui/Form';
 import { useToast } from '../../contexts/ToastContext';
 import { useSuccess } from '../../contexts/SuccessModalContext';
+import { computeFiscal } from '../../lib/fiscal';
 
 function formatMoney(value, negative = true) {
   const n = Math.abs(Number(value || 0));
@@ -46,14 +47,20 @@ export default function AvoirCreate() {
     }).catch(() => setSelectedFacture(null));
   }, [selectedId]);
 
-  const numericTaxable = parseFloat(taxable || 0);
-  const numericNonTaxable = parseFloat(nonTaxable || 0);
   const isInternational = selectedFacture?.type_destination === 'international';
-  const taux = isInternational ? 0.20 : 0.10;
-  const computedTva = +(numericTaxable * taux).toFixed(2);
-  const computedTtc = isInternational
-    ? +(numericNonTaxable + numericTaxable + computedTva).toFixed(2)
-    : +(numericTaxable + computedTva).toFixed(2);
+  // Meme ordre de calcul que FiscalCalculator cote serveur (bases arrondies au
+  // centime avant d'en deriver TVA et TTC), pour que l'apercu colle a l'avoir cree.
+  const {
+    taux,
+    nonTaxable: numericNonTaxable,
+    taxable: numericTaxable,
+    tva: computedTva,
+    ttc: computedTtc,
+  } = computeFiscal(
+    isInternational ? 'international' : 'national',
+    taxable || 0,
+    nonTaxable || 0,
+  );
 
   const handleSubmit = async (e) => {
     e.preventDefault();

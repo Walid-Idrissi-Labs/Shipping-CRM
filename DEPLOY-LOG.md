@@ -34,6 +34,43 @@ changes** (the production `.env` is never uploaded, so its edits leave no trace 
 
 ---
 
+## 2026-08-12 — Arrondi fiscal: les lignes d'une facture s'additionnent enfin au total
+
+Tag: `prod-2026-08-12`
+
+Bug d'un centime entre l'écran de création d'une facture et sa page de détail / son PDF.
+
+`FiscalCalculator` stockait une base taxable **arrondie** au centime, mais dérivait la TVA
+et le TTC de la base **brute**. Avec une saisie à 3 décimales (86,825), la facture affichait
+donc 330,81 + 86,83 + 17,37 mais un total de 435,00 — un document fiscal dont les lignes ne
+s'additionnent pas au total, en plus d'un écart d'un centime avec l'aperçu de création.
+
+Correctif : les bases (`non_taxable`, `taxable`) sont arrondies **avant** d'en dériver la TVA
+et le TTC, ce qui rend `ttc = non_taxable + taxable + tva` vrai par construction sur les
+valeurs stockées. Le même ordre de calcul est appliqué côté frontend via un nouveau module
+partagé `frontend/src/lib/fiscal.js`, utilisé par l'écran facture et l'écran avoir. Son
+arrondi passe par la notation exponentielle (`"86.825e2"`) pour reproduire exactement le
+`round()` de PHP, là où `Math.round(v * 100) / 100` divergerait d'un centime.
+
+Comme tout passe par `FiscalCalculator`, la création, la modification, l'aperçu PDF et les
+avoirs sont corrigés d'un coup. Couvert par `tests/Unit/FiscalCalculatorTest.php` (invariant
++ cas 3 décimales), et le miroir JS a été comparé à PHP sur 803 cas aléatoires : 0 écart.
+
+Backend (`FiscalCalculator.php`) + frontend. Pas de migration, pas de changement `.env`.
+
+**Factures déjà émises :** ce correctif n'agit que sur les documents créés à partir de
+maintenant. Requête en lecture seule pour repérer d'éventuelles lignes anciennes
+incohérentes (à passer dans phpMyAdmin) :
+
+```sql
+SELECT id, numero_n, annee, non_taxable, taxable, tva, ttc,
+       ROUND(non_taxable + taxable + tva, 2) AS ttc_attendu
+FROM factures
+WHERE ROUND(non_taxable + taxable + tva, 2) <> ROUND(ttc, 2);
+```
+
+---
+
 ## 2026-08-11 (7) — Solde impayé: plain colored text instead of pills
 
 Tag: `prod-2026-08-11-7`

@@ -14,6 +14,12 @@ class FiscalCalculator
      - National: non_taxable = 0 (verrouillé). tva = taxable * 0.10. ttc = taxable * 1.10.
      - International: non_taxable = saisi. tva = taxable * 0.20. ttc = non_taxable + (taxable * 1.20).
      *
+     * Les bases (non_taxable, taxable) sont arrondies au centime AVANT d'en deriver
+     * la TVA et le TTC. C'est ce qui garantit l'invariant fiscal
+     * ttc = non_taxable + taxable + tva sur les valeurs stockees : une saisie a
+     * 3 decimales (86,825) donnerait sinon un total qui ne correspond pas aux
+     * lignes imprimees sur la facture (86,83 + 17,37 + 330,81 = 435,01, pas 435,00).
+     *
      * Retourne [taux_tva, non_taxable, taxable, tva, ttc].
      */
     public static function compute(string $typeDestination, float $taxable, float $nonTaxable = 0.0): array
@@ -49,22 +55,22 @@ class FiscalCalculator
 
     private static function national(float $taxable): array
     {
-        $taxable = max(0, $taxable);
+        $taxable = round(max(0, $taxable), 2);
         $taux = self::TVA_NATIONAL;
         $tva = round($taxable * ($taux / 100), 2);
         $ttc = round($taxable + $tva, 2);
 
-        return [$taux, 0.0, round($taxable, 2), $tva, $ttc];
+        return [$taux, 0.0, $taxable, $tva, $ttc];
     }
 
     private static function international(float $taxable, float $nonTaxable): array
     {
-        $taxable = max(0, $taxable);
-        $nonTaxable = max(0, $nonTaxable);
+        $taxable = round(max(0, $taxable), 2);
+        $nonTaxable = round(max(0, $nonTaxable), 2);
         $taux = self::TVA_INTERNATIONAL;
         $tva = round($taxable * ($taux / 100), 2);
         $ttc = round($nonTaxable + $taxable + $tva, 2);
 
-        return [$taux, round($nonTaxable, 2), round($taxable, 2), $tva, $ttc];
+        return [$taux, $nonTaxable, $taxable, $tva, $ttc];
     }
 }

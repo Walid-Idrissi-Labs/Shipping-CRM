@@ -9,6 +9,7 @@ import { FileText, Eye, Download, Plus, List } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { useSuccess } from '../../contexts/SuccessModalContext';
 import PageLoader from '../../components/ui/PageLoader';
+import { computeFiscal } from '../../lib/fiscal';
 
 const today = () => new Date().toISOString().split('T')[0];
 const inThirtyDays = () => {
@@ -93,13 +94,16 @@ export default function InvoiceCreate() {
     }
   }, [typeDestination]);
 
-  const numericTaxable = parseFloat(taxable || 0);
-  const numericNonTaxable = typeDestination === 'national' ? 0 : parseFloat(nonTaxable || 0);
-  const taux = typeDestination === 'national' ? 0.10 : 0.20;
-  const computedTva = +(numericTaxable * taux).toFixed(2);
-  const computedTtc = typeDestination === 'national'
-    ? +(numericTaxable + computedTva).toFixed(2)
-    : +(numericNonTaxable + numericTaxable + computedTva).toFixed(2);
+  // Meme ordre de calcul que FiscalCalculator cote serveur : bases arrondies au
+  // centime d'abord, TVA et TTC derives ensuite. L'apercu affiche donc exactement
+  // ce qui sera enregistre, et les trois lignes s'additionnent bien au total.
+  const {
+    taux,
+    nonTaxable: numericNonTaxable,
+    taxable: numericTaxable,
+    tva: computedTva,
+    ttc: computedTtc,
+  } = computeFiscal(typeDestination, taxable || 0, nonTaxable || 0);
   const numeroLabel = `FE ${numeroN || numeroSequence}/${numeroYear}`;
 
   const toggleShipment = (id) => {
